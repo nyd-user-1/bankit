@@ -265,6 +265,44 @@
   .hs-lb .row.r3 .rk{color:#c08552}
   .hs .actions{display:flex;justify-content:center;margin-top:22px}
 
+  /* ===== CATEGORIES (full catalog — big portrait cards) ===== */
+  .cats{max-width:1040px}
+  .cats h2{font-family:var(--font-display);font-size:30px;text-align:center;margin-bottom:2px;color:var(--ink)}
+  .cats .sub{text-align:center;color:var(--ink-dim);font-weight:800;margin-bottom:22px}
+  .catgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+  @media(min-width:680px){.catgrid{grid-template-columns:repeat(3,1fr)}}
+  @media(min-width:980px){.catgrid{grid-template-columns:repeat(4,1fr)}}
+  /* the portrait card = a tall version of the .cat bar */
+  .pcat{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:14px;
+    border-radius:22px;padding:28px 18px 24px;color:#fff;text-align:center;position:relative;top:0;min-height:200px;
+    box-shadow:0 8px 0 var(--csh);transition:top .1s,box-shadow .1s}
+  .pcat:hover{top:-4px;box-shadow:0 12px 0 var(--csh)}
+  .pcat:active{top:4px;box-shadow:0 2px 0 var(--csh)}
+  .pcat .ic{font-size:54px;line-height:1;filter:drop-shadow(0 4px 0 rgba(0,0,0,.16));margin-top:6px}
+  .pcat .cname{font-family:var(--font-display);font-size:19px;line-height:1.08;letter-spacing:.01em}
+  .pcat .done{margin-top:auto;font-size:12px;font-weight:900;background:rgba(255,255,255,.22);padding:5px 13px;border-radius:100px;backdrop-filter:blur(5px)}
+  .pcat.c0{background:var(--purple);--csh:#6d3fd6}
+  .pcat.c1{background:var(--teal);--csh:var(--teal-sh);color:#053d38}
+  .pcat.c2{background:var(--pink);--csh:#cc2f6e}
+  .pcat.c3{background:var(--green);--csh:var(--green-sh)}
+
+  /* ===== HOW TO PLAY / ABOUT (simple content screens) ===== */
+  .doc{max-width:560px}
+  .doc h2{font-family:var(--font-display);font-size:30px;text-align:center;margin-bottom:4px;color:var(--ink)}
+  .doc .sub{text-align:center;color:var(--ink-dim);font-weight:800;font-size:14px;margin-bottom:22px}
+  .doc-step{display:flex;align-items:center;gap:15px;background:var(--panel-2);border-radius:16px;padding:16px 18px;margin-bottom:13px}
+  .doc-step:last-of-type{margin-bottom:0}
+  .doc-step .n{width:38px;height:38px;flex-shrink:0;border-radius:11px;display:grid;place-items:center;color:#fff;
+    font-family:var(--font-display);font-size:18px;box-shadow:0 4px 0 var(--nsh)}
+  .doc-step:nth-child(odd) .n{background:var(--purple);--nsh:#6d3fd6}
+  .doc-step:nth-child(even) .n{background:var(--pink);--nsh:#cc2f6e}
+  .doc-step .t{font-weight:800;font-size:14.5px;color:var(--ink);line-height:1.4}
+  .doc-step .t b{color:var(--purple)}
+  :root[data-theme="dark"] .doc-step .t b{color:#c4a0ff}
+  .doc-p{color:var(--ink-dim);font-weight:700;font-size:15px;line-height:1.65;text-align:center;margin-bottom:14px}
+  .doc-p:last-child{margin-bottom:0}
+  .doc .actions{display:flex;justify-content:center;margin-top:24px}
+
   /* ===== PLAYGROUND ===== */
   .pg-launch{position:fixed;right:22px;bottom:22px;z-index:40;width:50px;height:50px;border-radius:14px;
     background:var(--panel);color:var(--ink);box-shadow:0 5px 0 var(--shadow);display:grid;place-items:center;transition:transform .08s,box-shadow .08s}
@@ -316,11 +354,11 @@
 <!-- ===== MENU (dropdown under the menu button) ===== -->
 <div class="menu-panel" id="menuPanel" role="menu" aria-label="Menu">
   <div class="menu-head"><span class="menu-title">☰ Menu</span></div>
-  <button class="menu-item m0" role="menuitem"><span class="mi-ic">🏠</span><span class="mi-label">Home</span></button>
-  <button class="menu-item m1" role="menuitem"><span class="mi-ic">🗂️</span><span class="mi-label">All categories</span></button>
+  <button class="menu-item m0" id="miStart" role="menuitem"><span class="mi-ic">🏠</span><span class="mi-label">Start</span></button>
+  <button class="menu-item m1" id="miCategories" role="menuitem"><span class="mi-ic">🗂️</span><span class="mi-label">All categories</span></button>
   <button class="menu-item m2" id="miHighScores" role="menuitem"><span class="mi-ic">🏆</span><span class="mi-label">High scores</span></button>
-  <button class="menu-item m3" role="menuitem"><span class="mi-ic">❓</span><span class="mi-label">How to play</span></button>
-  <button class="menu-item m4" role="menuitem"><span class="mi-ic">ℹ️</span><span class="mi-label">About</span></button>
+  <button class="menu-item m3" id="miHowTo" role="menuitem"><span class="mi-ic">❓</span><span class="mi-label">How to play</span></button>
+  <button class="menu-item m4" id="miAbout" role="menuitem"><span class="mi-ic">ℹ️</span><span class="mi-label">About</span></button>
 </div>
 
 <div class="stage">
@@ -407,6 +445,44 @@
 
       <div class="hs-head">Top bankers · this week</div>
       <div class="hs-lb" id="hsLb"></div>
+    </div>
+  </section>
+
+  <!-- ===== CATEGORIES (full catalog) ===== -->
+  <section class="screen cats wide" id="scCategories">
+    <div class="card">
+      <h2>All categories</h2>
+      <div class="sub" id="catsSub">every board · pick your poison</div>
+      <div class="catgrid" id="catgrid"></div>
+      <div class="actions" style="display:flex;justify-content:center;margin-top:22px">
+        <button class="btn ghost" id="catsBack">← Back to start</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== HOW TO PLAY ===== -->
+  <section class="screen doc" id="scHowTo">
+    <div class="card">
+      <h2>How to play</h2>
+      <div class="sub">bank points, dodge the duds, quit while you're ahead</div>
+      <div class="doc-step"><span class="n">1</span><span class="t">Pick a category. You'll see <b>20</b> answers — but only <b>10</b> are really on the hidden list.</span></div>
+      <div class="doc-step"><span class="n">2</span><span class="t">Tap the answers you think made the list. Each correct tap is <b>+1</b>.</span></div>
+      <div class="doc-step"><span class="n">3</span><span class="t">Tap a wrong one and the round is <b>over</b> — you lose what you hadn't banked.</span></div>
+      <div class="doc-step"><span class="n">4</span><span class="t">Not sure? Hit <b>Bank it &amp; stop</b> to lock in your points and walk away safe.</span></div>
+      <div class="doc-p" style="margin-top:18px">The whole game is knowing when to stop. Greed busts runs.</div>
+      <div class="actions"><button class="btn teal" id="howToPlay">Let's play! →</button></div>
+    </div>
+  </section>
+
+  <!-- ===== ABOUT ===== -->
+  <section class="screen doc" id="scAbout">
+    <div class="card">
+      <h2>About</h2>
+      <div class="sub">a quick push-your-luck party game</div>
+      <div class="doc-p"><b>Bank It</b> is a tiny game about nerve. Every board hides a Top-10 list among 20 tempting options — find the real ones, bank your points, and don't get greedy.</div>
+      <div class="doc-p">New categories drop all the time. Think you can sweep a board clean?</div>
+      <div class="doc-p" style="opacity:.7;font-size:13px;margin-top:18px">Made for fun. More coming soon.</div>
+      <div class="actions"><button class="btn ghost" id="aboutBack">← Back to start</button></div>
     </div>
   </section>
 
@@ -510,6 +586,23 @@ async function renderPick(){
     const slot = (b.colorSlot ?? i) % 4;   // color comes from the board, cycling 0..3
     const btn=document.createElement('button'); btn.className='cat c'+slot+(S.played[i]?' played':'');
     btn.innerHTML=`<span class="ic">${b.icon}</span><div class="ct"><div class="cname">${b.title}</div></div>`+
+      `<span class="done">${S.played[i]?'played ✓':'for fun'}</span>`;
+    btn.onclick=()=>startBoard(i);
+    wrap.appendChild(btn);
+  });
+}
+
+//// ===== full catalog (Categories screen) — big portrait cards =====
+async function renderCategories(){
+  await boardsLoaded;
+  const n=BOARDS.length;
+  const words=['zero','one','two','three','four','five','six','seven','eight','nine','ten'];
+  $('catsSub').textContent=`${words[n]||n} boards · all fun`;
+  const wrap=$('catgrid'); wrap.innerHTML='';
+  BOARDS.forEach((b,i)=>{
+    const slot=(b.colorSlot ?? i) % 4;
+    const btn=document.createElement('button'); btn.className='pcat c'+slot+(S.played[i]?' played':'');
+    btn.innerHTML=`<span class="ic">${b.icon}</span><div class="cname">${b.title}</div>`+
       `<span class="done">${S.played[i]?'played ✓':'for fun'}</span>`;
     btn.onclick=()=>startBoard(i);
     wrap.appendChild(btn);
@@ -731,9 +824,18 @@ $('rRetry').onclick=()=>startBoard(S.bi);
   btn.onclick=e=>{ e.stopPropagation(); setOpen(!panel.classList.contains('open')); };
   document.addEventListener('click',e=>{ if(!panel.contains(e.target)&&e.target!==btn&&!btn.contains(e.target)) setOpen(false); });
   document.addEventListener('keydown',e=>{ if(e.key==='Escape') setOpen(false); });
-  // wire the High Scores menu item to its screen
-  $('miHighScores').onclick=()=>{ setOpen(false); renderHighScores(); show('scHighScores'); };
+  // wire each menu item to its screen
+  const go=fn=>{ setOpen(false); fn(); };
+  $('miStart').onclick      =()=>go(()=>show('scStart'));
+  $('miCategories').onclick =()=>go(()=>{ show('scCategories'); renderCategories(); });
+  $('miHighScores').onclick =()=>go(()=>{ show('scHighScores'); renderHighScores(); });
+  $('miHowTo').onclick      =()=>go(()=>show('scHowTo'));
+  $('miAbout').onclick      =()=>go(()=>show('scAbout'));
 })();
+// back / play buttons on the new screens
+$('catsBack').onclick =()=>show('scStart');
+$('howToPlay').onclick=()=>{ show('scPick'); renderPick(); };
+$('aboutBack').onclick=()=>show('scStart');
 (function(){
   const root=document.documentElement, rs=root.style;
   const panel=$('pgPanel'), launch=$('pgLaunch');
