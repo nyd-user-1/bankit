@@ -2,9 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Bank It — a party game</title>
 <meta name="description" content="Bank It — a quick party game. Pick a category, see 20 answers, and tap the ten you think are on the hidden list. Push your luck: every hit scores, one wrong tap ends the round — so bank it before you bust." />
+<!-- PWA: launches fullscreen (no Safari chrome) when added to the home screen -->
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content="#ff7a3c" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Bank It" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Nunito:ital,wght@0,600;0,700;0,800;0,900;1,800&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet" />
@@ -54,9 +61,11 @@
   }
   :root{color-scheme:light} :root[data-theme="dark"]{color-scheme:dark}
   *{box-sizing:border-box;margin:0;padding:0}
-  html,body{height:100%}
+  html,body{min-height:100%}
+  /* the PAGE scrolls (not an inner container) so mobile Safari collapses its toolbar on scroll */
   body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-weight:700;
-    -webkit-font-smoothing:antialiased;overflow:hidden;transition:background .4s ease,color .4s ease;
+    -webkit-font-smoothing:antialiased;transition:background .4s ease,color .4s ease;
+    background-attachment:fixed;
     background-image:radial-gradient(circle at 18% 16%, rgba(255,255,255,.10), transparent 42%),radial-gradient(circle at 84% 82%, rgba(255,255,255,.07), transparent 46%)}
   a{color:inherit;text-decoration:none}
   button{font-family:inherit;cursor:pointer;border:none}
@@ -66,11 +75,12 @@
   .bgfloat .b{position:absolute;border-radius:50%;opacity:.16;animation:bob 7s ease-in-out infinite}
   @keyframes bob{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-26px) rotate(6deg)}}
 
-  /* the stage is a fixed-height scroll viewport: short content centers, tall content (the board on
-     mobile) scrolls INSIDE it. fixed height (not min-height) is what makes overflow scrollable
-     since body is overflow:hidden. place-items:safe center prevents the top getting clipped. */
-  .stage{position:relative;z-index:2;height:100dvh;display:grid;place-items:safe center;justify-items:center;
-    padding:78px 20px 70px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  /* the stage grows with the PAGE (min-height, not fixed) so the body scrolls — that lets mobile
+     Safari hide its toolbar. flex column + the .screen's margin:auto centers short content and lets
+     tall content (the board) push the page taller, scrollable, never clipped at the top. */
+  .stage{position:relative;z-index:2;min-height:100dvh;display:flex;flex-direction:column;align-items:center;
+    padding:78px 20px 70px}
+  .stage .screen.on{margin-top:auto;margin-bottom:auto}   /* vertical-center within the leftover space */
 
   /* ===== chunky button ===== */
   .btn{font-family:var(--font-display);font-size:21px;letter-spacing:.02em;color:#fff;background:var(--purple);
