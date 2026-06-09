@@ -691,6 +691,7 @@ function tap(idx,el){
     el.classList.add('hit'); S.found++; S.score++;
     $('bFound').textContent=S.found; $('bScore').textContent=S.score;
     renderPips();
+    sndPoint(S.found);   // bright coin ding, pitch climbs with the streak
     flash(S.found===10?'PERFECT! 🏆':'+1 ✔', 'hit');
     if(S.found===10) endRound('clear');
   } else {
@@ -833,19 +834,40 @@ function sndTrombone(){ const ctx=_ac(), t=ctx.currentTime;
 const FAIL_SNDS=[sndBuzz, sndZap, sndRetro, sndTrombone];
 function playFail(boardIdx){ try{ (FAIL_SNDS[boardIdx]||sndBuzz)(); }catch(e){} }
 
-// "cha-ching" — bright register-bell two-note + a sprinkle of coin clinks
+// short noise burst (used for the register's mechanical "ka-" click)
+function _noise(ctx,t,dur,vol,hp){
+  const buf=ctx.createBuffer(1,Math.ceil(ctx.sampleRate*dur),ctx.sampleRate);
+  const d=buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.sin(i*12.9898)*43758.5453%1)*2-1;
+  const src=ctx.createBufferSource(); src.buffer=buf;
+  const g=ctx.createGain(); g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  let node=src;
+  if(hp){ const f=ctx.createBiquadFilter(); f.type='highpass'; f.frequency.value=hp; src.connect(f); node=f; }
+  node.connect(g).connect(ctx.destination); src.start(t); src.stop(t+dur+0.01);
+}
+
+// +1 on a correct tap — a quick bright coin "ding"; pitch climbs with the streak
+function sndPoint(streak){ try{
+  const ctx=_ac(), t=ctx.currentTime;
+  const step=Math.min((streak||1)-1,12);
+  const f=880*Math.pow(2, step/12);           // semitone climb per consecutive hit
+  _tone(ctx,t,        'triangle',f,    f,    0.09,0.16);
+  _tone(ctx,t+0.012,  'triangle',f*1.5,f*1.5,0.12,0.12);  // a fifth on top = chime sparkle
+}catch(e){} }
+
+// "cha-ching" — a real cash register: mechanical KA- click + drawer, then the CHING bell
 function sndCoins(n){ try{
   const ctx=_ac(), t=ctx.currentTime;
-  // the two-note "cha-CHING" bell (E6 → A6, triangle = bell-ish)
-  _tone(ctx,t,      'triangle',1318.5,1318.5,0.12,0.18);
-  _tone(ctx,t+0.09, 'triangle',1760.0,1760.0,0.32,0.22);
-  _tone(ctx,t+0.09, 'sine',    880.0, 880.0, 0.32,0.10);  // octave-down body
-  // coin clinks raining in
-  const clinks=Math.min(n||6,10);
-  for(let i=0;i<clinks;i++){
-    const st=t+0.05+i*0.045, f=1900+(i%4)*220;
-    _tone(ctx,st,'square',f,f*0.6,0.06,0.06);
-  }
+  // "KA-" — the mechanical key/drawer clunk (filtered noise click + a low body thunk)
+  _noise(ctx,t,0.05,0.5,1200);
+  _tone(ctx,t,'square',180,90,0.07,0.16);
+  // "-CHING!" — the bright bell, a beat later (two bell partials + body)
+  const c=t+0.13;
+  _tone(ctx,c,        'triangle',1244.5,1244.5,0.5,0.22);  // D#6
+  _tone(ctx,c+0.005,  'triangle',1864.7,1864.7,0.5,0.16);  // A#6 — bell shimmer
+  _tone(ctx,c,        'sine',    622.3, 622.3, 0.45,0.12);  // octave-down body
+  // a few coin clinks settling into the drawer
+  const clinks=Math.min(n||6,8);
+  for(let i=0;i<clinks;i++){ _noise(ctx, c+0.08+i*0.05, 0.03, 0.12, 3000); }
 }catch(e){} }
 
 //// ===== high scores (live from /api/scores) =====
