@@ -177,6 +177,31 @@
   .auth .switch button{background:none;border:none;color:var(--ink-dim);font-weight:800;font-size:13px;cursor:pointer;text-decoration:underline;font-family:inherit}
   .auth .switch button:hover{color:var(--ink)}
 
+  /* ===== ME (player profile) ===== */
+  .me-hero{display:flex;flex-direction:column;align-items:center;gap:5px;background:var(--panel-2);border-radius:20px;padding:22px 22px 20px;margin-bottom:16px}
+  .me-av{font-size:52px;line-height:1}
+  .me-name{font-family:var(--font-display);font-size:28px;color:var(--ink);text-align:center;line-height:1.05;word-break:break-word}
+  .me-pts{font-weight:800;color:var(--ink-dim);font-size:14px}
+  .me-pts b{color:var(--teal-ink,var(--ink));font-family:var(--font-display);font-size:20px}
+  .me-stats{display:flex;justify-content:center;gap:11px;margin-bottom:8px}
+  .me-stats .stat{background:var(--panel-2);border-radius:16px;padding:13px 16px;min-width:90px;text-align:center}
+  .me-stats .stat .n{font-family:var(--font-display);font-size:24px;color:var(--ink)}
+  .me-stats .stat .l{font-size:10.5px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);margin-top:2px}
+  .me-head{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin:18px 4px 9px}
+  .me-swept{display:flex;flex-direction:column;gap:8px;margin-bottom:6px}
+  .me-trophy{display:flex;align-items:center;gap:13px;border-radius:14px;padding:11px 15px;color:#fff;box-shadow:0 4px 0 var(--csh)}
+  .me-trophy.c0{background:var(--purple);--csh:#6d3fd6} .me-trophy.c1{background:var(--teal);--csh:var(--teal-sh);color:#053d38}
+  .me-trophy.c2{background:var(--pink);--csh:#cc2f6e} .me-trophy.c3{background:var(--green);--csh:var(--green-sh)}
+  .me-trophy .ic{font-size:23px;flex-shrink:0;filter:drop-shadow(0 2px 0 rgba(0,0,0,.15))}
+  .me-trophy .tname{flex:1;min-width:0;font-family:var(--font-display);font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .me-trophy .tag{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;background:rgba(255,255,255,.24);padding:3px 9px;border-radius:100px;flex-shrink:0}
+  .me-empty{color:var(--ink-dim);font-weight:800;font-size:13.5px;text-align:center;background:var(--panel-2);border-radius:14px;padding:18px 16px;line-height:1.5}
+  .me .actions{display:flex;gap:11px;justify-content:center;margin-top:20px}
+  .me .actions .btn{flex:1;justify-content:center}
+  .me-switch{text-align:center;margin-top:14px}
+  .me-switch button{background:none;border:none;color:var(--ink-faint);font-weight:800;font-size:12.5px;cursor:pointer;text-decoration:underline;font-family:inherit}
+  .me-switch button:hover{color:var(--ink-dim)}
+
   /* ===== CATEGORY PICK ===== */
   .pick h2{font-family:var(--font-display);font-size:30px;text-align:center;margin-bottom:24px;color:var(--ink)}
   .pick .sub{text-align:center;color:var(--ink-dim);font-weight:800;margin-bottom:22px}
@@ -442,7 +467,7 @@
   <button class="menu-item m1" id="miCategories" role="menuitem"><span class="mi-ic">🗂️</span><span class="mi-label">All categories</span></button>
   <button class="menu-item m2" id="miHighScores" role="menuitem"><span class="mi-ic">🏆</span><span class="mi-label">High scores</span></button>
   <button class="menu-item m3" id="miHowTo" role="menuitem"><span class="mi-ic">❓</span><span class="mi-label">How to play</span></button>
-  <button class="menu-item m4" id="miAbout" role="menuitem"><span class="mi-ic">ℹ️</span><span class="mi-label">About</span></button>
+  <button class="menu-item m4" id="miMe" role="menuitem"><span class="mi-ic">👤</span><span class="mi-label">Me</span></button>
   <button class="menu-item m5 menu-theme" id="miTheme" role="menuitem"><span class="mi-ic" id="miThemeIc">🌙</span><span class="mi-label" id="miThemeLbl">Dark mode</span></button>
 </div>
 
@@ -590,15 +615,36 @@
     </div>
   </section>
 
-  <!-- ===== ABOUT ===== -->
-  <section class="screen doc" id="scAbout">
+  <!-- ===== ME (player profile) ===== -->
+  <section class="screen me" id="scMe">
     <div class="card">
-      <h2>About</h2>
-      <div class="sub">a quick push-your-luck party game</div>
-      <div class="doc-p"><b>Bank It</b> is a tiny game about nerve. Every board hides a Top-10 list among 20 tempting options — find the real ones, bank your points, and don't get greedy.</div>
-      <div class="doc-p">New categories drop all the time. Think you can sweep a board clean?</div>
-      <div class="doc-p" style="opacity:.7;font-size:13px;margin-top:18px">Made for fun. More coming soon.</div>
-      <div class="actions"><button class="btn ghost" id="aboutBack">← Back to start</button></div>
+      <!-- signed-in profile -->
+      <div id="meProfile">
+        <div class="me-hero">
+          <div class="me-av" id="meAv">🎯</div>
+          <div class="me-name" id="meName">Player</div>
+          <div class="me-pts"><b id="mePts">0</b> points banked</div>
+        </div>
+        <div class="me-stats">
+          <div class="stat"><div class="n" id="meSweeps">0</div><div class="l">boards swept</div></div>
+          <div class="stat"><div class="n" id="meBest">0</div><div class="l">best run</div></div>
+          <div class="stat"><div class="n" id="meRuns">0</div><div class="l">runs played</div></div>
+        </div>
+        <div class="me-head">🧹 Boards you've swept clean</div>
+        <div class="me-swept" id="meSwept"></div>
+        <div class="actions">
+          <button class="btn teal" id="mePlay">Play →</button>
+          <button class="btn ghost" id="meBack">← Back to start</button>
+        </div>
+        <div class="me-switch"><button id="meSwitch" type="button">Sign out / switch player</button></div>
+      </div>
+      <!-- signed-out fallback: invite to sign in -->
+      <div id="meSignedOut" style="display:none">
+        <h2>Your profile</h2>
+        <div class="sub">Sign in to start banking points that stick around.</div>
+        <div class="actions"><button class="btn go" id="meSignIn">Sign in →</button></div>
+        <div class="actions" style="margin-top:10px"><button class="btn ghost" id="meBack2">← Back to start</button></div>
+      </div>
     </div>
   </section>
 
@@ -701,20 +747,34 @@ const S = { bi:0, board:null, tiles:[], found:0, score:0, ended:false, played:{}
 const $ = id=>document.getElementById(id);
 function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); $(id).classList.add('on'); }
 
-//// ===== user / sign-in (username only, remembered on this device) =====
+//// ===== user / sign-in (username only) =====
+// localStorage holds IDENTITY ONLY (name + avatar). All points/stats live in the DB,
+// keyed by username, so they follow the player across devices.
 const USER_KEY = 'bankit-user-v1';
 const AVATARS = ['🎯','🦊','🐙','🐝','🐸','🐼','🦄','🐲','🦅','🐯','👾','🤖'];
-let USER = null;          // { name, avatar, points }
+let USER = null;          // { name, avatar }  — identity only
+let STATS = null;         // { total_points, runs, sweeps, best, sweptBoards:[] } — from the DB
 let pendingAvatar = AVATARS[0];
 
 function loadUser(){
   try{ const raw=localStorage.getItem(USER_KEY); if(raw){ const u=JSON.parse(raw);
-    if(u && u.name){ USER = { name:String(u.name), avatar:u.avatar||'🎯', points:Math.max(0, u.points|0) }; } }
+    if(u && u.name){ USER = { name:String(u.name), avatar:u.avatar||'🎯' }; } }
   }catch(e){ USER=null; }
   return USER;
 }
 function saveUser(){ try{ localStorage.setItem(USER_KEY, JSON.stringify(USER)); }catch(e){} }
-function addPoints(n){ if(USER && n>0){ USER.points += n; saveUser(); } }
+
+// pull this player's lifetime stats from the DB (best-effort; null on failure)
+async function fetchStats(){
+  if(!(USER && USER.name)){ STATS=null; return null; }
+  try{
+    const r=await fetch('/api/players?name='+encodeURIComponent(USER.name));
+    if(r.ok){ const d=await r.json();
+      STATS = { ...(d.player||{}), sweptBoards: d.sweptBoards||[] };
+      return STATS; }
+  }catch(e){}
+  STATS=null; return null;
+}
 
 // build the avatar picker (once)
 function buildAvatars(){
@@ -735,7 +795,10 @@ function renderAuth(){
   if(known){
     $('wbAv').textContent   = USER.avatar||'🎯';
     $('wbName').textContent = USER.name;
-    $('wbPts').textContent  = USER.points|0;
+    $('wbPts').textContent  = (STATS && STATS.total_points!=null) ? STATS.total_points : '…';
+    // refresh from the DB, then fill in the real total
+    fetchStats().then(()=>{ if($('authWelcome').style.display!=='none')
+      $('wbPts').textContent = (STATS && STATS.total_points!=null) ? STATS.total_points : 0; });
   } else {
     $('authErr').textContent='';
     // default the picker back to the first avatar for a clean sign-up
@@ -749,11 +812,42 @@ function renderAuth(){
 function commitSignup(){
   const name=$('unameInput').value.trim().replace(/\s+/g,' ').slice(0,20);
   if(name.length<2){ $('authErr').textContent='Pick a name with at least 2 letters.'; $('unameInput').focus(); return; }
-  USER = { name, avatar:pendingAvatar, points:(USER&&USER.points)|0 };
+  USER = { name, avatar:pendingAvatar };
   saveUser();
+  fetchStats();          // warm the profile/stats in the background
   goToPick();
 }
 function goToPick(){ show('scPick'); renderPick(); }
+
+//// ===== profile ("Me") screen =====
+function fillProfile(){
+  $('meAv').textContent   = (USER && USER.avatar) || '🎯';
+  $('meName').textContent = (USER && USER.name) || 'Player';
+  const s = STATS || {};
+  $('mePts').textContent    = s.total_points!=null ? s.total_points : '…';
+  $('meSweeps').textContent = s.sweeps|0;
+  $('meBest').textContent   = s.best|0;
+  $('meRuns').textContent   = s.runs|0;
+  const wrap=$('meSwept'); wrap.innerHTML='';
+  const swept = (s.sweptBoards)||[];
+  if(!swept.length){
+    wrap.innerHTML='<div class="me-empty">No clean sweeps yet — get all 10 on a board and it shows up here. 🧹</div>';
+  } else {
+    swept.forEach(b=>{
+      const slot=(b.color_slot??0)%4;
+      const row=document.createElement('div'); row.className='me-trophy c'+slot;
+      row.innerHTML=`<span class="ic">${b.icon||'🎯'}</span><span class="tname">${b.title}</span><span class="tag">swept ✓</span>`;
+      wrap.appendChild(row);
+    });
+  }
+}
+function renderMe(){
+  const known = !!(USER && USER.name);
+  $('meProfile').style.display  = known ? '' : 'none';
+  $('meSignedOut').style.display= known ? 'none' : '';
+  if(known){ fillProfile(); fetchStats().then(()=>{ if($('scMe').classList.contains('on')) fillProfile(); }); }
+  show('scMe');
+}
 
 // deterministic shuffle (index-seeded — no Math.random)
 function shuffle(arr, seed){
@@ -932,13 +1026,12 @@ function confettiBurst(){
   }
 }
 
-// record the finished run to the leaderboard (best-effort; ignored if offline / no API)
+// record the finished run + update the player's lifetime totals in the DB
+// (best-effort; ignored if offline / no API). The server owns points now.
 function submitScore(how){
   const ended = how==='miss' ? 'busted' : how==='clear' ? 'clear' : 'banked';
-  // the points you locked in this round add to your lifetime total (counts even for fallback boards)
-  addPoints(S.score);
   const board_id = S.board && S.board.id != null ? S.board.id : null;
-  if(board_id==null) return;   // fallback boards have no DB id — skip the leaderboard post
+  if(board_id==null) return;   // fallback boards have no DB id — skip the post
   fetch('/api/scores',{
     method:'POST', headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
@@ -946,6 +1039,12 @@ function submitScore(how){
       avatar: (USER && USER.avatar) || '🎯',
       board_id, score:S.score, how_ended:ended
     })
+  }).then(r=>r.ok?r.json():null).then(d=>{
+    // fold the server's fresh totals into local STATS so the profile is up to date
+    if(d && d.player && STATS){ Object.assign(STATS, d.player); }
+    else if(d && d.player){ STATS = { ...d.player, sweptBoards: (STATS&&STATS.sweptBoards)||[] }; }
+    // a sweep just earned a new swept board — refresh the full stats (incl. sweptBoards list)
+    if(ended==='clear'){ fetchStats(); }
   }).catch(()=>{});
 }
 
@@ -1138,12 +1237,17 @@ $('unameInput').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventD
   $('miCategories').onclick =()=>go(()=>{ show('scCategories'); renderCategories(); });
   $('miHighScores').onclick =()=>go(()=>{ show('scHighScores'); renderHighScores(); });
   $('miHowTo').onclick      =()=>go(()=>show('scHowTo'));
-  $('miAbout').onclick      =()=>go(()=>show('scAbout'));
+  $('miMe').onclick         =()=>go(()=>renderMe());
 })();
 // back / play buttons on the new screens
 $('catsBack').onclick =()=>show('scStart');
 $('howToPlay').onclick=()=>{ if(USER && USER.name){ goToPick(); } else { playEntry(); } };
-$('aboutBack').onclick=()=>show('scStart');
+// profile ("Me") screen buttons
+$('mePlay').onclick   =()=>{ if(USER && USER.name){ goToPick(); } else { playEntry(); } };
+$('meBack').onclick   =()=>show('scStart');
+$('meBack2').onclick  =()=>show('scStart');
+$('meSignIn').onclick =playEntry;
+$('meSwitch').onclick =()=>{ USER=null; STATS=null; try{localStorage.removeItem(USER_KEY);}catch(e){} renderAuth(); $('unameInput').value=''; $('unameInput').focus(); };
 (function(){
   const root=document.documentElement, rs=root.style;
   const panel=$('pgPanel'), launch=$('pgLaunch');

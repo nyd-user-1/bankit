@@ -39,7 +39,24 @@ module.exports = async (req, res) => {
            VALUES ($1,$2,$3,$4,$5) RETURNING id, created_at`,
         [player_name, avatar, board_id, score, how_ended]
       );
-      res.status(201).json({ ok: true, id: rows[0].id });
+
+      // maintain the persistent per-username profile (lifetime points, runs, sweeps, best)
+      const swept = how_ended === 'clear' ? 1 : 0;
+      const { rows: pr } = await pool.query(
+        `INSERT INTO players (name_key, name, avatar, total_points, runs, sweeps, best, updated_at)
+           VALUES (lower(btrim($1)), $1, $2, $3::int, 1, $4::int, $3::smallint, now())
+         ON CONFLICT (name_key) DO UPDATE SET
+           total_points = players.total_points + EXCLUDED.total_points,
+           runs         = players.runs + 1,
+           sweeps       = players.sweeps + $4::int,
+           best         = GREATEST(players.best, EXCLUDED.best),
+           avatar       = EXCLUDED.avatar,
+           name         = EXCLUDED.name,
+           updated_at   = now()
+         RETURNING total_points, runs, sweeps, best`,
+        [player_name, avatar, score, swept]
+      );
+      res.status(201).json({ ok: true, id: rows[0].id, player: pr[0] || null });
     } catch (e) {
       res.status(500).json({ error: 'db_error', detail: String(e.message || e) });
     }

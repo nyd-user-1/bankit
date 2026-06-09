@@ -3,6 +3,7 @@
 
 DROP TABLE IF EXISTS board_answers CASCADE;
 DROP TABLE IF EXISTS scores CASCADE;
+DROP TABLE IF EXISTS players CASCADE;
 DROP TABLE IF EXISTS boards CASCADE;
 
 -- ===== question sets =====
@@ -38,3 +39,19 @@ CREATE TABLE scores (
 );
 CREATE INDEX idx_scores_board ON scores(board_id);
 CREATE INDEX idx_scores_score ON scores(score DESC);
+
+-- ===== players (persistent per-username profile / running totals) =====
+-- name_key = lowercased name, so 'FoxBanker' and 'foxbanker' are one profile.
+-- Aggregates are maintained on each finished round (see api/scores.js POST).
+CREATE TABLE players (
+  name_key     TEXT PRIMARY KEY,            -- lower(trim(name))
+  name         TEXT NOT NULL,               -- last-seen display name
+  avatar       TEXT NOT NULL DEFAULT '🎯',
+  total_points INTEGER NOT NULL DEFAULT 0,  -- lifetime banked points
+  runs         INTEGER NOT NULL DEFAULT 0,  -- rounds finished
+  sweeps       INTEGER NOT NULL DEFAULT 0,  -- perfect 10/10 clears
+  best         SMALLINT NOT NULL DEFAULT 0, -- best single-round score
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_players_points ON players(total_points DESC);
