@@ -50,7 +50,7 @@ Example: for "Girls' Names With 4 Letters" the decoys are OTHER real 4-letter gi
 trick is *which* names made the list, not name length. Same pattern for "Sweet Cereals" (decoys
 are other real sweet-cereal brands).
 
-## Players, points & the "Me" profile
+## Players, points & the Profile screen
 
 - **Points persist in the DB, keyed by username** — not in localStorage. localStorage
   (`bankit-user-v1`) holds **identity only**: `{name, avatar}`.
@@ -59,10 +59,11 @@ are other real sweet-cereal brands).
   every finished round** inside the `/api/scores` POST (same request that logs the score row).
 - The frontend's `STATS` object is fetched from `GET /api/players?name=` so stats follow the
   player across devices.
-- **Profile / "Me" screen** (`scMe`, menu item 👤 "Me"): avatar, name, lifetime points, a stat row
-  (boards swept / best run / runs played), and a trophy list of swept boards. This is the
-  permanent home for a perfect 10/10 sweep. The **High Scores** screen is the separate
-  global/leaderboard view.
+- **Profile screen** (`scProfile`, rendered by `renderProfile()`, menu item 👤 "Profile"): avatar,
+  name, lifetime points, a stat row (boards swept / best run / runs played), and a trophy list of
+  swept boards. Markup uses `.profile-*` classes and `profile*` element IDs (`profileAv`,
+  `profileName`, `profilePts`, `profileSweeps`, …). This is the permanent home for a perfect 10/10
+  sweep. The **High Scores** screen is the separate global/leaderboard view.
 - **No password** — username-only auth means whoever types a name owns that profile. Acceptable
   for a party game; a PIN could be added later for true ownership.
 - **SQL gotcha:** in the players upsert, a single param used as both `int` (`total_points`) and
@@ -71,7 +72,7 @@ are other real sweet-cereal brands).
 
 ## Screen flow
 
-`Start → scAuth (sign in/up) → Pick → Board → Results`, plus `scMe` (profile), `scHighScores`,
+`Start → scAuth (sign in/up) → Pick → Board → Results`, plus `scProfile` (profile), `scHighScores`,
 `scHowTo`, `scCategories` (all boards). "Let's play" runs `playEntry()` → `renderAuth()`.
 
 - **Pick a Category is randomized:** `renderPick` shuffles board indices and shows `PICK_COUNT`
