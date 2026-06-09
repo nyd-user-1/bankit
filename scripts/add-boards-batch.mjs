@@ -1,22 +1,19 @@
-// One-off: add the four new boards to the DB. Run: node scripts/add-boards-batch.mjs
+// One-off: add boards to the DB. Run: node scripts/add-boards-batch.mjs
 // Idempotent on slug; appends after the current max sort_order. Mirrors index.html FALLBACK_BOARDS.
 import dotenv from 'dotenv'; dotenv.config({ path: '.env.local' });
 import pg from 'pg';
 const c = new pg.Client({ connectionString: process.env.DATABASE_URL });
 
 const BOARDS = [
-  { slug:'jelly-bean-colors', icon:'🫘', color:0, title:'Jelly Bean Colors',
-    answers:['Red','Black','Orange','Yellow','Green','Purple','Pink','White','Brown','Aqua'],
-    decoys:['Teal','Magenta','Lime','Gold','Silver','Tan','Maroon','Navy','Gray','Coral'] },
-  { slug:'girls-names-4-letters', icon:'👧', color:1, title:'Girls’ Names With 4 Letters',
-    answers:['Mary','Kris','Jill','Lynn','Jean','Beth','Tina','Lisa','Cary','Jody'],
-    decoys:['Anna','Erin','Gail','Joan','Kara','Nina','Ruth','Sara','Toni','Dawn'] },
-  { slug:'fast-food-places', icon:'🍔', color:2, title:'Fast-Food Places',
-    answers:['McDonald’s','Burger King','Taco Bell','Arby’s','Kentucky Fried Chicken','Wendy’s','Pizza Hut','Dairy Queen','Popeye’s','Jack-in-the-Box'],
-    decoys:['Subway','Chick-fil-A','Hardee’s','Sonic','Carl’s Jr.','White Castle','Long John Silver’s','Five Guys','Domino’s','Chipotle'] },
-  { slug:'sour-things', icon:'🤢', color:3, title:'Sour Things',
-    answers:['Lemon','Lime','Dill pickle','Vinegar','Lemonade','Grapefruit','Spoiled milk','Sour cream','Bad grapes','Sour ball candy'],
-    decoys:['Green apple','Tamarind','Sauerkraut','Buttermilk','Cranberries','Kombucha','Sourdough bread','Yogurt','Rhubarb','Kimchi'] },
+  { slug:'cereals-adults-like', icon:'🥣', color:0, title:'Cereals Adults Like',
+    answers:['Cheerios','Wheaties','Corn Flakes','Rice Krispies','Raisin Bran','Total','Shredded Wheat','Special K','Bran Flakes','Product 19'],
+    decoys:['Grape-Nuts','All-Bran','Cracklin’ Oat Bran','Müeslix','Life','Kix','Chex','Oatmeal Squares','Fiber One','Grape-Nuts Flakes'] },
+  { slug:'kids-bathtime', icon:'🛁', color:1, title:'Things Little Kids Use at Bathtime',
+    answers:['Soap','Shampoo','Washcloth','Bubble bath','Towel','Water','Boat','Toys','Sponge','Rubber duckie'],
+    decoys:['Conditioner','Loofah','Bath crayons','Squirt gun','Bath robe','Cup','Foam letters','Shower cap','Tub mat','Bath book'] },
+  { slug:'sweet-cereals-brands', icon:'🍭', color:2, title:'Sweet Cereals (Brands)',
+    answers:['Froot Loops','Frosted Flakes','Corn Pops','Lucky Charms','Cap’n Crunch','Apple Jacks','Honeycombs','Cocoa Puffs','Super Golden Crisp','Croonchy Stars'],
+    decoys:['Trix','Cocoa Pebbles','Fruity Pebbles','Cinnamon Toast Crunch','Cookie Crisp','Frosted Mini-Wheats','Honey Smacks','Reese’s Puffs','Count Chocula','Cinnamon Grahams'] },
 ];
 
 await c.connect();
