@@ -151,6 +151,32 @@
   .rule:nth-child(3) .n{background:var(--yellow);box-shadow:0 3px 0 #d9a800;color:#5a4500}
   .start .go{width:100%;justify-content:center;font-size:23px}
 
+  /* ===== SIGN IN / SIGN UP ===== */
+  .auth h2{font-family:var(--font-display);font-size:30px;text-align:center;margin-bottom:6px;color:var(--ink)}
+  .auth .sub{text-align:center;color:var(--ink-dim);font-size:14px;margin-bottom:22px;font-weight:800;line-height:1.5}
+  .auth .field{margin-bottom:18px}
+  .auth label.lbl{display:block;font-weight:800;font-size:13px;color:var(--ink-dim);margin-bottom:8px;letter-spacing:.02em}
+  .auth input.uname{width:100%;font-family:var(--font-display);font-size:22px;color:var(--ink);background:var(--panel-2);
+    border:3px solid transparent;border-radius:16px;padding:14px 18px;outline:none;transition:border-color .15s,box-shadow .15s}
+  .auth input.uname::placeholder{color:var(--ink-dim);opacity:.5}
+  .auth input.uname:focus{border-color:var(--teal);box-shadow:0 0 0 4px var(--teal-soft,rgba(31,199,182,.22))}
+  .auth .avrow{display:flex;flex-wrap:wrap;gap:9px;justify-content:center}
+  .auth .av{width:46px;height:46px;flex-shrink:0;display:grid;place-items:center;font-size:24px;cursor:pointer;
+    background:var(--panel-2);border-radius:13px;border:3px solid transparent;transition:transform .1s,border-color .1s;position:relative;top:0}
+  .auth .av:hover{transform:translateY(-2px)}
+  .auth .av.on{border-color:var(--purple);background:var(--panel);box-shadow:0 4px 0 var(--shadow)}
+  .auth .go{width:100%;justify-content:center;font-size:22px;margin-top:6px}
+  .auth .err{text-align:center;color:var(--pink);font-weight:800;font-size:13px;min-height:18px;margin-top:10px}
+  /* welcome-back card */
+  .auth .wb{display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--panel-2);border-radius:20px;padding:24px 22px;margin-bottom:20px}
+  .auth .wb .wb-av{font-size:46px;line-height:1}
+  .auth .wb .wb-name{font-family:var(--font-display);font-size:28px;color:var(--ink)}
+  .auth .wb .wb-pts{font-weight:800;color:var(--ink-dim);font-size:14px}
+  .auth .wb .wb-pts b{color:var(--teal-ink,var(--ink));font-size:17px}
+  .auth .switch{text-align:center;margin-top:16px}
+  .auth .switch button{background:none;border:none;color:var(--ink-dim);font-weight:800;font-size:13px;cursor:pointer;text-decoration:underline;font-family:inherit}
+  .auth .switch button:hover{color:var(--ink)}
+
   /* ===== CATEGORY PICK ===== */
   .pick h2{font-family:var(--font-display);font-size:30px;text-align:center;margin-bottom:24px;color:var(--ink)}
   .pick .sub{text-align:center;color:var(--ink-dim);font-weight:800;margin-bottom:22px}
@@ -436,6 +462,40 @@
     </div>
   </section>
 
+  <!-- ===== SIGN IN / SIGN UP ===== -->
+  <section class="screen auth" id="scAuth">
+    <div class="card">
+      <!-- welcome-back block (returning player) -->
+      <div id="authWelcome" style="display:none">
+        <h2>Welcome back!</h2>
+        <div class="sub">Pick up right where you left off.</div>
+        <div class="wb">
+          <div class="wb-av" id="wbAv">🎯</div>
+          <div class="wb-name" id="wbName">Player</div>
+          <div class="wb-pts"><b id="wbPts">0</b> points banked</div>
+        </div>
+        <button class="btn go teal" id="authContinue">Keep banking <span>→</span></button>
+        <div class="switch"><button id="authSwitch" type="button">Not you? Switch player</button></div>
+      </div>
+      <!-- sign-up block (new player / switching) -->
+      <div id="authSignup">
+        <h2>Who's playing?</h2>
+        <div class="sub">Pick a name and a face. Your points stick around.</div>
+        <div class="field">
+          <label class="lbl" for="unameInput">Your username</label>
+          <input class="uname" id="unameInput" type="text" maxlength="20" autocomplete="off"
+                 autocapitalize="words" spellcheck="false" placeholder="e.g. FoxBanker" />
+        </div>
+        <div class="field">
+          <label class="lbl">Pick an avatar</label>
+          <div class="avrow" id="avRow"></div>
+        </div>
+        <button class="btn go" id="authStart">Start banking <span>→</span></button>
+        <div class="err" id="authErr"></div>
+      </div>
+    </div>
+  </section>
+
   <!-- ===== CATEGORY PICK ===== -->
   <section class="screen pick" id="scPick">
     <div class="card">
@@ -616,9 +676,6 @@ const FALLBACK_BOARDS = [
 ];
 let BOARDS = FALLBACK_BOARDS;
 
-// boards hidden from the "Pick a Category" quick list but still shown in "All Categories"
-const PICK_HIDDEN = new Set(['Jelly Bean Colors','Girls’ Names With 4 Letters','Fast-Food Places','Sour Things']);
-
 // pull the live boards from the DB; on any failure we keep the fallback set
 let boardsLoaded = null;  // a promise so the pick screen can await it
 function loadBoards(){
@@ -634,6 +691,60 @@ loadBoards();
 const S = { bi:0, board:null, tiles:[], found:0, score:0, ended:false, played:{} };
 const $ = id=>document.getElementById(id);
 function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); $(id).classList.add('on'); }
+
+//// ===== user / sign-in (username only, remembered on this device) =====
+const USER_KEY = 'bankit-user-v1';
+const AVATARS = ['🎯','🦊','🐙','🐝','🐸','🐼','🦄','🐲','🦅','🐯','👾','🤖'];
+let USER = null;          // { name, avatar, points }
+let pendingAvatar = AVATARS[0];
+
+function loadUser(){
+  try{ const raw=localStorage.getItem(USER_KEY); if(raw){ const u=JSON.parse(raw);
+    if(u && u.name){ USER = { name:String(u.name), avatar:u.avatar||'🎯', points:Math.max(0, u.points|0) }; } }
+  }catch(e){ USER=null; }
+  return USER;
+}
+function saveUser(){ try{ localStorage.setItem(USER_KEY, JSON.stringify(USER)); }catch(e){} }
+function addPoints(n){ if(USER && n>0){ USER.points += n; saveUser(); } }
+
+// build the avatar picker (once)
+function buildAvatars(){
+  const row=$('avRow'); if(!row || row.childElementCount) return;
+  AVATARS.forEach((a,i)=>{
+    const b=document.createElement('button'); b.type='button'; b.className='av'+(i===0?' on':''); b.textContent=a;
+    b.onclick=()=>{ row.querySelectorAll('.av').forEach(x=>x.classList.remove('on')); b.classList.add('on'); pendingAvatar=a; };
+    row.appendChild(b);
+  });
+}
+
+// show the auth screen in the right state (welcome-back vs fresh sign-up)
+function renderAuth(){
+  buildAvatars();
+  const known = !!(USER && USER.name);
+  $('authWelcome').style.display = known ? '' : 'none';
+  $('authSignup').style.display  = known ? 'none' : '';
+  if(known){
+    $('wbAv').textContent   = USER.avatar||'🎯';
+    $('wbName').textContent = USER.name;
+    $('wbPts').textContent  = USER.points|0;
+  } else {
+    $('authErr').textContent='';
+    // default the picker back to the first avatar for a clean sign-up
+    pendingAvatar = AVATARS[0];
+    const row=$('avRow'); if(row) row.querySelectorAll('.av').forEach((x,i)=>x.classList.toggle('on',i===0));
+  }
+  show('scAuth');
+}
+
+// commit a new username + avatar, then head to Pick
+function commitSignup(){
+  const name=$('unameInput').value.trim().replace(/\s+/g,' ').slice(0,20);
+  if(name.length<2){ $('authErr').textContent='Pick a name with at least 2 letters.'; $('unameInput').focus(); return; }
+  USER = { name, avatar:pendingAvatar, points:(USER&&USER.points)|0 };
+  saveUser();
+  goToPick();
+}
+function goToPick(){ show('scPick'); renderPick(); }
 
 // deterministic shuffle (index-seeded — no Math.random)
 function shuffle(arr, seed){
@@ -653,11 +764,17 @@ function shuffle(arr, seed){
 })();
 
 //// ===== build category picker =====
+// A quick random shortlist (PICK_COUNT of the full list), reshuffled on each visit.
+// "All categories" still shows every board.
+const PICK_COUNT = 5;
 async function renderPick(){
   await boardsLoaded;                 // make sure DB boards are in before we draw
   const wrap=$('catlist'); wrap.innerHTML='';
-  BOARDS.forEach((b,i)=>{
-    if(PICK_HIDDEN.has(b.title)) return;   // hidden from this quick list; still in All Categories
+  // shuffle indices (keep the real BOARDS index so startBoard(i) stays correct), take PICK_COUNT
+  const idx = BOARDS.map((_,i)=>i);
+  for(let k=idx.length-1;k>0;k--){ const j=Math.floor(Math.random()*(k+1)); [idx[k],idx[j]]=[idx[j],idx[k]]; }
+  idx.slice(0, Math.min(PICK_COUNT, idx.length)).forEach(i=>{
+    const b=BOARDS[i];
     const slot = (b.colorSlot ?? i) % 4;   // color comes from the board, cycling 0..3
     const btn=document.createElement('button'); btn.className='cat c'+slot+(S.played[i]?' played':'');
     btn.innerHTML=`<span class="ic">${b.icon}</span><div class="ct"><div class="cname">${b.title}</div></div>`;
@@ -809,11 +926,17 @@ function confettiBurst(){
 // record the finished run to the leaderboard (best-effort; ignored if offline / no API)
 function submitScore(how){
   const ended = how==='miss' ? 'busted' : how==='clear' ? 'clear' : 'banked';
+  // the points you locked in this round add to your lifetime total (counts even for fallback boards)
+  addPoints(S.score);
   const board_id = S.board && S.board.id != null ? S.board.id : null;
-  if(board_id==null) return;   // fallback boards have no DB id — skip
+  if(board_id==null) return;   // fallback boards have no DB id — skip the leaderboard post
   fetch('/api/scores',{
     method:'POST', headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({ player_name:'Player', avatar:'🎯', board_id, score:S.score, how_ended:ended })
+    body:JSON.stringify({
+      player_name: (USER && USER.name) || 'Player',
+      avatar: (USER && USER.avatar) || '🎯',
+      board_id, score:S.score, how_ended:ended
+    })
   }).catch(()=>{});
 }
 
@@ -959,10 +1082,19 @@ async function renderHighScores(){
 }
 
 //// ===== flow wiring =====
-$('startGo').onclick=()=>{ show('scPick'); renderPick(); };
+// "Let's play" → sign in / sign up first; Pick is gated behind a username.
+function playEntry(){ loadUser(); renderAuth(); }
+$('startGo').onclick=playEntry;
 $('bStop').onclick=()=>{ if(!S.ended) endRound('bank'); };
-$('rAgain').onclick=()=>{ show('scPick'); renderPick(); };
 $('rRetry').onclick=()=>startBoard(S.bi);
+// once you have a username, "Another category" goes straight back to Pick (no re-auth)
+$('rAgain').onclick=()=>{ if(USER && USER.name){ goToPick(); } else { playEntry(); } };
+
+//// ===== auth wiring =====
+$('authStart').onclick   = commitSignup;
+$('authContinue').onclick= goToPick;                    // returning player keeps going
+$('authSwitch').onclick  = ()=>{ USER=null; $('unameInput').value=''; renderAuth(); $('unameInput').focus(); };
+$('unameInput').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); commitSignup(); } });
 
 //// ===== theme + playground =====
 (function(){
@@ -1001,7 +1133,7 @@ $('rRetry').onclick=()=>startBoard(S.bi);
 })();
 // back / play buttons on the new screens
 $('catsBack').onclick =()=>show('scStart');
-$('howToPlay').onclick=()=>{ show('scPick'); renderPick(); };
+$('howToPlay').onclick=()=>{ if(USER && USER.name){ goToPick(); } else { playEntry(); } };
 $('aboutBack').onclick=()=>show('scStart');
 (function(){
   const root=document.documentElement, rs=root.style;
@@ -1020,6 +1152,10 @@ $('aboutBack').onclick=()=>show('scStart');
     bgWrap.querySelectorAll('i').forEach((x,i)=>x.classList.toggle('on',i===0)); fWrap.querySelectorAll('.pg-font').forEach((x,i)=>x.classList.toggle('on',i===0));
     $('radR').value=1;$('radVal').textContent='1.0×'; $('popR').value=1;$('popVal').textContent='1.0×'; };
 })();
+
+//// ===== boot =====
+loadUser();        // remember who's playing (if anyone) so the welcome-back state is ready
+buildAvatars();    // pre-build the avatar picker
 </script>
 </body>
 </html>
