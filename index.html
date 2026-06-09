@@ -777,7 +777,7 @@ function getDeath(){
   const stage=document.querySelector('.stage');
   stage.classList.remove('glitch'); void stage.offsetWidth; stage.classList.add('glitch');
   setTimeout(()=>stage.classList.remove('glitch'),600);
-  playFail(S.bi);
+  playFail();
 }
 
 // ===== lose sounds — a different one per board (Web Audio, no files) =====
@@ -793,46 +793,13 @@ function _tone(ctx,t,type,f0,f1,dur,vol,dest){
   o.connect(g).connect(dest||ctx.destination); o.start(t); o.stop(t+dur+0.02); return o;
 }
 
-// board 0 (Milk): harsh descending game-show BUZZ + low thud
+// the standard "game over / you're dead" sound — harsh descending game-show BUZZ + low thud.
+// used for every board (was previously per-board; standardized on the Milk board's buzz).
 function sndBuzz(){ const ctx=_ac(), t=ctx.currentTime;
   _tone(ctx,t,'square',220,70,0.52,0.22);
   _tone(ctx,t,'sine',120,45,0.38,0.34);
 }
-// board 1 (Vending): glitchy digital ZAP + static burst
-function sndZap(){ const ctx=_ac(), t=ctx.currentTime;
-  // fast warbling sawtooth sweep
-  const o=ctx.createOscillator(), g=ctx.createGain();
-  o.type='sawtooth'; o.frequency.setValueAtTime(900,t);
-  o.frequency.exponentialRampToValueAtTime(120,t+0.18);
-  o.frequency.exponentialRampToValueAtTime(420,t+0.26); // glitch flick back up
-  g.gain.setValueAtTime(0.22,t); g.gain.exponentialRampToValueAtTime(0.0001,t+0.3);
-  o.connect(g).connect(ctx.destination); o.start(t); o.stop(t+0.32);
-  // white-noise static burst
-  const n=ctx.createBufferSource(), buf=ctx.createBuffer(1,ctx.sampleRate*0.18,ctx.sampleRate);
-  const data=buf.getChannelData(0); for(let i=0;i<data.length;i++) data[i]=(i%97/97*2-1)*Math.pow(1-i/data.length,2);
-  n.buffer=buf; const ng=ctx.createGain(); ng.gain.setValueAtTime(0.16,t); ng.gain.exponentialRampToValueAtTime(0.0001,t+0.18);
-  n.connect(ng).connect(ctx.destination); n.start(t);
-}
-// board 2 (Kool-Aid): retro 8-bit "you died" descending arpeggio
-function sndRetro(){ const ctx=_ac(), t=ctx.currentTime;
-  const notes=[523.25,392.00,311.13,196.00]; // C5 G4 Eb4 G3 — minor fall
-  notes.forEach((f,i)=>{ const st=t+i*0.11; _tone(ctx,st,'square',f,f,0.1,0.2); });
-}
-// board 3 (Christmas): sad trombone "wah-wah" descending slide
-function sndTrombone(){ const ctx=_ac(), t=ctx.currentTime;
-  const steps=[233.08,220.00,196.00,164.81]; // Bb3 A3 G3 E3 — the classic four-note slump
-  steps.forEach((f,i)=>{
-    const st=t+i*0.2, nf=steps[i+1]??f*0.92;
-    const o=ctx.createOscillator(), g=ctx.createGain();
-    o.type='sawtooth'; o.frequency.setValueAtTime(f,st); o.frequency.linearRampToValueAtTime(nf,st+0.2);
-    g.gain.setValueAtTime(0.0001,st); g.gain.exponentialRampToValueAtTime(0.2,st+0.04);
-    g.gain.exponentialRampToValueAtTime(0.0001,st+0.22);
-    o.connect(g).connect(ctx.destination); o.start(st); o.stop(st+0.24);
-  });
-}
-
-const FAIL_SNDS=[sndBuzz, sndZap, sndRetro, sndTrombone];
-function playFail(boardIdx){ try{ (FAIL_SNDS[boardIdx]||sndBuzz)(); }catch(e){} }
+function playFail(){ try{ sndBuzz(); }catch(e){} }
 
 // short noise burst (used for the register's mechanical "ka-" click)
 function _noise(ctx,t,dur,vol,hp){
