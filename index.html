@@ -67,7 +67,7 @@
   @keyframes bob{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-26px) rotate(6deg)}}
 
   /* top padding clears the fixed top bar; bottom clears the floating playground button */
-  .stage{position:relative;z-index:2;min-height:100vh;display:grid;place-items:center;padding:84px 20px 96px;overflow-y:auto}
+  .stage{position:relative;z-index:2;min-height:100vh;display:grid;place-items:center;padding:78px 20px 70px;overflow-y:auto}
 
   /* ===== chunky button ===== */
   .btn{font-family:var(--font-display);font-size:21px;letter-spacing:.02em;color:#fff;background:var(--purple);
@@ -103,15 +103,22 @@
   .menu-panel.open{opacity:1;transform:none;pointer-events:auto}
   .menu-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
   .menu-title{font-family:var(--font-round);font-size:15px;font-weight:700;color:var(--ink)}
-  .menu-item{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--panel-2);color:var(--ink);
-    border-radius:13px;padding:13px 15px;font-family:var(--font-body);font-weight:800;font-size:14.5px;margin-bottom:9px;
-    position:relative;top:0;transition:transform .08s,box-shadow .08s,filter .12s}
+  /* menu items = scaled-down category cards (chunky colored bars, white display labels, pill tag) */
+  .menu-item{display:flex;align-items:center;gap:12px;width:100%;text-align:left;color:#fff;
+    border-radius:14px;padding:12px 14px;font-family:var(--font-display);font-size:16px;letter-spacing:.01em;margin-bottom:11px;
+    position:relative;top:0;box-shadow:0 5px 0 var(--mish);transition:top .08s,box-shadow .08s,filter .12s}
   .menu-item:last-child{margin-bottom:0}
-  .menu-item:hover{filter:brightness(.97)}
-  .menu-item:active{transform:translateY(2px)}
-  .menu-item .mi-ic{font-size:18px;width:24px;text-align:center;flex-shrink:0}
-  .menu-item .mi-soon{margin-left:auto;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-faint);
-    background:var(--panel);padding:3px 8px;border-radius:100px}
+  .menu-item:hover{top:-2px;box-shadow:0 7px 0 var(--mish);filter:brightness(1.05)}
+  .menu-item:active{top:3px;box-shadow:0 1px 0 var(--mish)}
+  .menu-item .mi-ic{font-size:20px;width:24px;text-align:center;flex-shrink:0;filter:drop-shadow(0 2px 0 rgba(0,0,0,.15))}
+  /* label fills the remaining width and centers, offsetting the icon so the text sits balanced */
+  .menu-item .mi-label{flex:1;text-align:center;margin-right:24px}
+  .menu-item.m0{background:var(--purple);--mish:#6d3fd6}
+  .menu-item.m1{background:var(--teal);--mish:var(--teal-sh);color:#053d38}
+  .menu-item.m2{background:var(--pink);--mish:#cc2f6e}
+  .menu-item.m3{background:var(--green);--mish:var(--green-sh)}
+  .menu-item.m4{background:var(--yellow);--mish:#d9a800;color:#5a4500}
+  .menu-item.m4 .mi-ic{filter:drop-shadow(0 2px 0 rgba(0,0,0,.12))}
   .topctrl{display:flex;gap:10px;pointer-events:auto}
   .iconbtn{width:42px;height:42px;border-radius:12px;background:var(--panel);box-shadow:0 4px 0 var(--shadow);display:grid;place-items:center;color:var(--ink);transition:top .08s,box-shadow .08s;position:relative;top:0}
   .iconbtn:active{top:3px;box-shadow:0 1px 0 var(--shadow)}
@@ -191,6 +198,15 @@
   @keyframes flashin{0%{opacity:0;transform:scale(.6)}18%{opacity:1;transform:scale(1)}78%{opacity:1}100%{opacity:0;transform:scale(1.12)}}
   .flash .msg{font-family:var(--font-display);font-size:clamp(36px,8vw,74px);color:#fff;text-shadow:0 5px 0 rgba(0,0,0,.25)}
 
+  /* ===== SCREEN OF DEATH (wrong tap) — skull + glitchy "WRONG" ===== */
+  .flash.death{background:rgba(10,2,4,.62)}
+  .flash.death .msg{font-family:ui-monospace,"Courier New",monospace;color:#fff;letter-spacing:.04em;
+    text-shadow:3px 0 #ff2d6f,-3px 0 #28e0ff,0 0 26px rgba(255,45,111,.65);animation:glitchtext .4s steps(2) 2}
+  @keyframes glitchtext{0%{transform:translate(0,0)}25%{transform:translate(-4px,2px)}50%{transform:translate(3px,-2px)}75%{transform:translate(-2px,-1px)}100%{transform:translate(0,0)}}
+  /* shake the whole stage on death */
+  .stage.glitch{animation:shake .5s cubic-bezier(.36,.07,.19,.97)}
+  @keyframes shake{10%{transform:translate(-3px,2px)}20%{transform:translate(4px,-3px)}30%{transform:translate(-5px,1px)}40%{transform:translate(3px,2px)}50%{transform:translate(-2px,-2px)}60%{transform:translate(4px,1px)}70%{transform:translate(-3px,-1px)}80%{transform:translate(2px,2px)}100%{transform:translate(0,0)}}
+
   /* ===== RESULTS ===== */
   .results{text-align:center;max-width:560px}
   .results .crown{font-size:60px;margin-bottom:2px}
@@ -206,6 +222,48 @@
   .results .realnote{margin-top:24px;padding-top:20px;border-top:2px dashed var(--panel-2);color:var(--ink-dim);font-size:14px;font-weight:800;line-height:1.6}
   .results .realnote a{color:var(--purple);text-decoration:underline;text-underline-offset:3px}
   :root[data-theme="dark"] .results .realnote a{color:#c4a0ff}
+
+  /* ===== HIGH SCORES ===== */
+  .hs{max-width:600px}
+  .hs .card{padding:26px 32px}
+  .hs h2{font-family:var(--font-display);font-size:26px;text-align:center;margin-bottom:2px;color:var(--ink)}
+  .hs .sub{text-align:center;color:var(--ink-dim);font-weight:800;font-size:13.5px;margin-bottom:14px}
+  /* hero best-run banner */
+  .hs-hero{background:var(--purple);border-radius:18px;box-shadow:0 6px 0 #6d3fd6;padding:12px 24px;color:#fff;text-align:center;margin-bottom:10px;position:relative;overflow:hidden}
+  .hs-hero .crown{font-size:24px;filter:drop-shadow(0 3px 0 rgba(0,0,0,.18))}
+  .hs-hero .big{font-family:var(--font-display);font-size:42px;line-height:1;margin:0}
+  .hs-hero .lab{font-size:10.5px;font-weight:900;text-transform:uppercase;letter-spacing:.1em;opacity:.85}
+  .hs-hero .who{font-weight:800;font-size:12px;opacity:.9;margin-top:4px}
+  /* section label */
+  .hs-head{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin:13px 4px 8px}
+  /* per-board best bars (mini category cards) */
+  .hs-board{display:flex;align-items:center;gap:14px;border-radius:16px;padding:12px 16px;color:#fff;margin-bottom:9px;
+    box-shadow:0 5px 0 var(--bsh)}
+  .hs-board:last-child{margin-bottom:0}
+  .hs-board .ic{font-size:26px;filter:drop-shadow(0 2px 0 rgba(0,0,0,.15));flex-shrink:0}
+  .hs-board .bt{flex:1;min-width:0}
+  .hs-board .bname{font-family:var(--font-display);font-size:16px;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hs-board .bbest{font-family:var(--font-display);font-size:24px;flex-shrink:0;text-align:right;line-height:1}
+  .hs-board .bbest small{font-size:13px;opacity:.7}
+  .hs-board.b0{background:var(--purple);--bsh:#6d3fd6}
+  .hs-board.b1{background:var(--teal);--bsh:var(--teal-sh);color:#053d38}
+  .hs-board.b2{background:var(--pink);--bsh:#cc2f6e}
+  .hs-board.b3{background:var(--green);--bsh:var(--green-sh)}
+  .hs-board .sweep{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;background:rgba(255,255,255,.24);padding:3px 8px;border-radius:100px;backdrop-filter:blur(4px);flex-shrink:0}
+  .hs-board.b1 .sweep{background:rgba(0,0,0,.14)}
+  /* leaderboard rows */
+  .hs-lb .row{display:flex;align-items:center;gap:12px;background:var(--panel-2);border-radius:14px;padding:9px 14px;margin-bottom:8px}
+  .hs-lb .row:last-child{margin-bottom:0}
+  .hs-lb .row .rk{font-family:var(--font-display);font-size:18px;color:var(--ink-faint);width:30px;text-align:center;flex-shrink:0}
+  .hs-lb .row .av{font-size:24px;flex-shrink:0}
+  .hs-lb .row .nm{flex:1;font-weight:800;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hs-lb .row .sc{font-family:var(--font-display);font-size:20px;color:var(--ink);flex-shrink:0}
+  .hs-lb .row.you{box-shadow:inset 0 0 0 2.5px var(--teal)}
+  .hs-lb .row.r1{background:linear-gradient(var(--panel-2),var(--panel-2)) padding-box,linear-gradient(135deg,#ffd23f,#ffb300) border-box;border:2.5px solid transparent}
+  .hs-lb .row.r1 .rk{color:#d9a800}
+  .hs-lb .row.r2 .rk{color:#9aa0ab}
+  .hs-lb .row.r3 .rk{color:#c08552}
+  .hs .actions{display:flex;justify-content:center;margin-top:22px}
 
   /* ===== PLAYGROUND ===== */
   .pg-launch{position:fixed;right:22px;bottom:22px;z-index:40;width:50px;height:50px;border-radius:14px;
@@ -258,11 +316,11 @@
 <!-- ===== MENU (dropdown under the menu button) ===== -->
 <div class="menu-panel" id="menuPanel" role="menu" aria-label="Menu">
   <div class="menu-head"><span class="menu-title">☰ Menu</span></div>
-  <button class="menu-item" role="menuitem"><span class="mi-ic">🏠</span>Home<span class="mi-soon">soon</span></button>
-  <button class="menu-item" role="menuitem"><span class="mi-ic">🗂️</span>All categories<span class="mi-soon">soon</span></button>
-  <button class="menu-item" role="menuitem"><span class="mi-ic">🏆</span>High scores<span class="mi-soon">soon</span></button>
-  <button class="menu-item" role="menuitem"><span class="mi-ic">❓</span>How to play<span class="mi-soon">soon</span></button>
-  <button class="menu-item" role="menuitem"><span class="mi-ic">ℹ️</span>About<span class="mi-soon">soon</span></button>
+  <button class="menu-item m0" role="menuitem"><span class="mi-ic">🏠</span><span class="mi-label">Home</span></button>
+  <button class="menu-item m1" role="menuitem"><span class="mi-ic">🗂️</span><span class="mi-label">All categories</span></button>
+  <button class="menu-item m2" id="miHighScores" role="menuitem"><span class="mi-ic">🏆</span><span class="mi-label">High scores</span></button>
+  <button class="menu-item m3" role="menuitem"><span class="mi-ic">❓</span><span class="mi-label">How to play</span></button>
+  <button class="menu-item m4" role="menuitem"><span class="mi-ic">ℹ️</span><span class="mi-label">About</span></button>
 </div>
 
 <div class="stage">
@@ -328,6 +386,27 @@
         The trick isn't knowing the answers — it's knowing when to <b>stop</b>.<br>
         Think you can sweep all four boards clean?
       </div>
+    </div>
+  </section>
+
+  <!-- ===== HIGH SCORES ===== -->
+  <section class="screen hs" id="scHighScores">
+    <div class="card">
+      <h2>🏆 High Scores</h2>
+      <div class="sub">your best runs · top bankers this week</div>
+
+      <div class="hs-hero">
+        <div class="crown">👑</div>
+        <div class="big" id="hsBest">38</div>
+        <div class="lab">your best banked run</div>
+        <div class="who">across 4 boards · 1 clean sweep</div>
+      </div>
+
+      <div class="hs-head">Your top 3 boards</div>
+      <div id="hsBoards"></div>
+
+      <div class="hs-head">Top bankers · this week</div>
+      <div class="hs-lb" id="hsLb"></div>
     </div>
   </section>
 
@@ -470,7 +549,7 @@ function tap(idx,el){
     if(S.found===10) endRound('clear');
   } else {
     el.classList.add('miss');
-    flash('✗ Hacked the list!');
+    getDeath();
     endRound('miss');
   }
 }
@@ -500,7 +579,116 @@ function showResults(how){
   show('scResults');
 }
 
-function flash(msg){ const f=$('flash'); $('flashMsg').textContent=msg; f.classList.remove('show'); void f.offsetWidth; f.classList.add('show'); }
+function flash(msg){ const f=$('flash'); f.classList.remove('death'); $('flashMsg').textContent=msg; f.classList.remove('show'); void f.offsetWidth; f.classList.add('show'); }
+
+// the SCREEN OF DEATH — wrong tap: skull + glitchy "WRONG" banner, stage shake, fail sound
+function getDeath(){
+  const f=$('flash'); f.classList.add('death');
+  $('flashMsg').textContent='💀 WRONG';
+  f.classList.remove('show'); void f.offsetWidth; f.classList.add('show');
+  const stage=document.querySelector('.stage');
+  stage.classList.remove('glitch'); void stage.offsetWidth; stage.classList.add('glitch');
+  setTimeout(()=>stage.classList.remove('glitch'),600);
+  playFail(S.bi);
+}
+
+// ===== lose sounds — a different one per board (Web Audio, no files) =====
+let _actx;
+function _ac(){ _actx = _actx || new (window.AudioContext||window.webkitAudioContext)(); if(_actx.state==='suspended') _actx.resume(); return _actx; }
+// helper: one oscillator with a gain envelope
+function _tone(ctx,t,type,f0,f1,dur,vol,dest){
+  const o=ctx.createOscillator(), g=ctx.createGain();
+  o.type=type; o.frequency.setValueAtTime(f0,t);
+  if(f1!=null) o.frequency.exponentialRampToValueAtTime(Math.max(1,f1),t+dur);
+  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+0.015);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(g).connect(dest||ctx.destination); o.start(t); o.stop(t+dur+0.02); return o;
+}
+
+// board 0 (Milk): harsh descending game-show BUZZ + low thud
+function sndBuzz(){ const ctx=_ac(), t=ctx.currentTime;
+  _tone(ctx,t,'square',220,70,0.52,0.22);
+  _tone(ctx,t,'sine',120,45,0.38,0.34);
+}
+// board 1 (Vending): glitchy digital ZAP + static burst
+function sndZap(){ const ctx=_ac(), t=ctx.currentTime;
+  // fast warbling sawtooth sweep
+  const o=ctx.createOscillator(), g=ctx.createGain();
+  o.type='sawtooth'; o.frequency.setValueAtTime(900,t);
+  o.frequency.exponentialRampToValueAtTime(120,t+0.18);
+  o.frequency.exponentialRampToValueAtTime(420,t+0.26); // glitch flick back up
+  g.gain.setValueAtTime(0.22,t); g.gain.exponentialRampToValueAtTime(0.0001,t+0.3);
+  o.connect(g).connect(ctx.destination); o.start(t); o.stop(t+0.32);
+  // white-noise static burst
+  const n=ctx.createBufferSource(), buf=ctx.createBuffer(1,ctx.sampleRate*0.18,ctx.sampleRate);
+  const data=buf.getChannelData(0); for(let i=0;i<data.length;i++) data[i]=(i%97/97*2-1)*Math.pow(1-i/data.length,2);
+  n.buffer=buf; const ng=ctx.createGain(); ng.gain.setValueAtTime(0.16,t); ng.gain.exponentialRampToValueAtTime(0.0001,t+0.18);
+  n.connect(ng).connect(ctx.destination); n.start(t);
+}
+// board 2 (Kool-Aid): retro 8-bit "you died" descending arpeggio
+function sndRetro(){ const ctx=_ac(), t=ctx.currentTime;
+  const notes=[523.25,392.00,311.13,196.00]; // C5 G4 Eb4 G3 — minor fall
+  notes.forEach((f,i)=>{ const st=t+i*0.11; _tone(ctx,st,'square',f,f,0.1,0.2); });
+}
+// board 3 (Christmas): sad trombone "wah-wah" descending slide
+function sndTrombone(){ const ctx=_ac(), t=ctx.currentTime;
+  const steps=[233.08,220.00,196.00,164.81]; // Bb3 A3 G3 E3 — the classic four-note slump
+  steps.forEach((f,i)=>{
+    const st=t+i*0.2, nf=steps[i+1]??f*0.92;
+    const o=ctx.createOscillator(), g=ctx.createGain();
+    o.type='sawtooth'; o.frequency.setValueAtTime(f,st); o.frequency.linearRampToValueAtTime(nf,st+0.2);
+    g.gain.setValueAtTime(0.0001,st); g.gain.exponentialRampToValueAtTime(0.2,st+0.04);
+    g.gain.exponentialRampToValueAtTime(0.0001,st+0.22);
+    o.connect(g).connect(ctx.destination); o.start(st); o.stop(st+0.24);
+  });
+}
+
+const FAIL_SNDS=[sndBuzz, sndZap, sndRetro, sndTrombone];
+function playFail(boardIdx){ try{ (FAIL_SNDS[boardIdx]||sndBuzz)(); }catch(e){} }
+
+//// ===== high scores (mock) =====
+// mock per-board bests (parallel to BOARDS) + a mock weekly leaderboard
+const HS_BESTS = [10, 9, 7, 8];                 // your best X/10 on each board
+const HS_PLAYERS = [
+  {av:'🦊', nm:'FoxBanker',   sc:40},
+  {av:'🐙', nm:'NullPointer', sc:39},
+  {av:'🐝', nm:'BeeKeeper',   sc:38},
+  {av:'🐸', nm:'RibbitRich',  sc:36},
+  {av:'🐢', nm:'SlowStacks',  sc:33},
+];
+function renderHighScores(){
+  // hero: sum of your per-board bests
+  const best = HS_BESTS.reduce((a,b)=>a+b,0);
+  const sweeps = HS_BESTS.filter(x=>x===10).length;
+  $('hsBest').textContent = best;
+  document.querySelector('.hs-hero .who').textContent =
+    `across ${BOARDS.length} boards · ${sweeps} clean sweep${sweeps===1?'':'s'}`;
+  // your TOP 3 boards by score (the ones you did best on)
+  const top3 = BOARDS.map((b,i)=>({b, i, best:HS_BESTS[i]??0}))
+    .sort((a,z)=>z.best-a.best)
+    .slice(0,3);
+  const bw=$('hsBoards'); bw.innerHTML='';
+  top3.forEach(({b,i,best})=>{
+    const swept=best===10;
+    const row=document.createElement('div'); row.className='hs-board b'+i;
+    row.innerHTML=`<span class="ic">${b.icon}</span>`+
+      `<div class="bt"><div class="bname">${b.title}</div></div>`+
+      (swept?`<span class="sweep">swept ✓</span>`:'')+
+      `<div class="bbest">${best}<small>/10</small></div>`;
+    bw.appendChild(row);
+  });
+  // leaderboard — top 3 only
+  const lw=$('hsLb'); lw.innerHTML='';
+  HS_PLAYERS.slice(0,3).forEach((p,i)=>{
+    const rk=i+1;
+    const row=document.createElement('div');
+    row.className='row r'+rk+(p.you?' you':'');
+    const medal = rk===1?'🥇':rk===2?'🥈':rk===3?'🥉':rk;
+    row.innerHTML=`<span class="rk">${medal}</span><span class="av">${p.av}</span>`+
+      `<span class="nm">${p.nm}${p.you?' (you)':''}</span><span class="sc">${p.sc}</span>`;
+    lw.appendChild(row);
+  });
+}
 
 //// ===== flow wiring =====
 $('startGo').onclick=()=>{ renderPick(); show('scPick'); };
@@ -522,6 +710,8 @@ $('rRetry').onclick=()=>startBoard(S.bi);
   btn.onclick=e=>{ e.stopPropagation(); setOpen(!panel.classList.contains('open')); };
   document.addEventListener('click',e=>{ if(!panel.contains(e.target)&&e.target!==btn&&!btn.contains(e.target)) setOpen(false); });
   document.addEventListener('keydown',e=>{ if(e.key==='Escape') setOpen(false); });
+  // wire the High Scores menu item to its screen
+  $('miHighScores').onclick=()=>{ setOpen(false); renderHighScores(); show('scHighScores'); };
 })();
 (function(){
   const root=document.documentElement, rs=root.style;
