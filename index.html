@@ -164,7 +164,6 @@
   /* titles cap at 2 lines, no ellipsis — a title that won't fit in 2 rows is a signal to shorten it */
   .cat .cname{font-family:var(--font-display);font-size:21px;letter-spacing:.01em;
     display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;text-overflow:clip}
-  .cat .done{font-size:12px;font-weight:900;background:rgba(255,255,255,.22);padding:5px 11px;border-radius:100px;backdrop-filter:blur(5px);white-space:nowrap}
   .cat.c0{background:var(--purple);--csh:#6d3fd6}
   .cat.c1{background:var(--teal);--csh:var(--teal-sh);color:#053d38}
   .cat.c2{background:var(--pink);--csh:#cc2f6e}
@@ -179,7 +178,6 @@
   .qcard{background:var(--panel);border-radius:24px;box-shadow:0 10px 0 var(--shadow);padding:20px 26px;text-align:center;margin-bottom:8px}
   .qcard .qcat{font-size:11.5px;font-weight:900;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:5px}
   .qcard .qtitle{font-family:var(--font-display);font-size:clamp(22px,4vw,34px);color:var(--ink);line-height:1.04}
-  .qcard .qhint{font-size:13px;font-weight:800;color:var(--ink-dim);margin-top:7px}
   /* the 10 progress lights */
   .pips{display:flex;justify-content:center;gap:7px;margin:14px 0 16px;flex-wrap:wrap}
   .pip{width:26px;height:11px;border-radius:100px;background:rgba(255,255,255,.28);transition:background .25s,transform .25s;box-shadow:inset 0 -2px 0 rgba(0,0,0,.12)}
@@ -317,11 +315,11 @@
   .pcat .ic{font-size:54px;line-height:1;filter:drop-shadow(0 4px 0 rgba(0,0,0,.16));margin-top:6px}
   .pcat .cname{font-family:var(--font-display);font-size:19px;line-height:1.08;letter-spacing:.01em;
     display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;text-overflow:clip}
-  .pcat .done{font-size:12px;font-weight:900;background:rgba(255,255,255,.22);padding:5px 13px;border-radius:100px;backdrop-filter:blur(5px)}
   .pcat.c0{background:var(--purple);--csh:#6d3fd6}
   .pcat.c1{background:var(--teal);--csh:var(--teal-sh);color:#053d38}
   .pcat.c2{background:var(--pink);--csh:#cc2f6e}
   .pcat.c3{background:var(--green);--csh:var(--green-sh)}
+  .pcat.played{filter:saturate(.6)}   /* played boards desaturate (same cue as .cat.played) */
 
   /* ===== HOW TO PLAY / ABOUT (simple content screens) ===== */
   .doc{max-width:560px}
@@ -444,7 +442,6 @@
     </div>
     <div class="qcard">
       <div class="qtitle" id="bTitle">Loading…</div>
-      <div class="qhint">10 of these 20 are on the list. Tap carefully — one miss and your dead.</div>
     </div>
     <div class="pips" id="pips"></div>
     <div class="tiles" id="tiles"></div>
@@ -634,8 +631,7 @@ async function renderPick(){
   BOARDS.forEach((b,i)=>{
     const slot = (b.colorSlot ?? i) % 4;   // color comes from the board, cycling 0..3
     const btn=document.createElement('button'); btn.className='cat c'+slot+(S.played[i]?' played':'');
-    btn.innerHTML=`<span class="ic">${b.icon}</span><div class="ct"><div class="cname">${b.title}</div></div>`+
-      (S.played[i]?'<span class="done">played ✓</span>':'');
+    btn.innerHTML=`<span class="ic">${b.icon}</span><div class="ct"><div class="cname">${b.title}</div></div>`;
     btn.onclick=()=>startBoard(i);
     wrap.appendChild(btn);
   });
@@ -651,8 +647,7 @@ async function renderCategories(){
   BOARDS.forEach((b,i)=>{
     const slot=(b.colorSlot ?? i) % 4;
     const btn=document.createElement('button'); btn.className='pcat c'+slot+(S.played[i]?' played':'');
-    btn.innerHTML=`<span class="ic">${b.icon}</span><div class="cname">${b.title}</div>`+
-      (S.played[i]?'<span class="done">played ✓</span>':'');
+    btn.innerHTML=`<span class="ic">${b.icon}</span><div class="cname">${b.title}</div>`;
     btn.onclick=()=>startBoard(i);
     wrap.appendChild(btn);
   });
