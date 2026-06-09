@@ -111,11 +111,9 @@
     box-shadow:0 4px 0 #d9a800;color:#5a4500;font-size:18px;position:relative;top:0;transition:transform .08s,box-shadow .08s;cursor:pointer}
   .menu-btn:active{transform:translateY(3px);box-shadow:0 1px 0 #d9a800}
   /* dropdown — same look as the playground panel, but drops DOWN and aligns to the button's LEFT edge */
-  .menu-panel{position:fixed;left:22px;top:84px;z-index:41;width:288px;background:var(--panel);border-radius:20px;box-shadow:0 10px 0 var(--shadow);padding:20px;
+  .menu-panel{position:fixed;left:22px;top:84px;z-index:41;width:288px;background:var(--panel);border-radius:20px;box-shadow:0 10px 0 var(--shadow);padding:16px;
     opacity:0;transform:translateY(-12px) scale(.97);pointer-events:none;transform-origin:top left;transition:opacity .24s,transform .24s;max-height:74vh;overflow-y:auto}
   .menu-panel.open{opacity:1;transform:none;pointer-events:auto}
-  .menu-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
-  .menu-title{font-family:var(--font-round);font-size:15px;font-weight:700;color:var(--ink)}
   /* menu items = scaled-down category cards (chunky colored bars, white display labels, pill tag) */
   .menu-item{display:flex;align-items:center;gap:12px;width:100%;text-align:left;color:#fff;
     border-radius:14px;padding:12px 14px;font-family:var(--font-display);font-size:16px;letter-spacing:.01em;margin-bottom:11px;
@@ -373,8 +371,14 @@
     .brand .menu-btn{order:2}              /* push the menu button to the right end */
     .topctrl{display:none}                  /* hide the standalone sun/moon button on mobile */
     .menu-theme{display:flex}               /* show the theme toggle inside the dropdown */
-    /* dropdown now drops down-RIGHT to align under the right-side menu button */
-    .menu-panel{left:auto;right:22px;transform-origin:top right}}
+    /* dropdown now drops down-RIGHT to align under the right-side menu button,
+       and is more compact on mobile so it doesn't eat the whole screen */
+    .menu-panel{left:auto;right:22px;transform-origin:top right;width:248px;padding:13px}
+    .menu-item{padding:9px 13px;margin-bottom:8px;font-size:15px;box-shadow:0 4px 0 var(--mish)}
+    .menu-item:hover{box-shadow:0 6px 0 var(--mish)}
+    .menu-item:active{box-shadow:0 1px 0 var(--mish)}
+    .menu-item .mi-ic{font-size:17px;width:20px}
+    .menu-item .mi-label{margin-right:20px}}
   @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms !important}}
 </style>
 </head>
@@ -397,7 +401,6 @@
 
 <!-- ===== MENU (dropdown under the menu button) ===== -->
 <div class="menu-panel" id="menuPanel" role="menu" aria-label="Menu">
-  <div class="menu-head"><span class="menu-title">Menu</span></div>
   <button class="menu-item m0" id="miStart" role="menuitem"><span class="mi-ic">🏠</span><span class="mi-label">Start</span></button>
   <button class="menu-item m1" id="miCategories" role="menuitem"><span class="mi-ic">🗂️</span><span class="mi-label">All categories</span></button>
   <button class="menu-item m2" id="miHighScores" role="menuitem"><span class="mi-ic">🏆</span><span class="mi-label">High scores</span></button>
