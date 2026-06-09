@@ -90,10 +90,28 @@
   .screen.wide{max-width:760px}
 
   /* top brand chip */
-  .topbar{position:fixed;top:0;left:0;right:0;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:18px 22px;pointer-events:none}
-  .brand{font-family:var(--font-display);font-size:25px;color:#fff;display:flex;align-items:center;gap:10px;pointer-events:auto;
+  .topbar{position:fixed;top:0;left:0;right:0;z-index:42;display:flex;justify-content:space-between;align-items:center;padding:18px 22px;pointer-events:none}
+  .brand{font-family:var(--font-display);font-size:25px;color:#fff;display:flex;align-items:center;gap:12px;pointer-events:auto;
     text-shadow:0 3px 0 var(--shadow);letter-spacing:.02em}
-  .brand .logo{width:36px;height:36px;border-radius:11px;background:var(--yellow);display:grid;place-items:center;box-shadow:0 4px 0 #d9a800;color:#5a4500;font-size:19px}
+  /* the brand logo is now a working menu button — sized to match the playground/theme buttons */
+  .menu-btn{width:50px;height:50px;border-radius:14px;background:var(--yellow);display:grid;place-items:center;
+    box-shadow:0 5px 0 #d9a800;color:#5a4500;font-size:22px;position:relative;top:0;transition:transform .08s,box-shadow .08s;cursor:pointer}
+  .menu-btn:active{transform:translateY(4px);box-shadow:0 1px 0 #d9a800}
+  /* dropdown — same look as the playground panel, but drops DOWN and aligns to the button's LEFT edge */
+  .menu-panel{position:fixed;left:22px;top:84px;z-index:41;width:288px;background:var(--panel);border-radius:20px;box-shadow:0 10px 0 var(--shadow);padding:20px;
+    opacity:0;transform:translateY(-12px) scale(.97);pointer-events:none;transform-origin:top left;transition:opacity .24s,transform .24s;max-height:74vh;overflow-y:auto}
+  .menu-panel.open{opacity:1;transform:none;pointer-events:auto}
+  .menu-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+  .menu-title{font-family:var(--font-round);font-size:15px;font-weight:700;color:var(--ink)}
+  .menu-item{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--panel-2);color:var(--ink);
+    border-radius:13px;padding:13px 15px;font-family:var(--font-body);font-weight:800;font-size:14.5px;margin-bottom:9px;
+    position:relative;top:0;transition:transform .08s,box-shadow .08s,filter .12s}
+  .menu-item:last-child{margin-bottom:0}
+  .menu-item:hover{filter:brightness(.97)}
+  .menu-item:active{transform:translateY(2px)}
+  .menu-item .mi-ic{font-size:18px;width:24px;text-align:center;flex-shrink:0}
+  .menu-item .mi-soon{margin-left:auto;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-faint);
+    background:var(--panel);padding:3px 8px;border-radius:100px}
   .topctrl{display:flex;gap:10px;pointer-events:auto}
   .iconbtn{width:42px;height:42px;border-radius:12px;background:var(--panel);box-shadow:0 4px 0 var(--shadow);display:grid;place-items:center;color:var(--ink);transition:top .08s,box-shadow .08s;position:relative;top:0}
   .iconbtn:active{top:3px;box-shadow:0 1px 0 var(--shadow)}
@@ -123,7 +141,6 @@
   .cat .ic{font-size:34px;filter:drop-shadow(0 3px 0 rgba(0,0,0,.15));flex-shrink:0}
   .cat .ct{flex:1}
   .cat .cname{font-family:var(--font-display);font-size:21px;letter-spacing:.01em}
-  .cat .cdesc{font-size:12.5px;opacity:.92;font-weight:800;margin-top:1px}
   .cat .done{font-size:12px;font-weight:900;background:rgba(255,255,255,.22);padding:5px 11px;border-radius:100px;backdrop-filter:blur(5px);white-space:nowrap}
   .cat.c0{background:var(--purple);--csh:#6d3fd6}
   .cat.c1{background:var(--teal);--csh:var(--teal-sh);color:#053d38}
@@ -226,13 +243,26 @@
 <div class="bgfloat" id="bgfloat"></div>
 
 <div class="topbar">
-  <div class="brand"><span class="logo">▲</span>Bank&nbsp;It</div>
+  <div class="brand">
+    <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" aria-haspopup="true" aria-expanded="false">▲</button>
+    Bank&nbsp;It
+  </div>
   <div class="topctrl">
     <button class="iconbtn" id="themeToggle" title="Toggle theme" aria-label="Toggle theme">
       <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
       <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
     </button>
   </div>
+</div>
+
+<!-- ===== MENU (dropdown under the menu button) ===== -->
+<div class="menu-panel" id="menuPanel" role="menu" aria-label="Menu">
+  <div class="menu-head"><span class="menu-title">☰ Menu</span></div>
+  <button class="menu-item" role="menuitem"><span class="mi-ic">🏠</span>Home<span class="mi-soon">soon</span></button>
+  <button class="menu-item" role="menuitem"><span class="mi-ic">🗂️</span>All categories<span class="mi-soon">soon</span></button>
+  <button class="menu-item" role="menuitem"><span class="mi-ic">🏆</span>High scores<span class="mi-soon">soon</span></button>
+  <button class="menu-item" role="menuitem"><span class="mi-ic">❓</span>How to play<span class="mi-soon">soon</span></button>
+  <button class="menu-item" role="menuitem"><span class="mi-ic">ℹ️</span>About<span class="mi-soon">soon</span></button>
 </div>
 
 <div class="stage">
@@ -255,7 +285,7 @@
   <section class="screen pick" id="scPick">
     <div class="card">
       <h2>Pick a category</h2>
-      <div class="sub">four boards · one is all real NYSGPT</div>
+      <div class="sub">four boards · all fun</div>
       <div class="catlist" id="catlist"></div>
     </div>
   </section>
@@ -343,9 +373,9 @@
 // Each: 10 "answers" (really on the list) + 10 "decoys" (plausible, not on the list).
 const BOARDS = [
   {
-    icon:'▲', cat:'NYSGPT', title:'Things NYSGPT Builds',
-    answers:['TariffsGPT','SolarGPT','44B','NSRgpt','ChildcareGPT','SportsGPT','InsuranceGPT','PolicyGPT','RAG search','Choropleth maps'],
-    decoys:['HealthGPT','TaxGPT','VoteGPT','A crypto wallet','A social network','ZoningGPT','A photo filter','TransitGPT','A food-delivery app','BankGPT'],
+    icon:'🥛', cat:'JUST FOR FUN', title:'Things That Go Well With Milk',
+    answers:['Cookies','Cake','Cereal','Graham crackers','Brownies','Doughnuts','Sandwich','Pie','Bananas','Chocolate syrup'],
+    decoys:['Toast','Crackers','Muffins','Oatmeal','Popcorn','Pretzels','Waffles','Candy bar','Marshmallows','Peanut butter'],
   },
   {
     icon:'🥤', cat:'JUST FOR FUN', title:'Vending Machine Food',
@@ -391,10 +421,8 @@ function renderPick(){
   const wrap=$('catlist'); wrap.innerHTML='';
   BOARDS.forEach((b,i)=>{
     const btn=document.createElement('button'); btn.className='cat c'+i+(S.played[i]?' played':'');
-    const tag = i===0 ? 'all real' : 'for fun';
-    btn.innerHTML=`<span class="ic">${b.icon}</span><div class="ct"><div class="cname">${b.title}</div>`+
-      `<div class="cdesc">${b.cat==='NYSGPT'?'the real products & capabilities':'a classic Top-10 list'}</div></div>`+
-      `<span class="done">${S.played[i]?'played ✓':tag}</span>`;
+    btn.innerHTML=`<span class="ic">${b.icon}</span><div class="ct"><div class="cname">${b.title}</div></div>`+
+      `<span class="done">${S.played[i]?'played ✓':'for fun'}</span>`;
     btn.onclick=()=>startBoard(i);
     wrap.appendChild(btn);
   });
@@ -486,6 +514,14 @@ $('rRetry').onclick=()=>startBoard(S.bi);
   btn.onclick=()=>{ const dark=root.getAttribute('data-theme')==='dark';
     if(dark) root.removeAttribute('data-theme'); else root.setAttribute('data-theme','dark');
     try{localStorage.setItem('nysgpt-theme-f3', dark?'light':'dark');}catch(e){} };
+})();
+// ===== menu (dropdown under the menu button) =====
+(function(){
+  const panel=$('menuPanel'), btn=$('menuBtn');
+  const setOpen=on=>{ panel.classList.toggle('open',on); btn.setAttribute('aria-expanded',on?'true':'false'); };
+  btn.onclick=e=>{ e.stopPropagation(); setOpen(!panel.classList.contains('open')); };
+  document.addEventListener('click',e=>{ if(!panel.contains(e.target)&&e.target!==btn&&!btn.contains(e.target)) setOpen(false); });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape') setOpen(false); });
 })();
 (function(){
   const root=document.documentElement, rs=root.style;
