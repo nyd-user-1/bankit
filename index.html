@@ -66,8 +66,11 @@
   .bgfloat .b{position:absolute;border-radius:50%;opacity:.16;animation:bob 7s ease-in-out infinite}
   @keyframes bob{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-26px) rotate(6deg)}}
 
-  /* top padding clears the fixed top bar; bottom clears the floating playground button */
-  .stage{position:relative;z-index:2;min-height:100vh;display:grid;place-items:center;padding:78px 20px 70px;overflow-y:auto}
+  /* the stage is a fixed-height scroll viewport: short content centers, tall content (the board on
+     mobile) scrolls INSIDE it. fixed height (not min-height) is what makes overflow scrollable
+     since body is overflow:hidden. place-items:safe center prevents the top getting clipped. */
+  .stage{position:relative;z-index:2;height:100dvh;display:grid;place-items:safe center;justify-items:center;
+    padding:78px 20px 70px;overflow-y:auto;-webkit-overflow-scrolling:touch}
 
   /* ===== chunky button ===== */
   .btn{font-family:var(--font-display);font-size:21px;letter-spacing:.02em;color:#fff;background:var(--purple);
@@ -93,10 +96,10 @@
   .topbar{position:fixed;top:0;left:0;right:0;z-index:42;display:flex;justify-content:space-between;align-items:center;padding:18px 22px;pointer-events:none}
   .brand{font-family:var(--font-display);font-size:25px;color:#fff;display:flex;align-items:center;gap:12px;pointer-events:auto;
     text-shadow:0 3px 0 var(--shadow);letter-spacing:.02em}
-  /* the brand logo is now a working menu button — sized to match the playground/theme buttons */
-  .menu-btn{width:50px;height:50px;border-radius:14px;background:var(--yellow);display:grid;place-items:center;
-    box-shadow:0 5px 0 #d9a800;color:#5a4500;font-size:22px;position:relative;top:0;transition:transform .08s,box-shadow .08s;cursor:pointer}
-  .menu-btn:active{transform:translateY(4px);box-shadow:0 1px 0 #d9a800}
+  /* the brand logo is a working menu button — sized to match the theme button (42px) */
+  .menu-btn{width:42px;height:42px;border-radius:12px;background:var(--yellow);display:grid;place-items:center;
+    box-shadow:0 4px 0 #d9a800;color:#5a4500;font-size:18px;position:relative;top:0;transition:transform .08s,box-shadow .08s;cursor:pointer}
+  .menu-btn:active{transform:translateY(3px);box-shadow:0 1px 0 #d9a800}
   /* dropdown — same look as the playground panel, but drops DOWN and aligns to the button's LEFT edge */
   .menu-panel{position:fixed;left:22px;top:84px;z-index:41;width:288px;background:var(--panel);border-radius:20px;box-shadow:0 10px 0 var(--shadow);padding:20px;
     opacity:0;transform:translateY(-12px) scale(.97);pointer-events:none;transform-origin:top left;transition:opacity .24s,transform .24s;max-height:74vh;overflow-y:auto}
@@ -201,10 +204,14 @@
   /* a correct hit reads GREEN (white-on-white was hard to see) */
   .flash.hit .msg{color:var(--hit);text-shadow:0 4px 0 var(--hit-sh),0 0 24px rgba(55,200,113,.55)}
 
-  /* flying coins (bank it) */
+  /* flying coins (bank it) — CSS-drawn GOLD discs */
   #coinLayer{position:fixed;inset:0;z-index:60;pointer-events:none;overflow:hidden}
-  .coin{position:fixed;font-size:30px;left:0;top:0;will-change:transform,opacity;
+  .coin{position:fixed;left:0;top:0;width:30px;height:30px;border-radius:50%;will-change:transform,opacity;
+    background:radial-gradient(circle at 35% 30%, #fff3b0 0%, #ffd23f 38%, #f5a623 78%, #c77f12 100%);
+    box-shadow:inset 0 0 0 3px #e6a91e, inset 0 -3px 4px rgba(140,80,0,.4), 0 2px 5px rgba(0,0,0,.25);
+    display:grid;place-items:center;color:#9a6310;font-family:var(--font-display);font-size:16px;
     animation:coinfly var(--dur,.8s) cubic-bezier(.4,.05,.25,1) forwards;animation-delay:var(--delay,0s);opacity:0}
+  .coin::before{content:"$"}
   @keyframes coinfly{
     0%{opacity:0;transform:translate(var(--x0),var(--y0)) scale(.4) rotate(0)}
     12%{opacity:1;transform:translate(var(--x0),calc(var(--y0) - 26px)) scale(1.15) rotate(40deg)}
@@ -369,7 +376,7 @@
 
 <!-- ===== MENU (dropdown under the menu button) ===== -->
 <div class="menu-panel" id="menuPanel" role="menu" aria-label="Menu">
-  <div class="menu-head"><span class="menu-title">☰ Menu</span></div>
+  <div class="menu-head"><span class="menu-title">Menu</span></div>
   <button class="menu-item m0" id="miStart" role="menuitem"><span class="mi-ic">🏠</span><span class="mi-label">Start</span></button>
   <button class="menu-item m1" id="miCategories" role="menuitem"><span class="mi-ic">🗂️</span><span class="mi-label">All categories</span></button>
   <button class="menu-item m2" id="miHighScores" role="menuitem"><span class="mi-ic">🏆</span><span class="mi-label">High scores</span></button>
@@ -397,7 +404,6 @@
   <section class="screen pick" id="scPick">
     <div class="card">
       <h2>Pick a category</h2>
-      <div class="sub" id="pickSub">all fun</div>
       <div class="catlist" id="catlist"></div>
     </div>
   </section>
@@ -409,9 +415,8 @@
       <span class="pill" id="scorePill">⭐ <span id="bScore" class="big">0</span></span>
     </div>
     <div class="qcard">
-      <div class="qcat" id="bCat">CATEGORY</div>
       <div class="qtitle" id="bTitle">Loading…</div>
-      <div class="qhint">10 of these 20 are on the list. Tap carefully — one miss ends the round.</div>
+      <div class="qhint">10 of these 20 are on the list. Tap carefully — one miss and your dead.</div>
     </div>
     <div class="pips" id="pips"></div>
     <div class="tiles" id="tiles"></div>
@@ -597,9 +602,6 @@ function shuffle(arr, seed){
 //// ===== build category picker =====
 async function renderPick(){
   await boardsLoaded;                 // make sure DB boards are in before we draw
-  const n=BOARDS.length;
-  const words=['zero','one','two','three','four','five','six','seven','eight','nine','ten'];
-  $('pickSub').textContent=`${words[n]||n} boards · all fun`;
   const wrap=$('catlist'); wrap.innerHTML='';
   BOARDS.forEach((b,i)=>{
     const slot = (b.colorSlot ?? i) % 4;   // color comes from the board, cycling 0..3
@@ -635,7 +637,7 @@ function startBoard(i){
   // 20 tiles: 10 answers + 10 decoys, shuffled with a per-board seed
   const pool = b.answers.map(t=>({t,on:true})).concat(b.decoys.map(t=>({t,on:false})));
   S.tiles = shuffle(pool, i+1).map(o=>({...o, tapped:false}));
-  $('bCat').textContent='Just for fun'; $('bTitle').textContent=b.title;
+  $('bTitle').textContent=b.title;
   $('bFound').textContent='0'; $('bScore').textContent='0';
   renderPips(); renderTiles();
   $('bStop').classList.remove('hide');
@@ -700,7 +702,7 @@ function bankCoins(score){
   const x1=to.left+to.width/2, y1=to.top+to.height/2;
   const n=Math.min(3+score*2, 18);   // more points → more coins
   for(let i=0;i<n;i++){
-    const c=document.createElement('div'); c.className='coin'; c.textContent='🪙';
+    const c=document.createElement('div'); c.className='coin';
     const jx=(i%5-2)*26, jy=(Math.floor(i/5))*-10;   // fan out from the button
     c.style.setProperty('--x0', (x0+jx)+'px');
     c.style.setProperty('--y0', (y0+jy)+'px');
