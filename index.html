@@ -176,8 +176,9 @@
   .tile{background:var(--panel);border-radius:15px;padding:15px 10px;min-height:66px;color:var(--ink);font-family:var(--font-round);font-weight:700;
     font-size:14.5px;text-align:center;display:flex;align-items:center;justify-content:center;position:relative;top:0;line-height:1.12;
     box-shadow:0 5px 0 var(--shadow);transition:top .08s,box-shadow .08s,background .2s,color .2s,opacity .25s,transform .25s}
-  .tile:hover:not(.locked){top:-2px;box-shadow:0 7px 0 var(--shadow)}
-  .tile:active:not(.locked){top:4px;box-shadow:0 1px 0 var(--shadow)}
+  /* hover: lift + a green ring so you see exactly which tile you're on */
+  .tile:hover:not(.locked){top:-2px;box-shadow:0 7px 0 var(--shadow),inset 0 0 0 3px var(--hit)}
+  .tile:active:not(.locked){top:4px;box-shadow:0 1px 0 var(--shadow),inset 0 0 0 3px var(--hit)}
   .tile.hit{background:var(--hit);color:#fff;box-shadow:0 5px 0 var(--hit-sh);animation:hitpop .4s}
   .tile.miss{background:var(--miss);color:#fff;box-shadow:0 5px 0 var(--miss-sh);animation:misshake .4s}
   .tile.missed{background:var(--reveal);color:#5a4500;box-shadow:0 5px 0 #d9a800;opacity:.96}  /* on-list, never tapped (revealed at end) */
@@ -197,6 +198,21 @@
   .flash.show{animation:flashin .8s ease}
   @keyframes flashin{0%{opacity:0;transform:scale(.6)}18%{opacity:1;transform:scale(1)}78%{opacity:1}100%{opacity:0;transform:scale(1.12)}}
   .flash .msg{font-family:var(--font-display);font-size:clamp(36px,8vw,74px);color:#fff;text-shadow:0 5px 0 rgba(0,0,0,.25)}
+  /* a correct hit reads GREEN (white-on-white was hard to see) */
+  .flash.hit .msg{color:var(--hit);text-shadow:0 4px 0 var(--hit-sh),0 0 24px rgba(55,200,113,.55)}
+
+  /* flying coins (bank it) */
+  #coinLayer{position:fixed;inset:0;z-index:60;pointer-events:none;overflow:hidden}
+  .coin{position:fixed;font-size:30px;left:0;top:0;will-change:transform,opacity;
+    animation:coinfly var(--dur,.8s) cubic-bezier(.4,.05,.25,1) forwards;animation-delay:var(--delay,0s);opacity:0}
+  @keyframes coinfly{
+    0%{opacity:0;transform:translate(var(--x0),var(--y0)) scale(.4) rotate(0)}
+    12%{opacity:1;transform:translate(var(--x0),calc(var(--y0) - 26px)) scale(1.15) rotate(40deg)}
+    100%{opacity:1;transform:translate(var(--x1),var(--y1)) scale(.3) rotate(320deg)}
+  }
+  /* the score pill pops when coins land */
+  #scorePill.bankpop{animation:bankpop .5s cubic-bezier(.2,1.6,.4,1)}
+  @keyframes bankpop{0%,100%{transform:scale(1)}40%{transform:scale(1.28)}}
 
   /* ===== SCREEN OF DEATH (wrong tap) — skull + glitchy "WRONG" ===== */
   .flash.death{background:rgba(10,2,4,.62)}
@@ -390,7 +406,7 @@
   <section class="screen board wide" id="scBoard">
     <div class="bhead">
       <span class="pill"><span id="bFound" class="big">0</span>&nbsp;/ 10 found</span>
-      <span class="pill">⭐ <span id="bScore" class="big">0</span></span>
+      <span class="pill" id="scorePill">⭐ <span id="bScore" class="big">0</span></span>
     </div>
     <div class="qcard">
       <div class="qcat" id="bCat">CATEGORY</div>
@@ -490,6 +506,9 @@
 
 <!-- feedback flash -->
 <div class="flash" id="flash"><div class="msg" id="flashMsg"></div></div>
+
+<!-- flying coins (bank it) -->
+<div id="coinLayer"></div>
 
 <!-- ===== PLAYGROUND ===== -->
 <button class="pg-launch" id="pgLaunch" type="button" aria-label="Open the design playground" title="Play with the design">
@@ -647,7 +666,7 @@ function tap(idx,el){
     el.classList.add('hit'); S.found++; S.score++;
     $('bFound').textContent=S.found; $('bScore').textContent=S.score;
     renderPips();
-    flash(S.found===10?'PERFECT! 🏆':'+1 ✔');
+    flash(S.found===10?'PERFECT! 🏆':'+1 ✔', 'hit');
     if(S.found===10) endRound('clear');
   } else {
     el.classList.add('miss');
@@ -666,7 +685,36 @@ function endRound(how){
     if(!t.tapped){ el.classList.add(t.on?'missed':'dud'); }
   });
   submitScore(how);
-  setTimeout(()=>showResults(how), how==='miss'?900:700);
+  // banking is a payday — fly the coins into the score slot + cha-ching
+  let delay = how==='miss'?900:700;
+  if(how==='bank' && S.score>0){ bankCoins(S.score); delay = 1100; }
+  setTimeout(()=>showResults(how), delay);
+}
+
+// fly a burst of coins from the Bank It button up into the ⭐ score slot
+function bankCoins(score){
+  const layer=$('coinLayer'); if(!layer) return;
+  const fromEl=$('bStop'), toEl=$('scorePill');
+  const from=fromEl.getBoundingClientRect(), to=toEl.getBoundingClientRect();
+  const x0=from.left+from.width/2, y0=from.top+from.height/2;
+  const x1=to.left+to.width/2, y1=to.top+to.height/2;
+  const n=Math.min(3+score*2, 18);   // more points → more coins
+  for(let i=0;i<n;i++){
+    const c=document.createElement('div'); c.className='coin'; c.textContent='🪙';
+    const jx=(i%5-2)*26, jy=(Math.floor(i/5))*-10;   // fan out from the button
+    c.style.setProperty('--x0', (x0+jx)+'px');
+    c.style.setProperty('--y0', (y0+jy)+'px');
+    c.style.setProperty('--x1', (x1+(i%3-1)*8)+'px');
+    c.style.setProperty('--y1', (y1)+'px');
+    c.style.setProperty('--delay', (i*0.05)+'s');
+    c.style.setProperty('--dur', (0.7+(i%3)*0.08)+'s');
+    layer.appendChild(c);
+    c.addEventListener('animationend', ()=>{
+      c.remove();
+      toEl.classList.remove('bankpop'); void toEl.offsetWidth; toEl.classList.add('bankpop');
+    });
+  }
+  sndCoins(n);
 }
 
 // record the finished run to the leaderboard (best-effort; ignored if offline / no API)
@@ -693,7 +741,7 @@ function showResults(how){
   show('scResults');
 }
 
-function flash(msg){ const f=$('flash'); f.classList.remove('death'); $('flashMsg').textContent=msg; f.classList.remove('show'); void f.offsetWidth; f.classList.add('show'); }
+function flash(msg, kind){ const f=$('flash'); f.classList.remove('death','hit'); if(kind) f.classList.add(kind); $('flashMsg').textContent=msg; f.classList.remove('show'); void f.offsetWidth; f.classList.add('show'); }
 
 // the SCREEN OF DEATH — wrong tap: skull + glitchy "WRONG" banner, stage shake, fail sound
 function getDeath(){
@@ -759,6 +807,21 @@ function sndTrombone(){ const ctx=_ac(), t=ctx.currentTime;
 
 const FAIL_SNDS=[sndBuzz, sndZap, sndRetro, sndTrombone];
 function playFail(boardIdx){ try{ (FAIL_SNDS[boardIdx]||sndBuzz)(); }catch(e){} }
+
+// "cha-ching" — bright register-bell two-note + a sprinkle of coin clinks
+function sndCoins(n){ try{
+  const ctx=_ac(), t=ctx.currentTime;
+  // the two-note "cha-CHING" bell (E6 → A6, triangle = bell-ish)
+  _tone(ctx,t,      'triangle',1318.5,1318.5,0.12,0.18);
+  _tone(ctx,t+0.09, 'triangle',1760.0,1760.0,0.32,0.22);
+  _tone(ctx,t+0.09, 'sine',    880.0, 880.0, 0.32,0.10);  // octave-down body
+  // coin clinks raining in
+  const clinks=Math.min(n||6,10);
+  for(let i=0;i<clinks;i++){
+    const st=t+0.05+i*0.045, f=1900+(i%4)*220;
+    _tone(ctx,st,'square',f,f*0.6,0.06,0.06);
+  }
+}catch(e){} }
 
 //// ===== high scores (live from /api/scores) =====
 async function renderHighScores(){
