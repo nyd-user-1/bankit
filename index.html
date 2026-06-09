@@ -616,6 +616,9 @@ const FALLBACK_BOARDS = [
 ];
 let BOARDS = FALLBACK_BOARDS;
 
+// boards hidden from the "Pick a Category" quick list but still shown in "All Categories"
+const PICK_HIDDEN = new Set(['Jelly Bean Colors','Girls’ Names With 4 Letters','Fast-Food Places','Sour Things']);
+
 // pull the live boards from the DB; on any failure we keep the fallback set
 let boardsLoaded = null;  // a promise so the pick screen can await it
 function loadBoards(){
@@ -654,6 +657,7 @@ async function renderPick(){
   await boardsLoaded;                 // make sure DB boards are in before we draw
   const wrap=$('catlist'); wrap.innerHTML='';
   BOARDS.forEach((b,i)=>{
+    if(PICK_HIDDEN.has(b.title)) return;   // hidden from this quick list; still in All Categories
     const slot = (b.colorSlot ?? i) % 4;   // color comes from the board, cycling 0..3
     const btn=document.createElement('button'); btn.className='cat c'+slot+(S.played[i]?' played':'');
     btn.innerHTML=`<span class="ic">${b.icon}</span><div class="ct"><div class="cname">${b.title}</div></div>`;
