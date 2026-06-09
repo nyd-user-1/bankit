@@ -1,0 +1,25 @@
+{
+  "name": "bankit",
+  "version": "1.0.0",
+  "description": "A quick, push-your-luck party game. Pick a category, see **20** answers, and tap the **10** you think are on the hidden list.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nyd-user-1/bankit.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/nyd-user-1/bankit/issues"
+  },
+  "homepage": "https://github.com/nyd-user-1/bankit#readme",
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "pg": "^8.21.0"
+  }
+}

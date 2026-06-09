@@ -343,7 +343,7 @@
   <section class="screen pick" id="scPick">
     <div class="card">
       <h2>Pick a category</h2>
-      <div class="sub">four boards · all fun</div>
+      <div class="sub" id="pickSub">all fun</div>
       <div class="catlist" id="catlist"></div>
     </div>
   </section>
@@ -397,7 +397,7 @@
 
       <div class="hs-hero">
         <div class="crown">👑</div>
-        <div class="big" id="hsBest">38</div>
+        <div class="big" id="hsBest">…</div>
         <div class="lab">your best banked run</div>
         <div class="who">across 4 boards · 1 clean sweep</div>
       </div>
@@ -448,33 +448,37 @@
 </div>
 
 <script>
-//// ===== the four boards =====
+//// ===== boards (loaded from /api/boards; falls back to these if the API is unreachable) =====
 // Each: 10 "answers" (really on the list) + 10 "decoys" (plausible, not on the list).
-const BOARDS = [
-  {
-    icon:'🥛', cat:'JUST FOR FUN', title:'Things That Go Well With Milk',
+const FALLBACK_BOARDS = [
+  { id:null, icon:'🥛', colorSlot:0, title:'Things That Go Well With Milk',
     answers:['Cookies','Cake','Cereal','Graham crackers','Brownies','Doughnuts','Sandwich','Pie','Bananas','Chocolate syrup'],
-    decoys:['Toast','Crackers','Muffins','Oatmeal','Popcorn','Pretzels','Waffles','Candy bar','Marshmallows','Peanut butter'],
-  },
-  {
-    icon:'🥤', cat:'JUST FOR FUN', title:'Vending Machine Food',
+    decoys:['Toast','Crackers','Muffins','Oatmeal','Popcorn','Pretzels','Waffles','Candy bar','Marshmallows','Peanut butter'] },
+  { id:null, icon:'🥤', colorSlot:1, title:'Vending Machine Food',
     answers:['Candy bars','Gum','Ice cream','Potato chips','Sandwich','Cookies','Doughnuts','Fruit','Yogurt','Peanuts'],
-    decoys:['Pretzels','Crackers','Soda','Bottled water','Granola bar','Trail mix','Popcorn','Beef jerky','Mints','Hot coffee'],
-  },
-  {
-    icon:'🧃', cat:'JUST FOR FUN', title:'Kool-Aid Flavors',
+    decoys:['Pretzels','Crackers','Soda','Bottled water','Granola bar','Trail mix','Popcorn','Beef jerky','Mints','Hot coffee'] },
+  { id:null, icon:'🧃', colorSlot:2, title:'Kool-Aid Flavors',
     answers:['Cherry','Orange','Grape','Strawberry','Tropical punch','Raspberry','Lemonade','Lemon-lime','Black cherry','Berry blue'],
-    decoys:['Watermelon','Pink lemonade','Blue raspberry','Mango','Peach','Green apple','Kiwi','Pineapple','Fruit punch','Sour apple'],
-  },
-  {
-    icon:'🎄', cat:'JUST FOR FUN', title:'Christmas Things',
+    decoys:['Watermelon','Pink lemonade','Blue raspberry','Mango','Peach','Green apple','Kiwi','Pineapple','Fruit punch','Sour apple'] },
+  { id:null, icon:'🎄', colorSlot:3, title:'Christmas Things',
     answers:['Santa Claus','Christmas tree','Christmas lights','Christmas cards','Manger scene','Gifts','Carolers','Christmas cookies','Christmas play','Wreaths'],
-    decoys:['Snowman','Stockings','Mistletoe','Reindeer','Candy canes','Sleigh','Ornaments','Elves','Nutcracker','Snowflakes'],
-  },
+    decoys:['Snowman','Stockings','Mistletoe','Reindeer','Candy canes','Sleigh','Ornaments','Elves','Nutcracker','Snowflakes'] },
 ];
+let BOARDS = FALLBACK_BOARDS;
+
+// pull the live boards from the DB; on any failure we keep the fallback set
+let boardsLoaded = null;  // a promise so the pick screen can await it
+function loadBoards(){
+  boardsLoaded = fetch('/api/boards')
+    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    .then(d => { if (Array.isArray(d.boards) && d.boards.length) BOARDS = d.boards; })
+    .catch(() => { /* keep FALLBACK_BOARDS */ });
+  return boardsLoaded;
+}
+loadBoards();
 
 //// ===== state =====
-const S = { bi:0, board:null, tiles:[], found:0, score:0, ended:false, played:[false,false,false,false] };
+const S = { bi:0, board:null, tiles:[], found:0, score:0, ended:false, played:{} };
 const $ = id=>document.getElementById(id);
 function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); $(id).classList.add('on'); }
 
@@ -496,10 +500,15 @@ function shuffle(arr, seed){
 })();
 
 //// ===== build category picker =====
-function renderPick(){
+async function renderPick(){
+  await boardsLoaded;                 // make sure DB boards are in before we draw
+  const n=BOARDS.length;
+  const words=['zero','one','two','three','four','five','six','seven','eight','nine','ten'];
+  $('pickSub').textContent=`${words[n]||n} boards · all fun`;
   const wrap=$('catlist'); wrap.innerHTML='';
   BOARDS.forEach((b,i)=>{
-    const btn=document.createElement('button'); btn.className='cat c'+i+(S.played[i]?' played':'');
+    const slot = (b.colorSlot ?? i) % 4;   // color comes from the board, cycling 0..3
+    const btn=document.createElement('button'); btn.className='cat c'+slot+(S.played[i]?' played':'');
     btn.innerHTML=`<span class="ic">${b.icon}</span><div class="ct"><div class="cname">${b.title}</div></div>`+
       `<span class="done">${S.played[i]?'played ✓':'for fun'}</span>`;
     btn.onclick=()=>startBoard(i);
@@ -514,7 +523,7 @@ function startBoard(i){
   // 20 tiles: 10 answers + 10 decoys, shuffled with a per-board seed
   const pool = b.answers.map(t=>({t,on:true})).concat(b.decoys.map(t=>({t,on:false})));
   S.tiles = shuffle(pool, i+1).map(o=>({...o, tapped:false}));
-  $('bCat').textContent=b.cat; $('bTitle').textContent=b.title;
+  $('bCat').textContent='Just for fun'; $('bTitle').textContent=b.title;
   $('bFound').textContent='0'; $('bScore').textContent='0';
   renderPips(); renderTiles();
   $('bStop').classList.remove('hide');
@@ -563,7 +572,19 @@ function endRound(how){
     const t=S.tiles[idx];
     if(!t.tapped){ el.classList.add(t.on?'missed':'dud'); }
   });
+  submitScore(how);
   setTimeout(()=>showResults(how), how==='miss'?900:700);
+}
+
+// record the finished run to the leaderboard (best-effort; ignored if offline / no API)
+function submitScore(how){
+  const ended = how==='miss' ? 'busted' : how==='clear' ? 'clear' : 'banked';
+  const board_id = S.board && S.board.id != null ? S.board.id : null;
+  if(board_id==null) return;   // fallback boards have no DB id — skip
+  fetch('/api/scores',{
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({ player_name:'Player', avatar:'🎯', board_id, score:S.score, how_ended:ended })
+  }).catch(()=>{});
 }
 
 function showResults(how){
@@ -646,54 +667,54 @@ function sndTrombone(){ const ctx=_ac(), t=ctx.currentTime;
 const FAIL_SNDS=[sndBuzz, sndZap, sndRetro, sndTrombone];
 function playFail(boardIdx){ try{ (FAIL_SNDS[boardIdx]||sndBuzz)(); }catch(e){} }
 
-//// ===== high scores (mock) =====
-// mock per-board bests (parallel to BOARDS) + a mock weekly leaderboard
-const HS_BESTS = [10, 9, 7, 8];                 // your best X/10 on each board
-const HS_PLAYERS = [
-  {av:'🦊', nm:'FoxBanker',   sc:40},
-  {av:'🐙', nm:'NullPointer', sc:39},
-  {av:'🐝', nm:'BeeKeeper',   sc:38},
-  {av:'🐸', nm:'RibbitRich',  sc:36},
-  {av:'🐢', nm:'SlowStacks',  sc:33},
-];
-function renderHighScores(){
-  // hero: sum of your per-board bests
-  const best = HS_BESTS.reduce((a,b)=>a+b,0);
-  const sweeps = HS_BESTS.filter(x=>x===10).length;
-  $('hsBest').textContent = best;
+//// ===== high scores (live from /api/scores) =====
+async function renderHighScores(){
+  await boardsLoaded;
+  // pull the whole leaderboard once; derive everything from it
+  let scores=[];
+  try{ const r=await fetch('/api/scores?limit=50'); if(r.ok) scores=(await r.json()).scores||[]; }catch(e){}
+
+  // hero: top single banked run this week
+  const topRun = scores.reduce((m,s)=>Math.max(m,s.score||0),0);
+  const sweeps = scores.filter(s=>s.how_ended==='clear').length;
+  $('hsBest').textContent = topRun || '—';
+  document.querySelector('.hs-hero .lab').textContent = 'best run this week';
   document.querySelector('.hs-hero .who').textContent =
-    `across ${BOARDS.length} boards · ${sweeps} clean sweep${sweeps===1?'':'s'}`;
-  // your TOP 3 boards by score (the ones you did best on)
-  const top3 = BOARDS.map((b,i)=>({b, i, best:HS_BESTS[i]??0}))
-    .sort((a,z)=>z.best-a.best)
-    .slice(0,3);
+    `${BOARDS.length} boards live · ${sweeps} clean sweep${sweeps===1?'':'s'}`;
+
+  // per-board best — derived from the single scores fetch (no extra requests)
+  const bestById={};
+  for(const s of scores){ if(s.board_id!=null) bestById[s.board_id]=Math.max(bestById[s.board_id]||0, s.score||0); }
   const bw=$('hsBoards'); bw.innerHTML='';
-  top3.forEach(({b,i,best})=>{
-    const swept=best===10;
-    const row=document.createElement('div'); row.className='hs-board b'+i;
+  const bests = BOARDS.filter(b=>b.id!=null).map(b=>({b, best:bestById[b.id]||0}));
+  bests.sort((a,z)=>z.best-a.best);
+  bests.slice(0,3).forEach(({b,best})=>{
+    const swept=best===10, slot=(b.colorSlot??0)%4;
+    const row=document.createElement('div'); row.className='hs-board b'+slot;
     row.innerHTML=`<span class="ic">${b.icon}</span>`+
       `<div class="bt"><div class="bname">${b.title}</div></div>`+
       (swept?`<span class="sweep">swept ✓</span>`:'')+
       `<div class="bbest">${best}<small>/10</small></div>`;
     bw.appendChild(row);
   });
-  // leaderboard — top 3 only
+
+  // leaderboard — top 3 real rows
   const lw=$('hsLb'); lw.innerHTML='';
-  HS_PLAYERS.slice(0,3).forEach((p,i)=>{
-    const rk=i+1;
-    const row=document.createElement('div');
-    row.className='row r'+rk+(p.you?' you':'');
-    const medal = rk===1?'🥇':rk===2?'🥈':rk===3?'🥉':rk;
-    row.innerHTML=`<span class="rk">${medal}</span><span class="av">${p.av}</span>`+
-      `<span class="nm">${p.nm}${p.you?' (you)':''}</span><span class="sc">${p.sc}</span>`;
+  const top3 = scores.slice().sort((a,z)=>z.score-a.score).slice(0,3);
+  if(!top3.length){ lw.innerHTML='<div class="row"><span class="nm" style="opacity:.6">No scores yet — be the first to bank one.</span></div>'; }
+  top3.forEach((p,i)=>{
+    const rk=i+1, medal = rk===1?'🥇':rk===2?'🥈':rk===3?'🥉':rk;
+    const row=document.createElement('div'); row.className='row r'+rk;
+    row.innerHTML=`<span class="rk">${medal}</span><span class="av">${p.avatar||'🎯'}</span>`+
+      `<span class="nm">${p.player_name||'Player'}</span><span class="sc">${p.score}</span>`;
     lw.appendChild(row);
   });
 }
 
 //// ===== flow wiring =====
-$('startGo').onclick=()=>{ renderPick(); show('scPick'); };
+$('startGo').onclick=()=>{ show('scPick'); renderPick(); };
 $('bStop').onclick=()=>{ if(!S.ended) endRound('bank'); };
-$('rAgain').onclick=()=>{ renderPick(); show('scPick'); };
+$('rAgain').onclick=()=>{ show('scPick'); renderPick(); };
 $('rRetry').onclick=()=>startBoard(S.bi);
 
 //// ===== theme + playground =====
