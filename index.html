@@ -132,6 +132,9 @@
   .menu-item.m3{background:var(--green);--mish:var(--green-sh)}
   .menu-item.m4{background:var(--yellow);--mish:#d9a800;color:#5a4500}
   .menu-item.m4 .mi-ic{filter:drop-shadow(0 2px 0 rgba(0,0,0,.12))}
+  .menu-item.m5{background:#5b6bd6;--mish:#3d4aa8}
+  /* the theme-toggle row only appears on mobile (desktop keeps the standalone sun/moon button) */
+  .menu-theme{display:none}
   .topctrl{display:flex;gap:10px;pointer-events:auto}
   .iconbtn{width:42px;height:42px;border-radius:12px;background:var(--panel);box-shadow:0 4px 0 var(--shadow);display:grid;place-items:center;color:var(--ink);transition:top .08s,box-shadow .08s;position:relative;top:0}
   .iconbtn:active{top:3px;box-shadow:0 1px 0 var(--shadow)}
@@ -363,7 +366,15 @@
   @media(max-width:560px){.pg-panel{width:calc(100vw - 44px)}.card{padding:28px 22px}
     /* no design playground on phones — hide the FAB + panel, reclaim the bottom padding it reserved */
     .pg-launch,.pg-panel{display:none}
-    .stage{padding-bottom:28px}}
+    .stage{padding-bottom:28px}
+    /* MOBILE topbar: "BANK IT" on the left, menu button on the right (replacing the theme button).
+       the theme toggle moves into the dropdown as a menu row. */
+    .brand{flex:1;justify-content:space-between}
+    .brand .menu-btn{order:2}              /* push the menu button to the right end */
+    .topctrl{display:none}                  /* hide the standalone sun/moon button on mobile */
+    .menu-theme{display:flex}               /* show the theme toggle inside the dropdown */
+    /* dropdown now drops down-RIGHT to align under the right-side menu button */
+    .menu-panel{left:auto;right:22px;transform-origin:top right}}
   @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms !important}}
 </style>
 </head>
@@ -374,7 +385,7 @@
 <div class="topbar">
   <div class="brand">
     <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" aria-haspopup="true" aria-expanded="false">▲</button>
-    Bank&nbsp;It
+    <span class="brand-text">Bank&nbsp;It</span>
   </div>
   <div class="topctrl">
     <button class="iconbtn" id="themeToggle" title="Toggle theme" aria-label="Toggle theme">
@@ -392,6 +403,7 @@
   <button class="menu-item m2" id="miHighScores" role="menuitem"><span class="mi-ic">🏆</span><span class="mi-label">High scores</span></button>
   <button class="menu-item m3" id="miHowTo" role="menuitem"><span class="mi-ic">❓</span><span class="mi-label">How to play</span></button>
   <button class="menu-item m4" id="miAbout" role="menuitem"><span class="mi-ic">ℹ️</span><span class="mi-label">About</span></button>
+  <button class="menu-item m5 menu-theme" id="miTheme" role="menuitem"><span class="mi-ic" id="miThemeIc">🌙</span><span class="mi-label" id="miThemeLbl">Dark mode</span></button>
 </div>
 
 <div class="stage">
@@ -887,10 +899,23 @@ $('rRetry').onclick=()=>startBoard(S.bi);
 
 //// ===== theme + playground =====
 (function(){
-  const root=document.documentElement, btn=$('themeToggle');
-  btn.onclick=()=>{ const dark=root.getAttribute('data-theme')==='dark';
+  const root=document.documentElement;
+  // keep the dropdown's theme row showing the action you'd take next
+  function syncThemeRow(){
+    const dark=root.getAttribute('data-theme')==='dark';
+    const ic=$('miThemeIc'), lbl=$('miThemeLbl');
+    if(ic) ic.textContent = dark ? '☀️' : '🌙';
+    if(lbl) lbl.textContent = dark ? 'Light mode' : 'Dark mode';
+  }
+  function toggleTheme(){
+    const dark=root.getAttribute('data-theme')==='dark';
     if(dark) root.removeAttribute('data-theme'); else root.setAttribute('data-theme','dark');
-    try{localStorage.setItem('nysgpt-theme-f3', dark?'light':'dark');}catch(e){} };
+    try{localStorage.setItem('nysgpt-theme-f3', dark?'light':'dark');}catch(e){}
+    syncThemeRow();
+  }
+  $('themeToggle').onclick = toggleTheme;
+  $('miTheme').onclick = toggleTheme;   // the dropdown row (mobile) shares the same toggle
+  syncThemeRow();
 })();
 // ===== menu (dropdown under the menu button) =====
 (function(){
