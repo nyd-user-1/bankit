@@ -232,6 +232,16 @@
   #scorePill.bankpop{animation:bankpop .5s cubic-bezier(.2,1.6,.4,1)}
   @keyframes bankpop{0%,100%{transform:scale(1)}40%{transform:scale(1.28)}}
 
+  /* confetti (perfect sweep) — burst from center, then rain down */
+  #confettiLayer{position:fixed;inset:0;z-index:62;pointer-events:none;overflow:hidden}
+  .confetti{position:fixed;left:50%;top:48%;width:11px;height:14px;will-change:transform,opacity;
+    animation:confetti var(--dur,2.4s) cubic-bezier(.15,.6,.5,1) forwards;animation-delay:var(--delay,0s);opacity:0}
+  @keyframes confetti{
+    0%{opacity:1;transform:translate(0,0) rotate(0) scale(.6)}
+    18%{opacity:1;transform:translate(var(--bx),var(--by)) rotate(var(--r0)) scale(1)}      /* burst out */
+    100%{opacity:0;transform:translate(var(--fx),var(--fy)) rotate(var(--r1)) scale(.9)}     /* rain down */
+  }
+
   /* ===== SCREEN OF DEATH (wrong tap) — skull + glitchy "WRONG" ===== */
   .flash.death{background:rgba(10,2,4,.62)}
   .flash.death .msg{font-family:ui-monospace,"Courier New",monospace;color:#fff;letter-spacing:.04em;
@@ -540,6 +550,9 @@
 <!-- flying coins (bank it) -->
 <div id="coinLayer"></div>
 
+<!-- confetti (perfect sweep) -->
+<div id="confettiLayer"></div>
+
 <!-- ===== PLAYGROUND ===== -->
 <button class="pg-launch" id="pgLaunch" type="button" aria-label="Open the design playground" title="Play with the design">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -691,9 +704,15 @@ function tap(idx,el){
     el.classList.add('hit'); S.found++; S.score++;
     $('bFound').textContent=S.found; $('bScore').textContent=S.score;
     renderPips();
-    sndPoint(S.found);   // bright coin ding, pitch climbs with the streak
-    flash(S.found===10?'PERFECT! 🏆':'+1 ✔', 'hit');
-    if(S.found===10) endRound('clear');
+    if(S.found===10){
+      flash('PERFECT! 🏆', 'hit');
+      sndFanfare();          // triumphant win fanfare
+      confettiBurst();       // center burst that rains down
+      endRound('clear');
+    } else {
+      sndPoint(S.found);     // bright coin ding, pitch climbs with the streak
+      flash('+1 ✔', 'hit');
+    }
   } else {
     el.classList.add('miss');
     getDeath();
@@ -714,6 +733,7 @@ function endRound(how){
   // banking is a payday — fly the coins into the score slot + cha-ching
   let delay = how==='miss'?900:700;
   if(how==='bank' && S.score>0){ bankCoins(S.score); delay = 1100; }
+  if(how==='clear'){ delay = 1700; }   // let the fanfare + confetti land before results
   setTimeout(()=>showResults(how), delay);
 }
 
@@ -741,6 +761,33 @@ function bankCoins(score){
     });
   }
   sndCoins(n);
+}
+
+// confetti burst from screen center that rains down (perfect sweep)
+function confettiBurst(){
+  const layer=$('confettiLayer'); if(!layer) return;
+  const cols=['#ff4d8d','#1fc7b6','#ffd23f','#8b5cf6','#37c871','#ff7a3c','#4d9bff','#fff'];
+  const vh=window.innerHeight, vw=window.innerWidth;
+  const N=90;
+  for(let i=0;i<N;i++){
+    const p=document.createElement('div'); p.className='confetti';
+    const ang=Math.random()*Math.PI*2, dist=80+Math.random()*Math.min(vw,vh)*0.5;
+    const bx=Math.cos(ang)*dist, by=Math.sin(ang)*dist*0.7 - 40;     // burst out (slightly up-biased)
+    const fx=bx + (Math.random()*200-100);                           // drift sideways as it falls
+    const fy=vh*0.6 + Math.random()*vh*0.5;                          // fall past the bottom
+    p.style.background=cols[i%cols.length];
+    p.style.borderRadius=(i%4===0)?'50%':'2px';                      // mix circles + rectangles
+    p.style.setProperty('--bx',bx.toFixed(0)+'px');
+    p.style.setProperty('--by',by.toFixed(0)+'px');
+    p.style.setProperty('--fx',fx.toFixed(0)+'px');
+    p.style.setProperty('--fy',fy.toFixed(0)+'px');
+    p.style.setProperty('--r0',(Math.random()*360|0)+'deg');
+    p.style.setProperty('--r1',((Math.random()*720-360)|0)+'deg');
+    p.style.setProperty('--dur',(1.9+Math.random()*0.9).toFixed(2)+'s');
+    p.style.setProperty('--delay',(Math.random()*0.12).toFixed(2)+'s');
+    layer.appendChild(p);
+    p.addEventListener('animationend', ()=>p.remove());
+  }
 }
 
 // record the finished run to the leaderboard (best-effort; ignored if offline / no API)
@@ -835,6 +882,20 @@ function sndCoins(n){ try{
   // a few coin clinks settling into the drawer
   const clinks=Math.min(n||6,8);
   for(let i=0;i<clinks;i++){ _noise(ctx, c+0.08+i*0.05, 0.03, 0.12, 3000); }
+}catch(e){} }
+
+// PERFECT sweep (all 10) — a triumphant rising "ta-da!" fanfare resolving up high
+function sndFanfare(){ try{
+  const ctx=_ac(), t=ctx.currentTime;
+  // quick ascending major arpeggio (C5 E5 G5) into a held high C6 "ta-DA"
+  const run=[523.25, 659.25, 783.99]; // C5 E5 G5
+  run.forEach((f,i)=>{ const st=t+i*0.085; _tone(ctx,st,'triangle',f,f,0.14,0.18); _tone(ctx,st,'square',f,f,0.1,0.06); });
+  const hit=t+0.085*3;                 // the resolved top note
+  _tone(ctx,hit,       'triangle',1046.5,1046.5,0.55,0.22);  // C6
+  _tone(ctx,hit+0.004, 'triangle',1567.98,1567.98,0.55,0.12); // G6 shimmer
+  _tone(ctx,hit,       'sine',    523.25, 523.25, 0.5, 0.12);  // C5 body
+  // a sparkle tail
+  for(let i=0;i<6;i++){ _noise(ctx, hit+0.1+i*0.04, 0.025, 0.08, 4000); }
 }catch(e){} }
 
 //// ===== high scores (live from /api/scores) =====
