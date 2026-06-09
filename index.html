@@ -161,7 +161,9 @@
   .cat:active{top:3px;box-shadow:0 1px 0 var(--csh)}
   .cat .ic{font-size:34px;filter:drop-shadow(0 3px 0 rgba(0,0,0,.15));flex-shrink:0}
   .cat .ct{flex:1}
-  .cat .cname{font-family:var(--font-display);font-size:21px;letter-spacing:.01em}
+  /* titles cap at 2 lines, no ellipsis — a title that won't fit in 2 rows is a signal to shorten it */
+  .cat .cname{font-family:var(--font-display);font-size:21px;letter-spacing:.01em;
+    display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;text-overflow:clip}
   .cat .done{font-size:12px;font-weight:900;background:rgba(255,255,255,.22);padding:5px 11px;border-radius:100px;backdrop-filter:blur(5px);white-space:nowrap}
   .cat.c0{background:var(--purple);--csh:#6d3fd6}
   .cat.c1{background:var(--teal);--csh:var(--teal-sh);color:#053d38}
@@ -307,14 +309,15 @@
   @media(min-width:680px){.catgrid{grid-template-columns:repeat(3,1fr)}}
   @media(min-width:980px){.catgrid{grid-template-columns:repeat(4,1fr)}}
   /* the portrait card = a tall version of the .cat bar */
-  .pcat{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:14px;
+  .pcat{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
     border-radius:22px;padding:28px 18px 24px;color:#fff;text-align:center;position:relative;top:0;min-height:200px;
     box-shadow:0 8px 0 var(--csh);transition:top .1s,box-shadow .1s}
   .pcat:hover{top:-4px;box-shadow:0 12px 0 var(--csh)}
   .pcat:active{top:4px;box-shadow:0 2px 0 var(--csh)}
   .pcat .ic{font-size:54px;line-height:1;filter:drop-shadow(0 4px 0 rgba(0,0,0,.16));margin-top:6px}
-  .pcat .cname{font-family:var(--font-display);font-size:19px;line-height:1.08;letter-spacing:.01em}
-  .pcat .done{margin-top:auto;font-size:12px;font-weight:900;background:rgba(255,255,255,.22);padding:5px 13px;border-radius:100px;backdrop-filter:blur(5px)}
+  .pcat .cname{font-family:var(--font-display);font-size:19px;line-height:1.08;letter-spacing:.01em;
+    display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;text-overflow:clip}
+  .pcat .done{font-size:12px;font-weight:900;background:rgba(255,255,255,.22);padding:5px 13px;border-radius:100px;backdrop-filter:blur(5px)}
   .pcat.c0{background:var(--purple);--csh:#6d3fd6}
   .pcat.c1{background:var(--teal);--csh:var(--teal-sh);color:#053d38}
   .pcat.c2{background:var(--pink);--csh:#cc2f6e}
@@ -632,7 +635,7 @@ async function renderPick(){
     const slot = (b.colorSlot ?? i) % 4;   // color comes from the board, cycling 0..3
     const btn=document.createElement('button'); btn.className='cat c'+slot+(S.played[i]?' played':'');
     btn.innerHTML=`<span class="ic">${b.icon}</span><div class="ct"><div class="cname">${b.title}</div></div>`+
-      `<span class="done">${S.played[i]?'played ✓':'for fun'}</span>`;
+      (S.played[i]?'<span class="done">played ✓</span>':'');
     btn.onclick=()=>startBoard(i);
     wrap.appendChild(btn);
   });
@@ -649,7 +652,7 @@ async function renderCategories(){
     const slot=(b.colorSlot ?? i) % 4;
     const btn=document.createElement('button'); btn.className='pcat c'+slot+(S.played[i]?' played':'');
     btn.innerHTML=`<span class="ic">${b.icon}</span><div class="cname">${b.title}</div>`+
-      `<span class="done">${S.played[i]?'played ✓':'for fun'}</span>`;
+      (S.played[i]?'<span class="done">played ✓</span>':'');
     btn.onclick=()=>startBoard(i);
     wrap.appendChild(btn);
   });
