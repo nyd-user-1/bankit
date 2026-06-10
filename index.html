@@ -206,16 +206,21 @@
   /* the screen carries .auth too, so the field/label/input/err vocabulary is shared */
   .ed-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:4px}
   @media(max-width:560px){.ed-grid{grid-template-columns:1fr}}
-  .ed-col .colhead{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;margin:0 2px 9px}
+  /* both colheads share a fixed height so Answer 1 / Decoy 1 stay aligned (the decoy head carries the ✨ button) */
+  .ed-col .colhead{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:36px;
+    font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;margin:0 2px 5px}
   .ed-col .colhead.yes{color:var(--green)} .ed-col .colhead.no{color:var(--pink)}
   .ed-in{width:100%;font-family:var(--font-body);font-weight:800;font-size:14px;color:var(--ink);background:var(--panel-2);
     border:2.5px solid transparent;border-radius:11px;padding:10px 13px;outline:none;margin-bottom:8px;transition:border-color .15s}
   .ed-in::placeholder{color:var(--ink-faint)}
   .ed-in:focus{border-color:var(--teal)}
-  .ed-fill{display:block;width:100%;margin:0 0 9px;background:var(--panel-2);color:var(--ink-dim);font-weight:800;font-size:12.5px;
-    border-radius:10px;padding:9px 12px;font-family:inherit;transition:filter .12s,color .12s}
-  .ed-fill:hover{filter:brightness(.97);color:var(--ink)}
-  .ed-fill:disabled{opacity:.6;cursor:default}
+  /* the ✨ button = a mini chunky Bank It button (yellow, pressy) in the decoy colhead */
+  .ed-fill{font-family:var(--font-display);font-size:12.5px;letter-spacing:.02em;text-transform:none;color:#5a4500;
+    background:var(--yellow);padding:8px 13px;border-radius:10px;position:relative;top:0;flex-shrink:0;
+    box-shadow:0 calc(3px * var(--pop)) 0 #d9a800;transition:top .08s,box-shadow .08s,filter .15s}
+  .ed-fill:hover{filter:brightness(1.06)}
+  .ed-fill:active:not(:disabled){top:2px;box-shadow:0 1px 0 #d9a800}
+  .ed-fill:disabled{opacity:.65;cursor:default}
   .ed-colors{display:flex;gap:10px}
   .ed-colors i{width:34px;height:34px;border-radius:11px;cursor:pointer;border:3px solid transparent;display:block;box-shadow:0 3px 0 rgba(0,0,0,.18)}
   .ed-colors i.on{border-color:var(--ink)}
@@ -233,10 +238,12 @@
     .ed-layout{flex:1;min-height:0;display:grid;grid-template-columns:300px 1fr;grid-template-rows:auto 1fr;
       grid-template-areas:"meta lists" "foot lists";column-gap:30px}
     .ed-meta{grid-area:meta}
-    .ed-foot{grid-area:foot;overflow-y:auto;min-height:0;padding-right:4px}
+    /* foot: Save stays pinned and fully visible; only the "Your sets" list scrolls when long */
+    .ed-foot{grid-area:foot;display:flex;flex-direction:column;min-height:0}
+    .ed-foot #edMine{overflow-y:auto;min-height:0}
     .ed-grid{grid-area:lists;margin-top:0;overflow:hidden;min-height:0}
     .ed-col{overflow-y:auto;min-height:0;padding-right:6px}
-    .ed-col .colhead{position:sticky;top:0;z-index:1;background:var(--panel);padding-bottom:7px;margin-bottom:4px}
+    .ed-col .colhead{position:sticky;top:0;z-index:1;background:var(--panel)}
     .editor #edIcons{justify-content:start}
   }
 
@@ -693,7 +700,6 @@
       <!-- signed-in editor -->
       <div id="edBox">
         <h2>Create a set</h2>
-        <div class="sub">Your own board: 10 real answers, 10 decoys.<br>Good decoys are near-misses — close enough to tempt.</div>
         <div class="ed-layout">
           <!-- the set's "card identity": icon + color style its category card everywhere -->
           <div class="ed-meta">
@@ -712,8 +718,8 @@
           </div>
           <div class="ed-grid">
             <div class="ed-col"><div class="colhead yes">✔ On the list (10)</div><div id="edAnswers"></div></div>
-            <div class="ed-col"><div class="colhead no">✕ Decoys (10)</div>
-              <button type="button" class="ed-fill" id="edFill">✨ Fill in the decoys for me</button>
+            <div class="ed-col">
+              <div class="colhead no"><span>✕ Decoys (10)</span><button type="button" class="ed-fill" id="edFill">✨ Fill for me</button></div>
               <div id="edDecoys"></div>
             </div>
           </div>
