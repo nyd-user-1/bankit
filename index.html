@@ -37,6 +37,11 @@
     --purple:#8b5cf6;
     --green:#37c871;
     --green-sh:#249a52;
+    --yellow-sh:#d9a800;
+    --orange:#ff8b2d;
+    --orange-sh:#d96a10;
+    --blue:#4d9fff;
+    --blue-sh:#2f6fcc;
     --red:#ff4d4d;
     --hit:#37c871;            /* a correct tile */
     --hit-sh:#249a52;
@@ -192,6 +197,8 @@
   .profile-trophy{display:flex;align-items:center;gap:13px;border-radius:14px;padding:11px 15px;color:#fff;box-shadow:0 4px 0 var(--csh)}
   .profile-trophy.c0{background:var(--purple);--csh:#6d3fd6} .profile-trophy.c1{background:var(--teal);--csh:var(--teal-sh);color:#053d38}
   .profile-trophy.c2{background:var(--pink);--csh:#cc2f6e} .profile-trophy.c3{background:var(--green);--csh:var(--green-sh)}
+  .profile-trophy.c4{background:var(--yellow);--csh:var(--yellow-sh);color:#5a4500} .profile-trophy.c5{background:var(--orange);--csh:var(--orange-sh)}
+  .profile-trophy.c6{background:var(--blue);--csh:var(--blue-sh)}
   .profile-trophy .ic{font-size:23px;flex-shrink:0;filter:drop-shadow(0 2px 0 rgba(0,0,0,.15))}
   .profile-trophy .tname{flex:1;min-width:0;font-family:var(--font-display);font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .profile-trophy .tag{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;background:rgba(255,255,255,.24);padding:3px 9px;border-radius:100px;flex-shrink:0}
@@ -204,10 +211,11 @@
 
   /* ===== SET EDITOR (create your own board) ===== */
   /* the screen carries .auth too, so the field/label/input/err vocabulary is shared */
-  .ed-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:4px}
-  @media(max-width:560px){.ed-grid{grid-template-columns:1fr}}
-  /* both colheads share a fixed height so Answer 1 / Decoy 1 stay aligned (the decoy head carries the ✨ button) */
-  .ed-col .colhead{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:36px;
+  /* the two tile sections stack: On the list on top of Decoys; inside each, the 10 inputs
+     run 2 columns × 5 rows (1–5 down the left, 6–10 down the right) */
+  .ed-grid{display:flex;flex-direction:column;gap:14px;margin-top:4px}
+  #edAnswers,#edDecoys{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(5,auto);grid-auto-flow:column;column-gap:10px}
+  .ed-col .colhead{display:flex;align-items:center;justify-content:space-between;gap:10px;
     font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;margin:0 2px 5px}
   .ed-col .colhead.yes{color:var(--green)} .ed-col .colhead.no{color:var(--pink)}
   .ed-in{width:100%;font-family:var(--font-body);font-weight:800;font-size:14px;color:var(--ink);background:var(--panel-2);
@@ -227,23 +235,31 @@
   .ed-set{cursor:pointer;border:none;width:100%;text-align:left;font-family:inherit;position:relative;top:0;transition:top .08s,filter .12s}
   .ed-set:hover{top:-2px;filter:brightness(1.05)}
   .ed-set:active{top:2px}
-  /* 16 icons in a symmetric 4×4 grid (the flex-wrap row left a lonely bottom row) */
-  .editor #edIcons{display:grid;grid-template-columns:repeat(4,46px);gap:9px;justify-content:center}
+  /* 18 icons in a 6×3 grid; cells shrink a touch on narrow phones so the row never overflows */
+  .editor #edIcons{display:grid;grid-template-columns:repeat(6,minmax(0,46px));gap:9px;justify-content:center}
+  .editor #edIcons .av{width:100%;height:auto;aspect-ratio:1}
+  /* the live preview is a real .cat card, just not clickable (and an empty title reads dimmer) */
+  .ed-preview{pointer-events:none}
+  .ed-preview .cname.ph{opacity:.55}
+  /* bottom-right action cluster: ✨ Fill for me + 📦 My sets */
+  .ed-actions{display:flex;gap:11px;justify-content:flex-end;align-items:center;margin-top:14px}
+  .ed-fill.sets{background:var(--teal);color:#053d38;box-shadow:0 calc(3px * var(--pop)) 0 var(--teal-sh)}
+  .ed-fill.sets:active:not(:disabled){box-shadow:0 1px 0 var(--teal-sh)}
   /* DESKTOP: a wide, capped card — meta column on the left, the two answer lists to its
      right with their own scroll, so "Save my set" never falls off the bottom of the screen */
   @media(min-width:861px){
     .editor{max-width:1080px}
-    .editor .card{display:flex;flex-direction:column;max-height:min(744px,calc(100dvh - 120px))}
-    #edBox{display:flex;flex-direction:column;min-height:0}
-    .ed-layout{flex:1;min-height:0;display:grid;grid-template-columns:300px 1fr;grid-template-rows:auto 1fr;
+    /* no height cap: the lists show all 10+10 rows (≥582px) with no inner scroll;
+       the page itself scrolls if the window is short */
+    .editor .card{position:relative}
+    .editor h2{margin-bottom:18px}
+    .ed-layout{display:grid;grid-template-columns:330px 1fr;grid-template-rows:minmax(0,1fr) auto;
       grid-template-areas:"meta lists" "foot lists";column-gap:30px}
     .ed-meta{grid-area:meta}
-    /* foot: Save stays pinned and fully visible; only the "Your sets" list scrolls when long */
-    .ed-foot{grid-area:foot;display:flex;flex-direction:column;min-height:0}
-    .ed-foot #edMine{overflow-y:auto;min-height:0}
-    .ed-grid{grid-area:lists;margin-top:0;overflow:hidden;min-height:0}
-    .ed-col{overflow-y:auto;min-height:0;padding-right:6px}
-    .ed-col .colhead{position:sticky;top:0;z-index:1;background:var(--panel)}
+    .ed-foot{grid-area:foot;display:flex;flex-direction:column;justify-content:flex-end}
+    /* ✨ Fill / 📦 My sets pinned to the card's top-right corner */
+    .ed-actions{position:absolute;top:32px;right:38px;margin-top:0}
+    .ed-grid{grid-area:lists;margin-top:0;min-height:582px}
     .editor #edIcons{justify-content:start}
   }
 
@@ -264,6 +280,9 @@
   .cat.c1{background:var(--teal);--csh:var(--teal-sh);color:#053d38}
   .cat.c2{background:var(--pink);--csh:#cc2f6e}
   .cat.c3{background:var(--green);--csh:var(--green-sh)}
+  .cat.c4{background:var(--yellow);--csh:var(--yellow-sh);color:#5a4500}
+  .cat.c5{background:var(--orange);--csh:var(--orange-sh)}
+  .cat.c6{background:var(--blue);--csh:var(--blue-sh)}
   .cat.played{filter:saturate(.6)}
 
   /* ===== BOARD (the round) ===== */
@@ -389,6 +408,9 @@
   .hs-board.b1{background:var(--teal);--bsh:var(--teal-sh);color:#053d38}
   .hs-board.b2{background:var(--pink);--bsh:#cc2f6e}
   .hs-board.b3{background:var(--green);--bsh:var(--green-sh)}
+  .hs-board.b4{background:var(--yellow);--bsh:var(--yellow-sh);color:#5a4500}
+  .hs-board.b5{background:var(--orange);--bsh:var(--orange-sh)}
+  .hs-board.b6{background:var(--blue);--bsh:var(--blue-sh)}
   .hs-board .sweep{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;background:rgba(255,255,255,.24);padding:3px 8px;border-radius:100px;backdrop-filter:blur(4px);flex-shrink:0}
   .hs-board.b1 .sweep{background:rgba(0,0,0,.14)}
   /* leaderboard rows */
@@ -425,6 +447,9 @@
   .pcat.c1{background:var(--teal);--csh:var(--teal-sh);color:#053d38}
   .pcat.c2{background:var(--pink);--csh:#cc2f6e}
   .pcat.c3{background:var(--green);--csh:var(--green-sh)}
+  .pcat.c4{background:var(--yellow);--csh:var(--yellow-sh);color:#5a4500}
+  .pcat.c5{background:var(--orange);--csh:var(--orange-sh)}
+  .pcat.c6{background:var(--blue);--csh:var(--blue-sh)}
   .pcat.played{filter:saturate(.6)}   /* played boards desaturate (same cue as .cat.played) */
 
   /* ===== HOW TO PLAY / ABOUT (simple content screens) ===== */
@@ -703,6 +728,11 @@
         <div class="ed-layout">
           <!-- the set's "card identity": icon + color style its category card everywhere -->
           <div class="ed-meta">
+            <!-- live preview: the set's real category card, exactly as players will see it -->
+            <div class="field">
+              <label class="lbl">Your card</label>
+              <div class="cat ed-preview c0" id="edPreview"><span class="ic" id="edPrevIcon">🍕</span><div class="ct"><div class="cname" id="edPrevName">Your set title</div></div></div>
+            </div>
             <div class="field">
               <label class="lbl" for="edTitle">Set title</label>
               <input class="uname" id="edTitle" type="text" maxlength="60" autocomplete="off" spellcheck="false" placeholder="e.g. Pizza Toppings" />
@@ -719,15 +749,17 @@
           <div class="ed-grid">
             <div class="ed-col"><div class="colhead yes">✔ On the list (10)</div><div id="edAnswers"></div></div>
             <div class="ed-col">
-              <div class="colhead no"><span>✕ Decoys (10)</span><button type="button" class="ed-fill" id="edFill">✨ Fill for me</button></div>
+              <div class="colhead no">✕ Decoys (10)</div>
               <div id="edDecoys"></div>
             </div>
+          </div>
+          <div class="ed-actions">
+            <button type="button" class="ed-fill" id="edFill">✨ Fill for me</button>
+            <button type="button" class="ed-fill sets" id="edMySets">📦 My sets</button>
           </div>
           <div class="ed-foot">
             <button class="btn go green" id="edSubmit" style="margin-top:16px">Save my set ✔</button>
             <div class="err" id="edErr"></div>
-            <div class="profile-head">📦 Your sets</div>
-            <div class="profile-swept" id="edMine"></div>
           </div>
         </div>
       </div>
@@ -737,6 +769,16 @@
         <div class="sub">Sign in first so your sets are saved to your name.</div>
         <div class="actions" style="display:flex;justify-content:center"><button class="btn go" id="edSignIn">Sign in →</button></div>
       </div>
+    </div>
+  </section>
+
+  <!-- ===== MY SETS (your saved boards, reachable from the editor) ===== -->
+  <section class="screen auth mysets" id="scMySets">
+    <div class="card">
+      <h2>📦 My sets</h2>
+      <div class="sub">Boards you've made — tap one to play it.</div>
+      <div class="profile-swept" id="edMine"></div>
+      <div class="actions" style="margin-top:18px"><button class="btn ghost" id="mySetsBack">← Back to the editor</button></div>
     </div>
   </section>
 
@@ -927,7 +969,7 @@ function fillProfile(){
     wrap.innerHTML='<div class="profile-empty">No clean sweeps yet — get all 10 on a board and it shows up here. 🧹</div>';
   } else {
     swept.forEach(b=>{
-      const slot=(b.color_slot??0)%4;
+      const slot=(b.color_slot??0)%SLOT_COLORS.length;
       const row=document.createElement('div'); row.className='profile-trophy c'+slot;
       row.innerHTML=`<span class="ic">${b.icon||'🎯'}</span><span class="tname">${b.title}</span><span class="tag">swept ✓</span>`;
       wrap.appendChild(row);
@@ -946,8 +988,8 @@ function renderProfile(){
 // Your sets live in the DB (owner_key = your lowercased username) and are folded into
 // BOARDS once loaded, so startBoard / retry / score submits all just work on them.
 // They stay out of everyone else's catalog until a moderation pass approves them.
-const SET_ICONS=['🍕','🎬','🎵','⚽','🐾','🚗','🌮','🎮','🏖️','📚','🧁','👻','🍔','🎤','🦖','🚀'];
-const SLOT_COLORS=['#8b5cf6','#1fc7b6','#ff4d8d','#37c871'];   // 0 purple · 1 teal · 2 pink · 3 green
+const SET_ICONS=['🍕','🎬','🎵','⚽','🐾','🚗','🌮','🎮','🏖️','📚','🧁','👻','🍔','🎤','🦖','🚀','🌍','🎲'];
+const SLOT_COLORS=['#8b5cf6','#1fc7b6','#ff4d8d','#37c871','#ffd23f','#ff8b2d','#4d9fff'];   // 0 purple · 1 teal · 2 pink · 3 green · 4 yellow · 5 orange · 6 blue
 let MY_SETS=[];                  // this player's custom sets (from GET /api/sets?owner=)
 let edIcon=SET_ICONS[0], edColor=0;
 
@@ -971,6 +1013,13 @@ async function mergeMySets(){
 }
 function clearMySets(){ MY_SETS=[]; BOARDS=BOARDS.filter(b=>!b.mine); }
 
+// the live "Your card" preview mirrors title/icon/color as they're chosen
+function updatePreview(){
+  const t=$('edTitle').value.trim().replace(/\s+/g,' ');
+  $('edPrevIcon').textContent=edIcon;
+  const name=$('edPrevName'); name.textContent=t||'Your set title'; name.classList.toggle('ph',!t);
+  $('edPreview').className='cat ed-preview c'+(edColor%SLOT_COLORS.length);
+}
 // build the editor's pickers + the 10/10 input rows (once)
 function buildEditorInputs(){
   if($('edAnswers').childElementCount) return;
@@ -980,24 +1029,29 @@ function buildEditorInputs(){
   }
   SET_ICONS.forEach((ic,i)=>{
     const b=document.createElement('button'); b.type='button'; b.className='av'+(i===0?' on':''); b.textContent=ic;
-    b.onclick=()=>{ $('edIcons').querySelectorAll('.av').forEach(x=>x.classList.remove('on')); b.classList.add('on'); edIcon=ic; };
+    b.onclick=()=>{ $('edIcons').querySelectorAll('.av').forEach(x=>x.classList.remove('on')); b.classList.add('on'); edIcon=ic; updatePreview(); };
     $('edIcons').appendChild(b);
   });
   SLOT_COLORS.forEach((c,i)=>{
     const s=document.createElement('i'); if(i===0) s.className='on'; s.style.background=c;
-    s.onclick=()=>{ $('edColors').querySelectorAll('i').forEach(x=>x.classList.remove('on')); s.classList.add('on'); edColor=i; };
+    s.onclick=()=>{ $('edColors').querySelectorAll('i').forEach(x=>x.classList.remove('on')); s.classList.add('on'); edColor=i; updatePreview(); };
     $('edColors').appendChild(s);
   });
+  $('edTitle').addEventListener('input',updatePreview);
 }
 function renderMySets(){
   const wrap=$('edMine'); wrap.innerHTML='';
+  if(!(USER && USER.name)){
+    wrap.innerHTML='<div class="profile-empty">Sign in first — your saved boards land here. 👤</div>';
+    return;
+  }
   if(!MY_SETS.length){
     wrap.innerHTML='<div class="profile-empty">No sets yet — your saved boards land here, ready to play. ✏️</div>';
     return;
   }
   MY_SETS.forEach(s=>{
     const row=document.createElement('button'); row.type='button';
-    row.className='profile-trophy ed-set c'+((s.colorSlot??0)%4);
+    row.className='profile-trophy ed-set c'+((s.colorSlot??0)%SLOT_COLORS.length);
     row.innerHTML=`<span class="ic">${s.icon||'🎯'}</span><span class="tname">${esc(s.title)}</span><span class="tag">play →</span>`;
     row.onclick=()=>{ const i=BOARDS.findIndex(b=>b.id===s.id); if(i>=0) startBoard(i); };
     wrap.appendChild(row);
@@ -1007,8 +1061,14 @@ function renderEditor(){
   const known = !!(USER && USER.name);
   $('edBox').style.display       = known ? '' : 'none';
   $('edSignedOut').style.display = known ? 'none' : '';
-  if(known){ buildEditorInputs(); renderMySets(); loadMySets().then(renderMySets); }
+  if(known){ buildEditorInputs(); updatePreview(); loadMySets(); }
   show('scEditor');
+}
+// the My sets screen (📦 button in the editor): your saved boards, tap to play
+function renderMySetsScreen(){
+  renderMySets();
+  if(USER && USER.name) loadMySets().then(renderMySets);
+  show('scMySets');
 }
 async function submitSet(){
   // identity vanished mid-edit (signed out in another tab, cleared storage): show the
@@ -1037,6 +1097,7 @@ async function submitSet(){
     if(!r.ok || !d || !d.ok){ err.textContent=(d && d.error) || `Could not save (server error ${r.status}) — try again.`; return; }
     MY_SETS.unshift(d.set); await mergeMySets(); renderMySets();
     $('edTitle').value=''; [...$('edAnswers').children,...$('edDecoys').children].forEach(i=>i.value='');
+    updatePreview();
     flash('SET SAVED ✔','hit'); sndPoint(1);
   }catch(e){ err.textContent='Could not save — check your connection.'; }
   finally{ btn.disabled=false; btn.textContent=old; }
@@ -1099,7 +1160,7 @@ async function renderPick(){
   for(let k=idx.length-1;k>0;k--){ const j=Math.floor(Math.random()*(k+1)); [idx[k],idx[j]]=[idx[j],idx[k]]; }
   idx.slice(0, Math.min(PICK_COUNT, idx.length)).forEach(i=>{
     const b=BOARDS[i];
-    const slot = (b.colorSlot ?? i) % 4;   // color comes from the board, cycling 0..3
+    const slot = (b.colorSlot ?? i) % SLOT_COLORS.length;   // color comes from the board, cycling the slot palette
     const btn=document.createElement('button'); btn.className='cat c'+slot+(S.played[i]?' played':'');
     btn.innerHTML=`<span class="ic">${b.icon}</span><div class="ct"><div class="cname">${esc(b.title)}</div></div>`;
     btn.onclick=()=>startBoard(i);
@@ -1115,7 +1176,7 @@ async function renderCategories(){
   $('catsSub').textContent=`${words[n]||n} boards · all fun`;
   const wrap=$('catgrid'); wrap.innerHTML='';
   BOARDS.forEach((b,i)=>{
-    const slot=(b.colorSlot ?? i) % 4;
+    const slot=(b.colorSlot ?? i) % SLOT_COLORS.length;
     const btn=document.createElement('button'); btn.className='pcat c'+slot+(S.played[i]?' played':'');
     btn.innerHTML=`<span class="ic">${b.icon}</span><div class="cname">${esc(b.title)}</div>`;
     btn.onclick=()=>startBoard(i);
@@ -1388,7 +1449,7 @@ async function renderHighScores(){
   const bests = BOARDS.filter(b=>b.id!=null).map(b=>({b, best:bestById[b.id]||0}));
   bests.sort((a,z)=>z.best-a.best);
   bests.slice(0,3).forEach(({b,best})=>{
-    const swept=best===10, slot=(b.colorSlot??0)%4;
+    const swept=best===10, slot=(b.colorSlot??0)%SLOT_COLORS.length;
     const row=document.createElement('div'); row.className='hs-board b'+slot;
     row.innerHTML=`<span class="ic">${b.icon}</span>`+
       `<div class="bt"><div class="bname">${b.title}</div></div>`+
@@ -1473,6 +1534,8 @@ $('profileSignIn').onclick =playEntry;
 $('edSubmit').onclick=submitSet;
 $('edSignIn').onclick=playEntry;
 $('edFill').onclick=fillDecoys;
+$('edMySets').onclick=()=>renderMySetsScreen();
+$('mySetsBack').onclick=()=>renderEditor();
 $('profileSwitch').onclick =()=>{ USER=null; STATS=null; clearMySets(); try{localStorage.removeItem(USER_KEY);}catch(e){} renderAuth(); $('unameInput').value=''; $('unameInput').focus(); };
 (function(){
   const root=document.documentElement, rs=root.style;

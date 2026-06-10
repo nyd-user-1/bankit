@@ -50,7 +50,7 @@ module.exports = async (req, res) => {
       const ownerKey = ownerName.toLowerCase();
       const title = String(body.title || '').trim().replace(/\s+/g, ' ').slice(0, 60);
       const icon = String(body.icon || '🎯').slice(0, 8);
-      const colorSlot = [0, 1, 2, 3].includes(+body.color_slot) ? +body.color_slot : 0;
+      const colorSlot = [0, 1, 2, 3, 4, 5, 6].includes(+body.color_slot) ? +body.color_slot : 0;
       const clean = (a) => Array.isArray(a)
         ? a.map((t) => String(t).trim().replace(/\s+/g, ' ').slice(0, 40)).filter(Boolean) : [];
       const answers = clean(body.answers), decoys = clean(body.decoys);

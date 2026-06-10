@@ -15,7 +15,9 @@ const DECOY_SCHEMA = {
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
-  if (!process.env.ANTHROPIC_API_KEY_BANKIT) {
+  // trim: a whitespace-only env value is truthy but useless as a credential
+  const apiKey = (process.env.ANTHROPIC_API_KEY_BANKIT || '').trim();
+  if (!apiKey) {
     res.status(503).json({ error: 'Decoy magic is not set up yet.' }); return;
   }
   try {
@@ -31,7 +33,7 @@ module.exports = async (req, res) => {
       res.status(400).json({ error: 'Need a title and all 10 answers first.' }); return;
     }
 
-    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY_BANKIT });
+    const client = new Anthropic({ apiKey });
     const taken = [...answers, ...existing];
     const response = await client.messages.create({
       model: 'claude-haiku-4-5',
@@ -73,6 +75,7 @@ module.exports = async (req, res) => {
     }
     res.status(200).json({ decoys });
   } catch (e) {
-    res.status(500).json({ error: 'decoy_error', detail: String(e.message || e) });
+    console.error('decoys route error:', e);
+    res.status(500).json({ error: 'Could not conjure decoys — try again.', detail: String(e.message || e) });
   }
 };
