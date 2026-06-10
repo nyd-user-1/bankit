@@ -22,8 +22,13 @@ think are on the hidden list. Every correct tap is +1; one wrong tap ends the ro
   - `scripts/add-boards-batch.mjs` — add several boards at once (idempotent on slug).
   - `scripts/migrate-players.mjs` — idempotent: creates the `players` table + backfills from
     existing `scores`. Already applied to the live DB.
-- **Deploy:** static + serverless on **Vercel**. `DATABASE_URL` lives in `.env.local` (gitignored)
-  locally and in Vercel env in prod. No Vercel deployment-count limit — retry on failure.
+- **Deploy:** static + serverless on **Vercel** (prod alias `bankit-pearl.vercel.app`).
+  `DATABASE_URL` lives in `.env.local` (gitignored) locally and in Vercel env in prod.
+  No Vercel deployment-count limit — retry on failure.
+  - ⚠️ **New `api/*.js` files can silently miss the cloud build** (deployment shows only the
+    old lambdas under "Builds"; the new route 404s in prod even though the HTML deployed).
+    Fix: `vercel pull --yes && vercel build --prod && vercel deploy --prebuilt --prod`.
+    After adding any API file, verify with `vercel inspect <url>` that its λ is listed.
 
 ## ⚠️ The one rule that bites: boards live in TWO places
 
