@@ -1,7 +1,7 @@
 // POST /api/decoys — generate 10 plausible decoys for a custom set via Claude Haiku.
 // Body: { title, answers[10], existing[] (decoys the user already typed) }.
 // Returns { decoys: [10 strings] } that don't collide with answers or existing decoys.
-// Costs ~$0.001 per call (Haiku, ~300 tokens in / ~150 out). Needs ANTHROPIC_API_KEY.
+// Costs ~$0.001 per call (Haiku, ~300 tokens in / ~150 out). Needs ANTHROPIC_API_KEY_BANKIT.
 const Anthropic = require('@anthropic-ai/sdk');
 
 const DECOY_SCHEMA = {
@@ -15,7 +15,7 @@ const DECOY_SCHEMA = {
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!process.env.ANTHROPIC_API_KEY_BANKIT) {
     res.status(503).json({ error: 'Decoy magic is not set up yet.' }); return;
   }
   try {
@@ -31,7 +31,7 @@ module.exports = async (req, res) => {
       res.status(400).json({ error: 'Need a title and all 10 answers first.' }); return;
     }
 
-    const client = new Anthropic();
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY_BANKIT });
     const taken = [...answers, ...existing];
     const response = await client.messages.create({
       model: 'claude-haiku-4-5',
