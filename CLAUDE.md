@@ -25,10 +25,13 @@ think are on the hidden list. Every correct tap is +1; one wrong tap ends the ro
 - **Deploy:** static + serverless on **Vercel** (prod alias `bankit-pearl.vercel.app`).
   `DATABASE_URL` lives in `.env.local` (gitignored) locally and in Vercel env in prod.
   No Vercel deployment-count limit — retry on failure.
-  - ⚠️ **New `api/*.js` files can silently miss the cloud build** (deployment shows only the
-    old lambdas under "Builds"; the new route 404s in prod even though the HTML deployed).
-    Fix: `vercel pull --yes && vercel build --prod && vercel deploy --prebuilt --prod`.
-    After adding any API file, verify with `vercel inspect <url>` that its λ is listed.
+  - ⚠️ **Git auto-deploys are DISCONNECTED for this project** (2026-06-10). Vercel's
+    git-triggered builds repeatedly produced deployments missing newly-added `api/*.js`
+    lambdas (the route 404s in prod), and even raced a good build with a stale function-less
+    copy that stole the prod alias. `vercel.json` now pins explicit function detection
+    (`"functions": {"api/*.js": ...}`), but don't reconnect git. **Deploying = a manual step
+    after every push:** `vercel build --prod && vercel deploy --prebuilt --prod`, then verify
+    with `vercel inspect <url>` that every λ is listed (and curl any new route).
 
 ## ⚠️ The one rule that bites: boards live in TWO places
 
