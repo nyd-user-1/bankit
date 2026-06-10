@@ -202,6 +202,23 @@
   .profile-switch button{background:none;border:none;color:var(--ink-faint);font-weight:800;font-size:12.5px;cursor:pointer;text-decoration:underline;font-family:inherit}
   .profile-switch button:hover{color:var(--ink-dim)}
 
+  /* ===== SET EDITOR (create your own board) ===== */
+  /* the screen carries .auth too, so the field/label/input/err vocabulary is shared */
+  .ed-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:4px}
+  @media(max-width:560px){.ed-grid{grid-template-columns:1fr}}
+  .ed-col .colhead{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;margin:0 2px 9px}
+  .ed-col .colhead.yes{color:var(--green)} .ed-col .colhead.no{color:var(--pink)}
+  .ed-in{width:100%;font-family:var(--font-body);font-weight:800;font-size:14px;color:var(--ink);background:var(--panel-2);
+    border:2.5px solid transparent;border-radius:11px;padding:10px 13px;outline:none;margin-bottom:8px;transition:border-color .15s}
+  .ed-in::placeholder{color:var(--ink-faint)}
+  .ed-in:focus{border-color:var(--teal)}
+  .ed-colors{display:flex;gap:10px}
+  .ed-colors i{width:34px;height:34px;border-radius:11px;cursor:pointer;border:3px solid transparent;display:block;box-shadow:0 3px 0 rgba(0,0,0,.18)}
+  .ed-colors i.on{border-color:var(--ink)}
+  .ed-set{cursor:pointer;border:none;width:100%;text-align:left;font-family:inherit;position:relative;top:0;transition:top .08s,filter .12s}
+  .ed-set:hover{top:-2px;filter:brightness(1.05)}
+  .ed-set:active{top:2px}
+
   /* ===== CATEGORY PICK ===== */
   .pick h2{font-family:var(--font-display);font-size:30px;text-align:center;margin-bottom:24px;color:var(--ink)}
   .pick .sub{text-align:center;color:var(--ink-dim);font-weight:800;margin-bottom:22px}
@@ -465,6 +482,7 @@
 <div class="menu-panel" id="menuPanel" role="menu" aria-label="Menu">
   <button class="menu-item m0" id="miStart" role="menuitem"><span class="mi-ic">🏠</span><span class="mi-label">Start</span></button>
   <button class="menu-item m1" id="miCategories" role="menuitem"><span class="mi-ic">🗂️</span><span class="mi-label">All categories</span></button>
+  <button class="menu-item m5" id="miCreate" role="menuitem"><span class="mi-ic">✏️</span><span class="mi-label">Create a set</span></button>
   <button class="menu-item m2" id="miHighScores" role="menuitem"><span class="mi-ic">🏆</span><span class="mi-label">High scores</span></button>
   <button class="menu-item m3" id="miHowTo" role="menuitem"><span class="mi-ic">❓</span><span class="mi-label">How to play</span></button>
   <button class="menu-item m4" id="miProfile" role="menuitem"><span class="mi-ic">👤</span><span class="mi-label">Profile</span></button>
@@ -648,6 +666,43 @@
     </div>
   </section>
 
+  <!-- ===== SET EDITOR (create your own board) ===== -->
+  <section class="screen auth editor" id="scEditor">
+    <div class="card">
+      <!-- signed-in editor -->
+      <div id="edBox">
+        <h2>Create a set</h2>
+        <div class="sub">Your own board: 10 real answers, 10 decoys.<br>Good decoys are near-misses — close enough to tempt.</div>
+        <div class="field">
+          <label class="lbl" for="edTitle">Set title</label>
+          <input class="uname" id="edTitle" type="text" maxlength="60" autocomplete="off" spellcheck="false" placeholder="e.g. Pizza Toppings" />
+        </div>
+        <div class="field">
+          <label class="lbl">Pick an icon</label>
+          <div class="avrow" id="edIcons"></div>
+        </div>
+        <div class="field">
+          <label class="lbl">Pick a color</label>
+          <div class="ed-colors" id="edColors"></div>
+        </div>
+        <div class="ed-grid">
+          <div class="ed-col"><div class="colhead yes">✔ On the list (10)</div><div id="edAnswers"></div></div>
+          <div class="ed-col"><div class="colhead no">✕ Decoys (10)</div><div id="edDecoys"></div></div>
+        </div>
+        <button class="btn go green" id="edSubmit" style="margin-top:16px">Save my set ✔</button>
+        <div class="err" id="edErr"></div>
+        <div class="profile-head">📦 Your sets</div>
+        <div class="profile-swept" id="edMine"></div>
+      </div>
+      <!-- signed-out fallback: invite to sign in -->
+      <div id="edSignedOut" style="display:none">
+        <h2>Create a set</h2>
+        <div class="sub">Sign in first so your sets are saved to your name.</div>
+        <div class="actions" style="display:flex;justify-content:center"><button class="btn go" id="edSignIn">Sign in →</button></div>
+      </div>
+    </div>
+  </section>
+
 </div>
 
 <!-- feedback flash -->
@@ -815,6 +870,7 @@ function commitSignup(){
   USER = { name, avatar:pendingAvatar };
   saveUser();
   fetchStats();          // warm the profile/stats in the background
+  loadMySets();          // pull this player's custom sets into BOARDS
   goToPick();
 }
 function goToPick(){ show('scPick'); renderPick(); }
@@ -849,6 +905,103 @@ function renderProfile(){
   show('scProfile');
 }
 
+//// ===== custom sets (create-your-own boards) =====
+// Your sets live in the DB (owner_key = your lowercased username) and are folded into
+// BOARDS once loaded, so startBoard / retry / score submits all just work on them.
+// They stay out of everyone else's catalog until a moderation pass approves them.
+const SET_ICONS=['🍕','🎬','🎵','⚽','🐾','🚗','🌮','🎮','🏖️','📚','🧁','👻'];
+const SLOT_COLORS=['#8b5cf6','#1fc7b6','#ff4d8d','#37c871'];   // 0 purple · 1 teal · 2 pink · 3 green
+let MY_SETS=[];                  // this player's custom sets (from GET /api/sets?owner=)
+let edIcon=SET_ICONS[0], edColor=0;
+
+// user-typed text goes through innerHTML in a few places — escape it
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+async function loadMySets(){
+  if(!(USER && USER.name)){ MY_SETS=[]; mergeMySets(); return; }
+  try{
+    const r=await fetch('/api/sets?owner='+encodeURIComponent(USER.name.trim().toLowerCase()));
+    if(r.ok){ MY_SETS=(await r.json()).sets||[]; }
+  }catch(e){}
+  await mergeMySets();
+}
+// fold MY_SETS into BOARDS (after the official list settles); replaces any previous merge
+async function mergeMySets(){
+  await boardsLoaded;
+  BOARDS=BOARDS.filter(b=>!b.mine);
+  const have=new Set(BOARDS.map(b=>b.id).filter(x=>x!=null));
+  MY_SETS.forEach(s=>{ if(s.id!=null && !have.has(s.id)) BOARDS.push({...s, mine:true}); });
+}
+function clearMySets(){ MY_SETS=[]; BOARDS=BOARDS.filter(b=>!b.mine); }
+
+// build the editor's pickers + the 10/10 input rows (once)
+function buildEditorInputs(){
+  if($('edAnswers').childElementCount) return;
+  for(let k=1;k<=10;k++){
+    const a=document.createElement('input'); a.className='ed-in'; a.maxLength=40; a.autocomplete='off'; a.placeholder='Answer '+k; $('edAnswers').appendChild(a);
+    const d=document.createElement('input'); d.className='ed-in'; d.maxLength=40; d.autocomplete='off'; d.placeholder='Decoy '+k; $('edDecoys').appendChild(d);
+  }
+  SET_ICONS.forEach((ic,i)=>{
+    const b=document.createElement('button'); b.type='button'; b.className='av'+(i===0?' on':''); b.textContent=ic;
+    b.onclick=()=>{ $('edIcons').querySelectorAll('.av').forEach(x=>x.classList.remove('on')); b.classList.add('on'); edIcon=ic; };
+    $('edIcons').appendChild(b);
+  });
+  SLOT_COLORS.forEach((c,i)=>{
+    const s=document.createElement('i'); if(i===0) s.className='on'; s.style.background=c;
+    s.onclick=()=>{ $('edColors').querySelectorAll('i').forEach(x=>x.classList.remove('on')); s.classList.add('on'); edColor=i; };
+    $('edColors').appendChild(s);
+  });
+}
+function renderMySets(){
+  const wrap=$('edMine'); wrap.innerHTML='';
+  if(!MY_SETS.length){
+    wrap.innerHTML='<div class="profile-empty">No sets yet — your saved boards land here, ready to play. ✏️</div>';
+    return;
+  }
+  MY_SETS.forEach(s=>{
+    const row=document.createElement('button'); row.type='button';
+    row.className='profile-trophy ed-set c'+((s.colorSlot??0)%4);
+    row.innerHTML=`<span class="ic">${s.icon||'🎯'}</span><span class="tname">${esc(s.title)}</span><span class="tag">play →</span>`;
+    row.onclick=()=>{ const i=BOARDS.findIndex(b=>b.id===s.id); if(i>=0) startBoard(i); };
+    wrap.appendChild(row);
+  });
+}
+function renderEditor(){
+  const known = !!(USER && USER.name);
+  $('edBox').style.display       = known ? '' : 'none';
+  $('edSignedOut').style.display = known ? 'none' : '';
+  if(known){ buildEditorInputs(); renderMySets(); loadMySets().then(renderMySets); }
+  show('scEditor');
+}
+async function submitSet(){
+  const err=$('edErr'); err.textContent='';
+  const tidy=v=>v.trim().replace(/\s+/g,' ');
+  const title=tidy($('edTitle').value);
+  const answers=[...$('edAnswers').children].map(i=>tidy(i.value));
+  const decoys =[...$('edDecoys').children].map(i=>tidy(i.value));
+  if(title.length<2){ err.textContent='Give your set a title (2+ letters).'; $('edTitle').focus(); return; }
+  if(answers.some(t=>!t) || decoys.some(t=>!t)){ err.textContent='Fill in all 10 answers and all 10 decoys.'; return; }
+  const seen=new Set();
+  for(const t of [...answers,...decoys]){
+    const k=t.toLowerCase();
+    if(seen.has(k)){ err.textContent=`"${t}" appears twice — every tile must be different.`; return; }
+    seen.add(k);
+  }
+  const btn=$('edSubmit'); btn.disabled=true; const old=btn.textContent; btn.textContent='Saving…';
+  try{
+    const r=await fetch('/api/sets',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ owner_name:USER.name, title, icon:edIcon, color_slot:edColor, answers, decoys })
+    });
+    const d=await r.json().catch(()=>null);
+    if(!r.ok || !d || !d.ok){ err.textContent=(d && d.error) || 'Could not save — try again.'; return; }
+    MY_SETS.unshift(d.set); await mergeMySets(); renderMySets();
+    $('edTitle').value=''; [...$('edAnswers').children,...$('edDecoys').children].forEach(i=>i.value='');
+    flash('SET SAVED ✔','hit'); sndPoint(1);
+  }catch(e){ err.textContent='Could not save — check your connection.'; }
+  finally{ btn.disabled=false; btn.textContent=old; }
+}
+
 // deterministic shuffle (index-seeded — no Math.random)
 function shuffle(arr, seed){
   const a=arr.slice();
@@ -880,7 +1033,7 @@ async function renderPick(){
     const b=BOARDS[i];
     const slot = (b.colorSlot ?? i) % 4;   // color comes from the board, cycling 0..3
     const btn=document.createElement('button'); btn.className='cat c'+slot+(S.played[i]?' played':'');
-    btn.innerHTML=`<span class="ic">${b.icon}</span><div class="ct"><div class="cname">${b.title}</div></div>`;
+    btn.innerHTML=`<span class="ic">${b.icon}</span><div class="ct"><div class="cname">${esc(b.title)}</div></div>`;
     btn.onclick=()=>startBoard(i);
     wrap.appendChild(btn);
   });
@@ -896,7 +1049,7 @@ async function renderCategories(){
   BOARDS.forEach((b,i)=>{
     const slot=(b.colorSlot ?? i) % 4;
     const btn=document.createElement('button'); btn.className='pcat c'+slot+(S.played[i]?' played':'');
-    btn.innerHTML=`<span class="ic">${b.icon}</span><div class="cname">${b.title}</div>`;
+    btn.innerHTML=`<span class="ic">${b.icon}</span><div class="cname">${esc(b.title)}</div>`;
     btn.onclick=()=>startBoard(i);
     wrap.appendChild(btn);
   });
@@ -925,7 +1078,7 @@ function renderTiles(){
   const wrap=$('tiles'); wrap.innerHTML='';
   S.tiles.forEach((t,idx)=>{
     const el=document.createElement('button'); el.className='tile'; el.dataset.idx=idx;
-    el.innerHTML=`<span class="chk">✔</span>${t.t}`;
+    el.innerHTML=`<span class="chk">✔</span>${esc(t.t)}`;
     el.onclick=()=>tap(idx,el);
     wrap.appendChild(el);
   });
@@ -1201,7 +1354,7 @@ $('rAgain').onclick=()=>{ if(USER && USER.name){ goToPick(); } else { playEntry(
 //// ===== auth wiring =====
 $('authStart').onclick   = commitSignup;
 $('authContinue').onclick= goToPick;                    // returning player keeps going
-$('authSwitch').onclick  = ()=>{ USER=null; $('unameInput').value=''; renderAuth(); $('unameInput').focus(); };
+$('authSwitch').onclick  = ()=>{ USER=null; clearMySets(); $('unameInput').value=''; renderAuth(); $('unameInput').focus(); };
 $('unameInput').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); commitSignup(); } });
 
 //// ===== theme + playground =====
@@ -1235,6 +1388,7 @@ $('unameInput').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventD
   const go=fn=>{ setOpen(false); fn(); };
   $('miStart').onclick      =()=>go(()=>show('scStart'));
   $('miCategories').onclick =()=>go(()=>{ show('scCategories'); renderCategories(); });
+  $('miCreate').onclick     =()=>go(()=>renderEditor());
   $('miHighScores').onclick =()=>go(()=>{ show('scHighScores'); renderHighScores(); });
   $('miHowTo').onclick      =()=>go(()=>show('scHowTo'));
   $('miProfile').onclick         =()=>go(()=>renderProfile());
@@ -1247,7 +1401,10 @@ $('profilePlay').onclick   =()=>{ if(USER && USER.name){ goToPick(); } else { pl
 $('profileBack').onclick   =()=>show('scStart');
 $('profileBack2').onclick  =()=>show('scStart');
 $('profileSignIn').onclick =playEntry;
-$('profileSwitch').onclick =()=>{ USER=null; STATS=null; try{localStorage.removeItem(USER_KEY);}catch(e){} renderAuth(); $('unameInput').value=''; $('unameInput').focus(); };
+// set editor buttons
+$('edSubmit').onclick=submitSet;
+$('edSignIn').onclick=playEntry;
+$('profileSwitch').onclick =()=>{ USER=null; STATS=null; clearMySets(); try{localStorage.removeItem(USER_KEY);}catch(e){} renderAuth(); $('unameInput').value=''; $('unameInput').focus(); };
 (function(){
   const root=document.documentElement, rs=root.style;
   const panel=$('pgPanel'), launch=$('pgLaunch');
@@ -1269,6 +1426,7 @@ $('profileSwitch').onclick =()=>{ USER=null; STATS=null; try{localStorage.remove
 //// ===== boot =====
 loadUser();        // remember who's playing (if anyone) so the welcome-back state is ready
 buildAvatars();    // pre-build the avatar picker
+loadMySets();      // returning player: fold their custom sets into BOARDS
 </script>
 </body>
 </html>

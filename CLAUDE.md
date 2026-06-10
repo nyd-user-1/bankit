@@ -50,6 +50,26 @@ Example: for "Girls' Names With 4 Letters" the decoys are OTHER real 4-letter gi
 trick is *which* names made the list, not name length. Same pattern for "Sweet Cereals" (decoys
 are other real sweet-cereal brands).
 
+**Exception — custom sets:** the player supplies their own 10 decoys in the editor; never
+auto-generate for them.
+
+## Custom sets (player-created boards)
+
+- Extra `boards` columns: `owner_key` (`lower(trim(username))`; **NULL = official board**),
+  `is_public`, `is_approved`. Custom sets are saved `is_public=TRUE, is_approved=FALSE` —
+  submitted for everyone but hidden from the global catalog until a moderation pass.
+  `/api/boards` filters: `owner_key IS NULL OR (is_public AND is_approved)`.
+  Migration: `scripts/migrate-custom-sets.mjs` (idempotent; **must run before deploying**
+  any code that references these columns).
+- `api/sets.js` — `POST /api/sets` creates one (validates 10+10, no duplicate tiles, unique
+  slug `custom-<owner>-<title>`); `GET /api/sets?owner=` returns that player's sets shaped
+  like `/api/boards` entries.
+- Frontend: `scEditor` (menu ✏️ "Create a set", `renderEditor()`); the screen carries both
+  `auth` and `editor` classes so it reuses the auth field/label/input CSS. The player's sets
+  (`MY_SETS`) are **folded into `BOARDS`** with `mine:true` (`mergeMySets()`), so
+  `startBoard`/retry/score-submit work on them unchanged; cleared on player switch
+  (`clearMySets()`). User-typed text is escaped with `esc()` wherever it hits `innerHTML`.
+
 ## Players, points & the Profile screen
 
 - **Points persist in the DB, keyed by username** — not in localStorage. localStorage

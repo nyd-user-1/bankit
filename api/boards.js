@@ -9,8 +9,10 @@ module.exports = async (req, res) => {
     const pool = getPool();
     const { rows: boards } = await pool.query(
       `SELECT id, slug, title, icon, color_slot
-         FROM boards WHERE is_active = TRUE
-         ORDER BY sort_order, id`
+         FROM boards
+        WHERE is_active = TRUE
+          AND (owner_key IS NULL OR (is_public AND is_approved))
+        ORDER BY sort_order, id`
     );
     const { rows: answers } = await pool.query(
       `SELECT board_id, text, on_list

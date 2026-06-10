@@ -15,8 +15,14 @@ CREATE TABLE boards (
   color_slot  SMALLINT NOT NULL DEFAULT 0,  -- 0 purple · 1 teal · 2 pink · 3 green
   is_active   BOOLEAN NOT NULL DEFAULT TRUE,
   sort_order  INTEGER NOT NULL DEFAULT 0,
+  -- custom sets (player-created boards). Official boards: owner_key NULL (treated as
+  -- public+approved by /api/boards regardless of the flags below).
+  owner_key   TEXT,                          -- lower(trim(username)) of the creator
+  is_public   BOOLEAN NOT NULL DEFAULT FALSE,
+  is_approved BOOLEAN NOT NULL DEFAULT FALSE, -- moderation gate for the global catalog
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+CREATE INDEX idx_boards_owner ON boards(owner_key);
 
 CREATE TABLE board_answers (
   id          SERIAL PRIMARY KEY,
