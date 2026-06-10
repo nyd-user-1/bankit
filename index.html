@@ -506,6 +506,25 @@
   .doc-p:last-child{margin-bottom:0}
   .doc .actions{display:flex;justify-content:center;margin-top:24px}
 
+  /* ===== MODE (pick your game) — two big chunky mode cards ===== */
+  .mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:4px}
+  @media(max-width:560px){.mode-grid{grid-template-columns:1fr}}
+  .mode-card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+    border-radius:22px;padding:30px 20px 26px;text-align:center;position:relative;top:0;min-height:230px;
+    box-shadow:0 8px 0 var(--msh);transition:top .1s,box-shadow .1s}
+  .mode-card:hover{top:-4px;box-shadow:0 12px 0 var(--msh)}
+  .mode-card:active{top:4px;box-shadow:0 2px 0 var(--msh)}
+  .mode-card .ic{font-size:50px;line-height:1;filter:drop-shadow(0 4px 0 rgba(0,0,0,.18))}
+  .mode-card .mname{font-family:var(--font-display);font-size:26px;letter-spacing:.02em;line-height:1;margin-top:2px}
+  .mode-card .mdesc{font-size:13px;font-weight:800;line-height:1.5;opacity:.88;max-width:240px}
+  /* Original = the sunny game-show stage, regardless of theme */
+  .mode-card.original{background:#ff7a3c;color:#fff;--msh:#a8320a}
+  /* The Vault = the prototype's midnight-safe look: navy panel, gold glow */
+  .mode-card.vaultmode{background:#141d36;color:#e8ecf8;--msh:#070b18}
+  .mode-card.vaultmode .mname b{color:#ffd23f;text-shadow:0 0 14px rgba(255,210,63,.6)}
+  .mode-card.vaultmode .mtag{font-size:9.5px;font-weight:900;text-transform:uppercase;letter-spacing:.14em;
+    color:#8fa0c8;background:rgba(255,255,255,.08);padding:4px 11px;border-radius:100px;margin-top:3px}
+
   /* ===== PLAYGROUND ===== */
   .pg-launch{position:fixed;right:22px;bottom:22px;z-index:40;width:50px;height:50px;border-radius:14px;
     background:var(--panel);color:var(--ink);box-shadow:0 5px 0 var(--shadow);display:grid;place-items:center;transition:transform .08s,box-shadow .08s}
@@ -575,7 +594,7 @@
   <button class="menu-item m5" id="miCreate" role="menuitem"><span class="mi-ic">✏️</span><span class="mi-label">Create a set</span></button>
   <button class="menu-item m0" id="miVersus" role="menuitem"><span class="mi-ic">⚔️</span><span class="mi-label">Play a friend</span></button>
   <button class="menu-item m2" id="miHighScores" role="menuitem"><span class="mi-ic">🏆</span><span class="mi-label">High scores</span></button>
-  <button class="menu-item m3" id="miHowTo" role="menuitem"><span class="mi-ic">❓</span><span class="mi-label">How to play</span></button>
+  <button class="menu-item m3" id="miMode" role="menuitem"><span class="mi-ic">🕹️</span><span class="mi-label">Mode</span></button>
   <button class="menu-item m4" id="miProfile" role="menuitem"><span class="mi-ic">👤</span><span class="mi-label">Profile</span></button>
   <button class="menu-item m5 menu-theme" id="miTheme" role="menuitem"><span class="mi-ic" id="miThemeIc">🌙</span><span class="mi-label" id="miThemeLbl">Dark mode</span></button>
 </div>
@@ -710,17 +729,24 @@
     </div>
   </section>
 
-  <!-- ===== HOW TO PLAY ===== -->
-  <section class="screen doc" id="scHowTo">
+  <!-- ===== MODE (pick your game) ===== -->
+  <section class="screen doc" id="scMode">
     <div class="card">
-      <h2>How to play</h2>
-      <div class="sub">bank points, dodge the duds, quit while you're ahead</div>
-      <div class="doc-step"><span class="n">1</span><span class="t">Pick a category. You'll see <b>20</b> answers — but only <b>10</b> are really on the hidden list.</span></div>
-      <div class="doc-step"><span class="n">2</span><span class="t">Tap the answers you think made the list. Each correct tap is <b>+1</b>.</span></div>
-      <div class="doc-step"><span class="n">3</span><span class="t">Tap a wrong one and the round is <b>over</b> — you lose what you hadn't banked.</span></div>
-      <div class="doc-step"><span class="n">4</span><span class="t">Not sure? Hit <b>Bank it &amp; stop</b> to lock in your points and walk away safe.</span></div>
-      <div class="doc-p" style="margin-top:18px">The whole game is knowing when to stop. Greed busts runs.</div>
-      <div class="actions"><button class="btn teal" id="howToPlay">Let's play! →</button></div>
+      <h2>Mode</h2>
+      <div class="sub">two ways to play — pick your poison</div>
+      <div class="mode-grid">
+        <button class="mode-card original" id="modeOriginal">
+          <span class="ic">🎯</span>
+          <span class="mname">Original</span>
+          <span class="mdesc">The party game. Pick a category, tap the real answers, bank before you bust.</span>
+        </button>
+        <button class="mode-card vaultmode" id="modeVault">
+          <span class="ic">🔐</span>
+          <span class="mname">The <b>Vault</b></span>
+          <span class="mdesc">Climb the pot ladder. One wrong tap and the vault slams shut.</span>
+          <span class="mtag">prototype</span>
+        </button>
+      </div>
     </div>
   </section>
 
@@ -1840,12 +1866,14 @@ $('unameInput').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventD
   $('miCreate').onclick     =()=>go(()=>renderEditor());
   $('miVersus').onclick     =()=>go(()=>{ leaveMatch(); renderVersus(); });
   $('miHighScores').onclick =()=>go(()=>{ show('scHighScores'); renderHighScores(); });
-  $('miHowTo').onclick      =()=>go(()=>show('scHowTo'));
+  $('miMode').onclick       =()=>go(()=>show('scMode'));
   $('miProfile').onclick         =()=>go(()=>renderProfile());
 })();
 // back / play buttons on the new screens
 $('catsBack').onclick =()=>show('scStart');
-$('howToPlay').onclick=()=>{ if(USER && USER.name){ goToPick(); } else { playEntry(); } };
+// mode cards: Original = the classic start screen; The Vault = the prototype page
+$('modeOriginal').onclick=()=>show('scStart');
+$('modeVault').onclick   =()=>{ window.location.href='vault.html'; };
 // profile screen buttons
 $('profilePlay').onclick   =()=>{ if(USER && USER.name){ goToPick(); } else { playEntry(); } };
 $('profileBack').onclick   =()=>show('scStart');

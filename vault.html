@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Bank It — The Vault (prototype)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Nunito:ital,wght@0,700;0,800;0,900;1,800&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    /* night-heist palette: vault steel + coin gold */
+    --bg:#0d1422;
+    --bg-2:#070b14;
+    --panel:#16203437;        /* glassy steel panel */
+    --panel-solid:#162034;
+    --steel:#1d2a42;
+    --steel-hi:#2a3a5a;
+    --line:#2c3d5e;
+    --ink:#eaf0fb;
+    --ink-dim:#8fa0bf;
+    --ink-faint:#5c6c8c;
+    --gold:#ffc63f;
+    --gold-deep:#e09f00;
+    --gold-sh:#8a6200;
+    --safe:#46d98b;
+    --danger:#ff5057;
+    --danger-sh:#a31b21;
+    --font-display:"Luckiest Guy",system-ui,sans-serif;
+    --font-body:"Nunito",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{min-height:100%}
+  body{
+    font-family:var(--font-body);color:var(--ink);background:var(--bg);
+    background-image:
+      radial-gradient(1100px 600px at 50% -10%, #1b2a4a 0%, transparent 60%),
+      radial-gradient(900px 700px at 110% 110%, #131f3a 0%, transparent 55%),
+      repeating-linear-gradient(115deg, rgba(255,255,255,.014) 0 2px, transparent 2px 9px);
+    min-height:100dvh;display:flex;flex-direction:column;align-items:center;
+    padding:0 16px 40px;overflow-x:hidden;
+  }
+  /* drifting dust motes */
+  .mote{position:fixed;border-radius:50%;background:var(--gold);opacity:.05;pointer-events:none;animation:drift 9s ease-in-out infinite}
+  @keyframes drift{0%,100%{transform:translateY(0)}50%{transform:translateY(-26px)}}
+
+  /* ===== top bar ===== */
+  .topbar{width:100%;max-width:1040px;display:flex;align-items:center;justify-content:space-between;padding:18px 2px 8px}
+  .wordmark{display:flex;align-items:baseline;gap:10px}
+  .wordmark .bank{font-family:var(--font-display);font-size:22px;color:var(--ink);letter-spacing:.02em}
+  .wordmark .mode{font-family:var(--font-display);font-size:22px;color:var(--gold);letter-spacing:.06em;text-shadow:0 0 18px rgba(255,198,63,.35)}
+  .nightpill{display:flex;align-items:center;gap:14px}
+  .pill{background:rgba(255,255,255,.06);border:1px solid var(--line);padding:8px 16px;border-radius:100px;font-weight:900;font-size:14px;color:var(--ink-dim)}
+  .pill b{color:var(--gold);font-family:var(--font-display);font-size:17px;letter-spacing:.03em}
+
+  .stage{width:100%;max-width:1040px}
+
+  /* ===== HUD: odds · vault door · ladder ===== */
+  .hud{display:grid;grid-template-columns:1fr 230px 1fr;gap:22px;align-items:center;margin:10px 0 16px}
+  @media(max-width:840px){.hud{grid-template-columns:1fr;gap:14px;justify-items:center}}
+
+  /* --- the vault door --- */
+  .doorwrap{display:flex;flex-direction:column;align-items:center;gap:14px;order:2}
+  .door{position:relative;width:212px;height:212px;border-radius:50%;
+    background:conic-gradient(from 30deg,#2e405f,#19243c 22%,#33486c 41%,#19243c 60%,#2e405f 78%,#19243c 100%);
+    box-shadow:0 18px 40px rgba(0,0,0,.55), inset 0 2px 2px rgba(255,255,255,.14), inset 0 -10px 24px rgba(0,0,0,.5);
+    display:grid;place-items:center;transition:box-shadow .4s}
+  .door::before{content:'';position:absolute;inset:13px;border-radius:50%;border:2px dashed rgba(255,255,255,.14)}
+  /* rivets */
+  .door::after{content:'';position:absolute;width:7px;height:7px;border-radius:50%;background:#0d1626;top:8px;left:50%;margin-left:-3.5px;
+    box-shadow:0 0 0 1.5px rgba(255,255,255,.1),
+      69px 19px 0 #0d1626, 70px 20px 0 1.5px rgba(255,255,255,.08),
+      97px 88px 0 #0d1626, 98px 89px 0 1.5px rgba(255,255,255,.08),
+      69px 157px 0 #0d1626, 70px 158px 0 1.5px rgba(255,255,255,.08),
+      0px 186px 0 #0d1626, 0px 187px 0 1.5px rgba(255,255,255,.08),
+      -69px 157px 0 #0d1626, -68px 158px 0 1.5px rgba(255,255,255,.08),
+      -97px 88px 0 #0d1626, -96px 89px 0 1.5px rgba(255,255,255,.08),
+      -69px 19px 0 #0d1626, -68px 20px 0 1.5px rgba(255,255,255,.08)}
+  .doorface{position:relative;width:148px;height:148px;border-radius:50%;
+    background:radial-gradient(circle at 38% 30%,#27375a 0%,#141f36 70%);
+    box-shadow:inset 0 3px 10px rgba(0,0,0,.6), 0 1px 0 rgba(255,255,255,.1);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;transition:transform .5s cubic-bezier(.2,1.3,.4,1)}
+  .door .lab{font-size:9.5px;font-weight:900;letter-spacing:.18em;color:var(--ink-faint);text-transform:uppercase}
+  .door .pot{font-family:var(--font-display);font-size:54px;line-height:.95;color:var(--ink-dim);transition:color .25s;text-shadow:0 3px 0 rgba(0,0,0,.4)}
+  .door.hot .pot{color:var(--gold);text-shadow:0 0 26px rgba(255,198,63,.5),0 3px 0 rgba(0,0,0,.45)}
+  .door.hot{box-shadow:0 18px 40px rgba(0,0,0,.55), 0 0 50px rgba(255,198,63,.16), inset 0 2px 2px rgba(255,255,255,.14), inset 0 -10px 24px rgba(0,0,0,.5)}
+  .door.hot{animation:doorpulse 2.2s ease-in-out infinite}
+  @keyframes doorpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.015)}}
+  .door.slam .doorface{transform:rotate(-360deg) scale(.92)}
+  .door.bust{background:conic-gradient(from 30deg,#5e2730,#36141c 25%,#6b2c36 45%,#36141c 65%,#5e2730 100%)}
+  .door.bust .pot{color:var(--danger);text-shadow:0 0 22px rgba(255,80,87,.5)}
+  .door .sub{font-size:10px;font-weight:900;color:var(--ink-faint);letter-spacing:.08em;text-transform:uppercase}
+
+  .bankbtn{font-family:var(--font-display);font-size:24px;letter-spacing:.03em;color:#3c2a00;cursor:pointer;border:none;
+    background:linear-gradient(180deg,#ffd96e,#ffc63f 55%,#f0ad12);padding:15px 38px;border-radius:18px;position:relative;top:0;
+    box-shadow:0 7px 0 var(--gold-sh), 0 16px 34px rgba(255,198,63,.22);transition:top .08s, box-shadow .08s, filter .2s, opacity .2s}
+  .bankbtn:hover:not(:disabled){filter:brightness(1.07)}
+  .bankbtn:active:not(:disabled){top:5px;box-shadow:0 2px 0 var(--gold-sh)}
+  .bankbtn:disabled{opacity:.32;cursor:default;filter:saturate(.5)}
+  .bankbtn small{display:block;font-family:var(--font-body);font-weight:900;font-size:10.5px;letter-spacing:.14em;margin-top:2px;color:#6b4c00}
+
+  /* --- odds module --- */
+  .odds{order:1;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:20px 22px;backdrop-filter:blur(8px);width:100%;max-width:330px;justify-self:end}
+  @media(max-width:840px){.odds{justify-self:center;order:3}}
+  .odds .head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+  .odds .ttl{font-size:10.5px;font-weight:900;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint)}
+  .odds .pct{font-family:var(--font-display);font-size:34px;color:var(--safe);line-height:1;transition:color .3s;text-shadow:0 0 16px rgba(70,217,139,.3)}
+  .odds.warm .pct{color:var(--gold);text-shadow:0 0 16px rgba(255,198,63,.3)}
+  .odds.spicy .pct{color:var(--danger);text-shadow:0 0 16px rgba(255,80,87,.35)}
+  .laser{position:relative;height:14px;border-radius:100px;background:#0b1322;border:1px solid var(--line);overflow:hidden;margin-bottom:11px}
+  .laser .fill{position:absolute;inset:0;width:50%;border-radius:100px;background:linear-gradient(90deg,var(--safe),#9be8c0);transition:width .5s cubic-bezier(.3,1.1,.4,1), background .3s}
+  .odds.warm .laser .fill{background:linear-gradient(90deg,var(--gold-deep),var(--gold))}
+  .odds.spicy .laser .fill{background:linear-gradient(90deg,#c92e35,var(--danger))}
+  .laser .scan{position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.32),transparent);width:34%;animation:scan 2.4s linear infinite}
+  @keyframes scan{from{transform:translateX(-110%)}to{transform:translateX(330%)}}
+  .odds .read{font-size:14px;font-weight:800;color:var(--ink-dim);line-height:1.45}
+  .odds .read b{color:var(--ink)}
+  .odds .read .safeword{color:var(--safe)} .odds.warm .read .safeword{color:var(--gold)} .odds.spicy .read .safeword{color:var(--danger)}
+
+  /* --- the ladder --- */
+  .ladder{order:3;display:flex;flex-direction:column-reverse;gap:5px;justify-self:start;width:100%;max-width:330px}
+  @media(max-width:840px){.ladder{flex-direction:row;flex-wrap:wrap;justify-content:center;order:2;gap:6px}}
+  .rung{display:flex;align-items:center;gap:10px;font-weight:900;font-size:13px;color:var(--ink-faint);
+    background:rgba(255,255,255,.035);border:1px solid transparent;border-radius:10px;padding:4.5px 12px;transition:all .25s}
+  .rung .v{font-family:var(--font-display);font-size:15px;min-width:34px;letter-spacing:.02em}
+  .rung .t{font-size:10px;letter-spacing:.1em;text-transform:uppercase}
+  @media(max-width:840px){.rung{padding:4px 9px;gap:6px}.rung .t{display:none}}
+  .rung.past{color:var(--ink-faint);opacity:.45}
+  .rung.now{color:#3c2a00;background:linear-gradient(180deg,#ffd96e,#ffc63f);border-color:var(--gold);box-shadow:0 3px 0 var(--gold-sh), 0 0 22px rgba(255,198,63,.25)}
+  .rung.next{color:var(--gold);border:1.5px dashed rgba(255,198,63,.6);animation:nextpulse 1.5s ease-in-out infinite}
+  @keyframes nextpulse{0%,100%{background:rgba(255,198,63,.04)}50%{background:rgba(255,198,63,.13)}}
+
+  /* ===== category ===== */
+  .qcard{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:16px 24px;text-align:center;margin:4px 0 16px;backdrop-filter:blur(8px)}
+  .qcard .qcat{font-size:10.5px;font-weight:900;text-transform:uppercase;letter-spacing:.22em;color:var(--ink-faint);margin-bottom:4px}
+  .qcard .qtitle{font-family:var(--font-display);font-size:clamp(21px,3.4vw,30px);color:var(--ink);letter-spacing:.02em}
+  .qcard .qtitle .ic{margin-right:10px}
+
+  /* ===== tiles ===== */
+  .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:11px}
+  @media(max-width:680px){.tiles{grid-template-columns:repeat(3,1fr)}}
+  @media(max-width:460px){.tiles{grid-template-columns:repeat(2,1fr)}}
+  .tile{position:relative;background:linear-gradient(180deg,var(--steel-hi),var(--steel) 14%);border:1px solid var(--line);
+    border-radius:14px;padding:15px 10px;min-height:64px;color:var(--ink);font-weight:800;font-size:14.5px;line-height:1.2;
+    display:grid;place-items:center;text-align:center;cursor:pointer;top:0;transition:top .1s, box-shadow .15s, border-color .15s;
+    box-shadow:0 4px 0 rgba(0,0,0,.4)}
+  .tile:hover:not(.off){top:-2px;border-color:rgba(255,198,63,.55);box-shadow:0 6px 0 rgba(0,0,0,.4), 0 0 16px rgba(255,198,63,.1)}
+  .tile:active:not(.off){top:3px;box-shadow:0 1px 0 rgba(0,0,0,.4)}
+  .tile.off{cursor:default}
+  .tile.hit{background:linear-gradient(180deg,#ffd96e,#ffc63f 60%,#f5b41d);color:#3c2a00;border-color:var(--gold-deep);
+    box-shadow:0 4px 0 var(--gold-sh);animation:hitpop .35s cubic-bezier(.2,1.6,.4,1)}
+  @keyframes hitpop{0%{transform:scale(.9)}55%{transform:scale(1.06)}100%{transform:scale(1)}}
+  .tile.trap{background:linear-gradient(180deg,#ff6a70,#e0383f);color:#fff;border-color:var(--danger-sh);box-shadow:0 4px 0 var(--danger-sh);animation:shake .4s}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+  .tile.left{border:1.5px dashed rgba(255,198,63,.65);color:var(--gold);background:rgba(255,198,63,.05)}
+  .tile.dud{opacity:.28}
+  .tile .badge{position:absolute;top:-9px;right:-6px;font-family:var(--font-display);font-size:14px;background:#3c2a00;color:var(--gold);
+    border:1.5px solid var(--gold);padding:3px 8px 1px;border-radius:100px;animation:hitpop .4s}
+
+  /* alarm flash on bust */
+  .alarm{position:fixed;inset:0;pointer-events:none;background:radial-gradient(circle,transparent 35%,rgba(255,40,50,.35));opacity:0;z-index:40}
+  .alarm.on{animation:alarmflash .9s ease-out}
+  @keyframes alarmflash{0%{opacity:0}15%{opacity:1}35%{opacity:.2}55%{opacity:.8}100%{opacity:0}}
+
+  /* ===== overlays ===== */
+  .scrim{position:fixed;inset:0;background:rgba(5,8,16,.78);backdrop-filter:blur(7px);display:grid;place-items:center;z-index:50;padding:18px;opacity:0;pointer-events:none;transition:opacity .3s}
+  .scrim.on{opacity:1;pointer-events:auto}
+  .sheet{background:linear-gradient(180deg,#1a2742,#131e34);border:1px solid var(--line);border-radius:26px;max-width:480px;width:100%;
+    padding:34px 32px 30px;text-align:center;box-shadow:0 30px 70px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.09);
+    transform:translateY(12px) scale(.97);transition:transform .35s cubic-bezier(.2,1.3,.4,1)}
+  .scrim.on .sheet{transform:none}
+  .sheet .big-ic{font-size:46px;margin-bottom:6px;filter:drop-shadow(0 4px 12px rgba(0,0,0,.4))}
+  .sheet h1{font-family:var(--font-display);font-size:clamp(28px,6vw,38px);letter-spacing:.02em;color:var(--ink);margin-bottom:4px}
+  .sheet h1 .gold{color:var(--gold);text-shadow:0 0 22px rgba(255,198,63,.4)}
+  .sheet .verdict{font-family:var(--font-display);font-size:19px;letter-spacing:.04em;margin:10px 0 4px}
+  .sheet .verdict.good{color:var(--safe)} .sheet .verdict.bold{color:var(--gold)} .sheet .verdict.ouch{color:var(--danger)}
+  .sheet p{color:var(--ink-dim);font-weight:800;font-size:14.5px;line-height:1.6;margin:8px 0}
+  .sheet p b{color:var(--ink)}
+  .rules{text-align:left;margin:18px 0 6px;display:flex;flex-direction:column;gap:13px}
+  .rules .r{display:flex;gap:13px;align-items:flex-start;font-weight:800;font-size:14.5px;color:var(--ink-dim);line-height:1.5}
+  .rules .n{flex-shrink:0;font-family:var(--font-display);width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-size:15px;background:rgba(255,198,63,.12);color:var(--gold);border:1px solid rgba(255,198,63,.35)}
+  .rules b{color:var(--ink)}
+  .statrow{display:flex;gap:10px;justify-content:center;margin:16px 0 6px;flex-wrap:wrap}
+  .stat{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:14px;padding:11px 16px;min-width:86px}
+  .stat .n{font-family:var(--font-display);font-size:23px;color:var(--gold)}
+  .stat .l{font-size:9.5px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin-top:2px}
+  .vaultrow{display:flex;gap:8px;justify-content:center;margin:14px 0 4px;flex-wrap:wrap}
+  .vchip{font-family:var(--font-display);font-size:15px;padding:8px 13px;border-radius:11px;background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--ink-dim)}
+  .vchip.bank{color:var(--gold);border-color:rgba(255,198,63,.5)}
+  .vchip.bust{color:var(--danger);border-color:rgba(255,80,87,.45)}
+  .vchip.sweep{color:#3c2a00;background:linear-gradient(180deg,#ffd96e,#ffc63f);border-color:var(--gold-deep)}
+  .gobtn{font-family:var(--font-display);font-size:20px;letter-spacing:.03em;color:#3c2a00;cursor:pointer;border:none;width:100%;
+    background:linear-gradient(180deg,#ffd96e,#ffc63f 55%,#f0ad12);padding:15px 20px;border-radius:16px;margin-top:16px;position:relative;top:0;
+    box-shadow:0 6px 0 var(--gold-sh);transition:top .08s, box-shadow .08s, filter .2s}
+  .gobtn:hover{filter:brightness(1.07)}
+  .gobtn:active{top:4px;box-shadow:0 2px 0 var(--gold-sh)}
+  .ghost{background:none;border:none;color:var(--ink-faint);font-weight:900;font-size:12.5px;cursor:pointer;text-decoration:underline;font-family:inherit;margin-top:14px}
+  .ghost:hover{color:var(--ink-dim)}
+  .protonote{margin-top:18px;font-size:11px;font-weight:800;color:var(--ink-faint);letter-spacing:.05em}
+</style>
+</head>
+<body>
+
+<div class="mote" style="left:7%;top:22%;width:14px;height:14px"></div>
+<div class="mote" style="left:88%;top:14%;width:9px;height:9px;animation-delay:1.2s"></div>
+<div class="mote" style="left:13%;top:78%;width:11px;height:11px;animation-delay:2.4s"></div>
+<div class="mote" style="left:92%;top:70%;width:16px;height:16px;animation-delay:3.1s"></div>
+<div class="mote" style="left:48%;top:88%;width:8px;height:8px;animation-delay:4s"></div>
+
+<div class="topbar">
+  <div class="wordmark"><span class="bank">BANK IT ·</span><span class="mode">THE VAULT</span></div>
+  <div class="nightpill">
+    <span class="pill" id="vaultNo">Vault 1 of 5</span>
+    <span class="pill">💰 take <b id="take">0</b></span>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="hud">
+    <div class="odds" id="odds">
+      <div class="head"><span class="ttl">Blind-tap odds</span><span class="pct" id="oddsPct">50%</span></div>
+      <div class="laser"><div class="fill" id="oddsFill"></div><div class="scan"></div></div>
+      <div class="read" id="oddsRead"><b>10</b> of the <b>20</b> hidden tiles are <span class="safeword">safe</span>.</div>
+    </div>
+    <div class="doorwrap">
+      <div class="door" id="door">
+        <div class="doorface">
+          <span class="lab">In the pot</span>
+          <span class="pot" id="pot">0</span>
+          <span class="sub" id="potSub">tap to build it</span>
+        </div>
+      </div>
+      <button class="bankbtn" id="bankBtn" disabled>BANK 0<small>walk away with the pot</small></button>
+    </div>
+    <div class="ladder" id="ladder"></div>
+  </div>
+
+  <div class="qcard">
+    <div class="qcat">Crack the category — every hit climbs the ladder</div>
+    <div class="qtitle"><span class="ic" id="qIc">🔐</span><span id="qTitle">…</span></div>
+  </div>
+
+  <div class="tiles" id="tiles"></div>
+</div>
+
+<div class="alarm" id="alarm"></div>
+
+<!-- intro -->
+<div class="scrim on" id="intro">
+  <div class="sheet">
+    <div class="big-ic">🔐</div>
+    <h1>THE <span class="gold">VAULT</span></h1>
+    <div class="rules">
+      <div class="r"><span class="n">1</span><span>Each vault hides <b>10 real answers</b> among 20 tiles. Every hit climbs the pot ladder — <b>and the rungs get steep</b>.</span></div>
+      <div class="r"><span class="n">2</span><span>One wrong tap and the vault slams shut. <b>You lose everything in the pot.</b></span></div>
+      <div class="r"><span class="n">3</span><span>The meter always tells you the odds a <b>blind guess</b> lands safe. You know more than the meter… right? <b>Bank</b> when you stop being sure.</span></div>
+    </div>
+    <button class="gobtn" id="introGo">Crack vault one →</button>
+    <div class="protonote">PROTOTYPE · 5 vaults a night · sweep a vault for the 100</div>
+  </div>
+</div>
+
+<!-- round result -->
+<div class="scrim" id="roundEnd">
+  <div class="sheet">
+    <div class="big-ic" id="reIc">💰</div>
+    <h1 id="reHead">BANKED!</h1>
+    <div class="verdict" id="reVerdict">THE MATH WAS WITH YOU</div>
+    <p id="reMsg"></p>
+    <div class="statrow">
+      <div class="stat"><div class="n" id="rePot">0</div><div class="l">this vault</div></div>
+      <div class="stat"><div class="n" id="reOdds">—</div><div class="l">odds at the call</div></div>
+      <div class="stat"><div class="n" id="reStreak">0</div><div class="l">hits in a row</div></div>
+    </div>
+    <button class="gobtn" id="reGo">Next vault →</button>
+  </div>
+</div>
+
+<!-- night over -->
+<div class="scrim" id="nightEnd">
+  <div class="sheet">
+    <div class="big-ic">🌙</div>
+    <h1>NIGHT'S <span class="gold">TAKE</span></h1>
+    <div class="statrow" style="margin-top:6px">
+      <div class="stat"><div class="n" id="neTake">0</div><div class="l">coins out the door</div></div>
+      <div class="stat"><div class="n" id="neSharp">0/5</div><div class="l">sharp calls</div></div>
+    </div>
+    <div class="vaultrow" id="neRow"></div>
+    <p id="neMsg"></p>
+    <button class="gobtn" id="neGo">Run it back →</button>
+  </div>
+</div>
+
+<script>
+//// boards borrowed verbatim from the game (10 answers + 10 decoys each)
+const BOARDS=[
+  { icon:'🥛', title:'Things That Go Well With Milk',
+    answers:['Cookies','Cake','Cereal','Graham crackers','Brownies','Doughnuts','Sandwich','Pie','Bananas','Chocolate syrup'],
+    decoys:['Toast','Crackers','Muffins','Oatmeal','Popcorn','Pretzels','Waffles','Candy bar','Marshmallows','Peanut butter'] },
+  { icon:'🧃', title:'Kool-Aid Flavors',
+    answers:['Cherry','Orange','Grape','Strawberry','Tropical punch','Raspberry','Lemonade','Lemon-lime','Black cherry','Berry blue'],
+    decoys:['Watermelon','Pink lemonade','Blue raspberry','Mango','Peach','Green apple','Kiwi','Pineapple','Fruit punch','Sour apple'] },
+  { icon:'🫘', title:'Jelly Bean Colors',
+    answers:['Red','Black','Orange','Yellow','Green','Purple','Pink','White','Brown','Aqua'],
+    decoys:['Teal','Magenta','Lime','Gold','Silver','Tan','Maroon','Navy','Gray','Coral'] },
+  { icon:'🍔', title:'Fast-Food Places',
+    answers:['McDonald’s','Burger King','Taco Bell','Arby’s','Kentucky Fried Chicken','Wendy’s','Pizza Hut','Dairy Queen','Popeye’s','Jack-in-the-Box'],
+    decoys:['Subway','Chick-fil-A','Hardee’s','Sonic','Carl’s Jr.','White Castle','Long John Silver’s','Five Guys','Domino’s','Chipotle'] },
+  { icon:'🤢', title:'Sour Things',
+    answers:['Lemon','Lime','Dill pickle','Vinegar','Lemonade','Grapefruit','Spoiled milk','Sour cream','Bad grapes','Sour ball candy'],
+    decoys:['Green apple','Tamarind','Sauerkraut','Buttermilk','Cranberries','Kombucha','Sourdough bread','Yogurt','Rhubarb','Kimchi'] },
+  { icon:'🥣', title:'Cereals Adults Like',
+    answers:['Cheerios','Wheaties','Corn Flakes','Rice Krispies','Raisin Bran','Total','Shredded Wheat','Special K','Bran Flakes','Product 19'],
+    decoys:['Grape-Nuts','All-Bran','Cracklin’ Oat Bran','Müeslix','Life','Kix','Chex','Oatmeal Squares','Fiber One','Grape-Nuts Flakes'] },
+  { icon:'🛁', title:'Things Little Kids Use at Bathtime',
+    answers:['Soap','Shampoo','Washcloth','Bubble bath','Towel','Water','Boat','Toys','Sponge','Rubber duckie'],
+    decoys:['Conditioner','Loofah','Bath crayons','Squirt gun','Bath robe','Cup','Foam letters','Shower cap','Tub mat','Bath book'] },
+  { icon:'🍭', title:'Sweet Cereals (Brands)',
+    answers:['Froot Loops','Frosted Flakes','Corn Pops','Lucky Charms','Cap’n Crunch','Apple Jacks','Honeycombs','Cocoa Puffs','Super Golden Crisp','Croonchy Stars'],
+    decoys:['Trix','Cocoa Pebbles','Fruity Pebbles','Cinnamon Toast Crunch','Cookie Crisp','Frosted Mini-Wheats','Honey Smacks','Reese’s Puffs','Count Chocula','Cinnamon Grahams'] },
+];
+
+const LADDER=[1,2,3,5,8,13,21,34,55,100];
+const VAULTS_PER_NIGHT=5;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+//// state
+const G={ order:[], vi:0, tiles:[], streak:0, pot:0, over:false, take:0,
+          results:[], sharp:0 };
+
+function shuffle(a){ a=a.slice(); for(let k=a.length-1;k>0;k--){ const j=Math.floor(Math.random()*(k+1)); [a[k],a[j]]=[a[j],a[k]]; } return a; }
+
+//// tiny heist sounds
+let AC=null; function ac(){ if(!AC){ try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return AC; }
+function tone(f,t,dur,type,vol){ const c=ac(); if(!c) return; const o=c.createOscillator(),g=c.createGain();
+  o.type=type||'sine'; o.frequency.value=f; g.gain.setValueAtTime(vol||.14,c.currentTime+t);
+  g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+t+dur); o.connect(g).connect(c.destination);
+  o.start(c.currentTime+t); o.stop(c.currentTime+t+dur); }
+function sndHit(k){ tone(520+k*70,0,.16,'triangle',.16); tone(1040+k*140,.02,.12,'sine',.07); }
+function sndBank(){ [523,659,784,1047].forEach((f,i)=>tone(f,i*.07,.22,'triangle',.15)); tone(140,0,.18,'square',.1); }
+function sndBust(){ tone(220,0,.3,'sawtooth',.16); tone(155,.12,.4,'sawtooth',.16); tone(110,.26,.5,'sawtooth',.14); }
+function sndTick(){ tone(900,0,.04,'square',.05); }
+
+//// derived counts — the whole lesson lives in these two numbers
+const answersLeft=()=>G.tiles.filter(t=>t.on&&!t.tapped).length;
+const tilesLeft =()=>G.tiles.filter(t=>!t.tapped).length;
+
+//// renders
+function renderLadder(){
+  const w=$('ladder'); w.innerHTML='';
+  LADDER.forEach((v,i)=>{
+    const d=document.createElement('div');
+    let cls='rung', tag='';
+    if(i<G.streak-1) cls+=' past';
+    else if(i===G.streak-1){ cls+=' now'; tag='in the pot'; }
+    else if(i===G.streak && !G.over){ cls+=' next'; tag='next hit'; }
+    d.className=cls;
+    d.innerHTML=`<span class="v">${v}</span><span class="t">${tag}</span>`;
+    w.appendChild(d);
+  });
+}
+function renderOdds(){
+  const a=answersLeft(), t=tilesLeft();
+  const p=t?a/t:0, pct=Math.round(p*100);
+  $('oddsPct').textContent=pct+'%';
+  $('oddsFill').style.width=pct+'%';
+  $('oddsRead').innerHTML=`<b>${a}</b> of the <b>${t}</b> hidden tiles are <span class="safeword">safe</span>.`;
+  const o=$('odds'); o.classList.toggle('warm',pct<50&&pct>=34); o.classList.toggle('spicy',pct<34);
+}
+function renderPot(){
+  $('pot').textContent=G.pot;
+  $('potSub').textContent=G.pot? (G.streak===10?'CLEAN SWEEP':'one bad tap loses it') : 'tap to build it';
+  $('door').classList.toggle('hot',G.pot>0&&!G.over);
+  const b=$('bankBtn');
+  b.disabled=!(G.pot>0)||G.over;
+  b.childNodes[0].textContent='BANK '+G.pot;
+}
+function renderHud(){ renderLadder(); renderOdds(); renderPot();
+  $('vaultNo').textContent=`Vault ${G.vi+1} of ${VAULTS_PER_NIGHT}`;
+  $('take').textContent=G.take; }
+
+function startVault(){
+  const b=G.order[G.vi];
+  G.tiles=shuffle(b.answers.map(t=>({t,on:true})).concat(b.decoys.map(t=>({t,on:false})))).map(o=>({...o,tapped:false}));
+  G.streak=0; G.pot=0; G.over=false;
+  $('qIc').textContent=b.icon; $('qTitle').textContent=b.title;
+  $('door').classList.remove('bust','slam');
+  const w=$('tiles'); w.innerHTML='';
+  G.tiles.forEach((t,i)=>{
+    const el=document.createElement('button'); el.className='tile'; el.textContent=t.t;
+    el.onclick=()=>tap(i,el);
+    w.appendChild(el);
+  });
+  renderHud();
+}
+
+function tap(i,el){
+  if(G.over) return;
+  const t=G.tiles[i];
+  if(t.tapped) return;
+  t.tapped=true;
+  if(t.on){
+    G.streak++; G.pot=LADDER[G.streak-1];
+    el.classList.add('hit','off');
+    const gain=G.pot-(G.streak>1?LADDER[G.streak-2]:0);
+    const b=document.createElement('span'); b.className='badge'; b.textContent='+'+gain; el.appendChild(b);
+    sndHit(G.streak);
+    if(G.streak===10){ endVault('sweep',1); return; }
+    renderHud();
+  } else {
+    el.classList.add('trap','off');
+    sndBust();
+    $('alarm').classList.remove('on'); void $('alarm').offsetWidth; $('alarm').classList.add('on');
+    endVault('bust', null);
+  }
+}
+
+function bank(){
+  if(G.over||G.pot<1) return;
+  sndBank();
+  $('door').classList.add('slam');
+  endVault('bank', null);
+}
+
+// the verdict: compare the player's call to blind-math expected value, in plain words
+function endVault(how){
+  G.over=true;
+  // odds AT the decision moment (before reveal)
+  const a=answersLeft(), tl=tilesLeft();
+  const p=tl? a/tl : 0, pct=Math.round(p*100);
+  const next=G.streak<10? LADDER[G.streak] : null;
+  const evPush=next!=null? p*next : 0;          // a blind push: win next rung or lose it all
+
+  // reveal the board
+  [...$('tiles').children].forEach((el,i)=>{
+    el.classList.add('off');
+    const t=G.tiles[i];
+    if(!t.tapped) el.classList.add(t.on?'left':'dud');
+  });
+
+  let banked=0, verdict='', vcls='', msg='', ic='💰', head='';
+  if(how==='sweep'){
+    banked=100; ic='🏆'; head='CLEAN SWEEP!'; verdict='ALL TEN. THE WHOLE VAULT.'; vcls='good';
+    msg=`You never blinked. <b>100 coins</b>, no math required.`;
+    G.sharp++;
+  } else if(how==='bank'){
+    banked=G.pot; ic='💰'; head='BANKED '+banked+'!';
+    const sharp = G.pot >= evPush;
+    if(sharp){ verdict='THE MATH WAS WITH YOU'; vcls='good'; G.sharp++;
+      msg=`A blind push at <b>${pct}%</b> was worth about <b>${evPush.toFixed(1)}</b> — your sure <b>${G.pot}</b> beat it. Cold-blooded.`;
+    } else { verdict='THE ODDS SAID PUSH'; vcls='bold';
+      msg=`A blind push at <b>${pct}%</b> was worth about <b>${evPush.toFixed(1)}</b> vs your <b>${G.pot}</b>… but the meter can't see inside your head. Only you knew if you were out of sure things.`;
+    }
+  } else {
+    banked=0; ic='🚨'; head='THE VAULT BIT';
+    verdict='PUSHED AT '+(pct? pct+'%':'—')+' AND PAID'; vcls='ouch';
+    const lost=G.pot;
+    msg = lost? `<b>${lost} coins</b> were sitting in the pot. ${pct<40? 'The meter was screaming.' : 'Sometimes the '+pct+'% bites — that\'s what makes banking sweet.'}`
+              : `Nothing in the pot yet — a free lesson. ${pct}% safe means ${100-pct}% trouble.`;
+  }
+  G.take+=banked;
+  G.results.push({how, banked});
+  renderHud(); renderLadder();
+
+  $('reIc').textContent=ic; $('reHead').textContent=head;
+  const v=$('reVerdict'); v.textContent=verdict; v.className='verdict '+vcls;
+  $('reMsg').innerHTML=msg;
+  $('rePot').textContent=banked;
+  $('reOdds').textContent=tl? pct+'%' : '—';
+  $('reStreak').textContent=G.streak;
+  $('reGo').textContent = G.vi+1<VAULTS_PER_NIGHT? 'Next vault →' : "See the night's take →";
+  setTimeout(()=>$('roundEnd').classList.add('on'), how==='bank'? 650 : 950);
+}
+
+function nextVault(){
+  $('roundEnd').classList.remove('on');
+  if(G.vi+1<VAULTS_PER_NIGHT){ G.vi++; startVault(); }
+  else endNight();
+}
+
+function endNight(){
+  $('neTake').textContent=G.take;
+  $('neSharp').textContent=G.sharp+'/'+VAULTS_PER_NIGHT;
+  const row=$('neRow'); row.innerHTML='';
+  G.results.forEach(r=>{
+    const c=document.createElement('span');
+    c.className='vchip '+(r.how==='sweep'?'sweep':r.how==='bank'?'bank':'bust');
+    c.textContent=r.how==='bust'?'BUST':r.banked;
+    row.appendChild(c);
+  });
+  const busts=G.results.filter(r=>r.how==='bust').length;
+  $('neMsg').innerHTML = busts===0? 'Five vaults, zero alarms. The house is nervous.'
+    : busts>=3? 'The vault ate well tonight. Greed is a flavor — bank earlier.'
+    : 'A clean night\'s work. Know the odds, know yourself.';
+  $('nightEnd').classList.add('on');
+}
+
+function newNight(){
+  G.order=shuffle(BOARDS).slice(0,VAULTS_PER_NIGHT);
+  G.vi=0; G.take=0; G.results=[]; G.sharp=0;
+  $('nightEnd').classList.remove('on');
+  startVault();
+}
+
+$('introGo').onclick=()=>{ ac(); $('intro').classList.remove('on'); sndTick(); };
+$('bankBtn').onclick=bank;
+$('reGo').onclick=nextVault;
+$('neGo').onclick=newNight;
+
+newNight();
+</script>
+</body>
+</html>
