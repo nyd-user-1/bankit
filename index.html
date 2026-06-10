@@ -218,6 +218,23 @@
   .ed-set{cursor:pointer;border:none;width:100%;text-align:left;font-family:inherit;position:relative;top:0;transition:top .08s,filter .12s}
   .ed-set:hover{top:-2px;filter:brightness(1.05)}
   .ed-set:active{top:2px}
+  /* 16 icons in a symmetric 4×4 grid (the flex-wrap row left a lonely bottom row) */
+  .editor #edIcons{display:grid;grid-template-columns:repeat(4,46px);gap:9px;justify-content:center}
+  /* DESKTOP: a wide, capped card — meta column on the left, the two answer lists to its
+     right with their own scroll, so "Save my set" never falls off the bottom of the screen */
+  @media(min-width:861px){
+    .editor{max-width:1080px}
+    .editor .card{display:flex;flex-direction:column;max-height:min(744px,calc(100dvh - 120px))}
+    #edBox{display:flex;flex-direction:column;min-height:0}
+    .ed-layout{flex:1;min-height:0;display:grid;grid-template-columns:300px 1fr;grid-template-rows:auto 1fr;
+      grid-template-areas:"meta lists" "foot lists";column-gap:30px}
+    .ed-meta{grid-area:meta}
+    .ed-foot{grid-area:foot;overflow-y:auto;min-height:0;padding-right:4px}
+    .ed-grid{grid-area:lists;margin-top:0;overflow:hidden;min-height:0}
+    .ed-col{overflow-y:auto;min-height:0;padding-right:6px}
+    .ed-col .colhead{position:sticky;top:0;z-index:1;background:var(--panel);padding-bottom:7px;margin-bottom:4px}
+    .editor #edIcons{justify-content:start}
+  }
 
   /* ===== CATEGORY PICK ===== */
   .pick h2{font-family:var(--font-display);font-size:30px;text-align:center;margin-bottom:24px;color:var(--ink)}
@@ -673,26 +690,33 @@
       <div id="edBox">
         <h2>Create a set</h2>
         <div class="sub">Your own board: 10 real answers, 10 decoys.<br>Good decoys are near-misses — close enough to tempt.</div>
-        <div class="field">
-          <label class="lbl" for="edTitle">Set title</label>
-          <input class="uname" id="edTitle" type="text" maxlength="60" autocomplete="off" spellcheck="false" placeholder="e.g. Pizza Toppings" />
+        <div class="ed-layout">
+          <!-- the set's "card identity": icon + color style its category card everywhere -->
+          <div class="ed-meta">
+            <div class="field">
+              <label class="lbl" for="edTitle">Set title</label>
+              <input class="uname" id="edTitle" type="text" maxlength="60" autocomplete="off" spellcheck="false" placeholder="e.g. Pizza Toppings" />
+            </div>
+            <div class="field">
+              <label class="lbl">Pick an icon</label>
+              <div class="avrow" id="edIcons"></div>
+            </div>
+            <div class="field">
+              <label class="lbl">Pick a color</label>
+              <div class="ed-colors" id="edColors"></div>
+            </div>
+          </div>
+          <div class="ed-grid">
+            <div class="ed-col"><div class="colhead yes">✔ On the list (10)</div><div id="edAnswers"></div></div>
+            <div class="ed-col"><div class="colhead no">✕ Decoys (10)</div><div id="edDecoys"></div></div>
+          </div>
+          <div class="ed-foot">
+            <button class="btn go green" id="edSubmit" style="margin-top:16px">Save my set ✔</button>
+            <div class="err" id="edErr"></div>
+            <div class="profile-head">📦 Your sets</div>
+            <div class="profile-swept" id="edMine"></div>
+          </div>
         </div>
-        <div class="field">
-          <label class="lbl">Pick an icon</label>
-          <div class="avrow" id="edIcons"></div>
-        </div>
-        <div class="field">
-          <label class="lbl">Pick a color</label>
-          <div class="ed-colors" id="edColors"></div>
-        </div>
-        <div class="ed-grid">
-          <div class="ed-col"><div class="colhead yes">✔ On the list (10)</div><div id="edAnswers"></div></div>
-          <div class="ed-col"><div class="colhead no">✕ Decoys (10)</div><div id="edDecoys"></div></div>
-        </div>
-        <button class="btn go green" id="edSubmit" style="margin-top:16px">Save my set ✔</button>
-        <div class="err" id="edErr"></div>
-        <div class="profile-head">📦 Your sets</div>
-        <div class="profile-swept" id="edMine"></div>
       </div>
       <!-- signed-out fallback: invite to sign in -->
       <div id="edSignedOut" style="display:none">
@@ -909,7 +933,7 @@ function renderProfile(){
 // Your sets live in the DB (owner_key = your lowercased username) and are folded into
 // BOARDS once loaded, so startBoard / retry / score submits all just work on them.
 // They stay out of everyone else's catalog until a moderation pass approves them.
-const SET_ICONS=['🍕','🎬','🎵','⚽','🐾','🚗','🌮','🎮','🏖️','📚','🧁','👻'];
+const SET_ICONS=['🍕','🎬','🎵','⚽','🐾','🚗','🌮','🎮','🏖️','📚','🧁','👻','🍔','🎤','🦖','🚀'];
 const SLOT_COLORS=['#8b5cf6','#1fc7b6','#ff4d8d','#37c871'];   // 0 purple · 1 teal · 2 pink · 3 green
 let MY_SETS=[];                  // this player's custom sets (from GET /api/sets?owner=)
 let edIcon=SET_ICONS[0], edColor=0;
@@ -974,6 +998,9 @@ function renderEditor(){
   show('scEditor');
 }
 async function submitSet(){
+  // identity vanished mid-edit (signed out in another tab, cleared storage): show the
+  // sign-in invite right here instead of a dead save button
+  if(!(USER && USER.name)){ $('edBox').style.display='none'; $('edSignedOut').style.display=''; return; }
   const err=$('edErr'); err.textContent='';
   const tidy=v=>v.trim().replace(/\s+/g,' ');
   const title=tidy($('edTitle').value);
@@ -994,7 +1021,7 @@ async function submitSet(){
       body:JSON.stringify({ owner_name:USER.name, title, icon:edIcon, color_slot:edColor, answers, decoys })
     });
     const d=await r.json().catch(()=>null);
-    if(!r.ok || !d || !d.ok){ err.textContent=(d && d.error) || 'Could not save — try again.'; return; }
+    if(!r.ok || !d || !d.ok){ err.textContent=(d && d.error) || `Could not save (server error ${r.status}) — try again.`; return; }
     MY_SETS.unshift(d.set); await mergeMySets(); renderMySets();
     $('edTitle').value=''; [...$('edAnswers').children,...$('edDecoys').children].forEach(i=>i.value='');
     flash('SET SAVED ✔','hit'); sndPoint(1);
