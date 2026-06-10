@@ -86,9 +86,47 @@ auto-generate for them.
   title + 10 answers (+ already-typed decoys) → Claude **Haiku** (`claude-haiku-4-5`,
   official SDK, structured `json_schema` output, ~$0.001/call) returns near-miss decoys at
   the 7–9 difficulty rule; only EMPTY decoy slots are filled, user-typed decoys are never
-  overwritten. Needs `ANTHROPIC_API_KEY` in env (`.env.local` + Vercel); without it the
-  route returns 503 "Decoy magic is not set up yet." For user-created sets the user MAY
-  still hand-write decoys — never auto-generate without the button press.
+  overwritten. Needs `ANTHROPIC_API_KEY_BANKIT` in the **Vercel env** (it's marked
+  sensitive, so it cannot be pulled/exported — and `vercel dev` ignores `.env.local`, so
+  local dev needs it added to the Vercel *Development* environment by hand). Without it
+  the route returns 503 "Decoy magic is not set up yet." For user-created sets the user
+  MAY still hand-write decoys — never auto-generate without the button press.
+
+## Multiplayer duel (Play a friend)
+
+- **Mode-aware from the start:** `matches.mode='duel'` today; race/party are future
+  siblings (the lobby's mode picker shows them greyed). Stay **static + Neon + ~1.2s
+  polling** — the duel is turn-based, no realtime service, no sockets.
+- **Tables** (`scripts/migrate-matches.mjs`, idempotent): `matches` (room_code CHAR(4)
+  unique among live matches, host/guest identity, `board_ids[]` = the best-of-5 list,
+  series counts, `winner` 1 host · 2 guest · 0 drawn) + `match_state` (ONE row per match =
+  the current board: `tiles_json` [{t,on,by}] with by 0/1/2, turn, scores, wrong-tap
+  counts, `version` bumped on every write so clients skip stale polls).
+- **Routes** (flat files — the `vercel.json` functions glob is `api/*.js`; `_match.js` is
+  the shared helper, underscore = not a lambda):
+  - `POST /api/match` — `{name,avatar}` creates a lobby (5 random official boards, 4-digit
+    code, 24h stale-lobby sweep); `{action:'start',id,key}` host-only, deals board 1.
+  - `POST /api/match-join` — `{room,name,avatar}`; rejoin by the same key is allowed,
+    third player / own room / dead code are 4xx.
+  - `GET /api/match?id=` (or `?room=`) — THE POLL. **Answers are never leaked mid-board:**
+    untapped tiles carry no `on`; tapped tiles reveal only their own `hit`; full reveal
+    only once the board/match is done.
+  - `POST /api/match-tap` — `{id,key,idx,version}`. The server is the referee: turn check,
+    tile lock, +1/−1 (negatives OK), flip turn, board ends when all 10 answers found,
+    tie → fewer wrong taps, dead-equal → drawn board (no series point). First to 3 boards
+    (or the 5th board) ends the match; otherwise it deals the next board in the same row,
+    opening turn alternating (board 0 host, board 1 guest, …). All inside a transaction
+    with `SELECT … FOR UPDATE`.
+- **Client** (`index.html`): `M` state + `mApi()`; screens `scVersus` (host / join-by-code),
+  `scLobby` (code, copy-invite-link, players, mode picker, host-only start), `scDuel`
+  (you-vs-them header, series dots from YOUR perspective, turn banner, shared tiles with
+  tapper avatars), `scMatch` (series winner). Poll loop `startPoll()/applyMatch()` keys
+  re-renders off a `status:version:guest` signature. Board-to-board transitions are
+  client-inferred (`noticeBoardChange` diffs the series counts → BOARD WON/LOST/DRAWN
+  flash). Invite links: `#/join/1234` (`checkJoinHash()`; signs the player in first via
+  the `AFTER_AUTH` hook, then auto-joins).
+- **Known MVP gaps:** quitting only stops the local poll (the other phone is not told);
+  abandoned games are swept after 24h by the next lobby creation.
 
 ## Players, points & the Profile screen
 

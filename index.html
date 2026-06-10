@@ -263,6 +263,42 @@
     .editor #edIcons{justify-content:start}
   }
 
+  /* ===== VERSUS / LOBBY / DUEL (play a friend) ===== */
+  .vs-or{text-align:center;color:var(--ink-faint);font-weight:900;font-size:12px;letter-spacing:.1em;margin:18px 0;text-transform:uppercase}
+  .vs-joinrow{display:flex;gap:10px}
+  .vs-joinrow .uname{flex:1;min-width:0;text-align:center;letter-spacing:.3em;font-family:var(--font-display);font-size:24px}
+  .vs-joinrow .btn{flex-shrink:0}
+  .lb-code{font-family:var(--font-display);font-size:62px;text-align:center;letter-spacing:.16em;color:var(--ink);margin:4px 0 2px}
+  .lb-share{display:block;margin:0 auto 20px}
+  .lb-players{display:flex;flex-direction:column;gap:9px;margin-bottom:18px}
+  .lb-p{display:flex;align-items:center;gap:12px;background:var(--panel-2);border-radius:14px;padding:12px 16px;font-weight:800;color:var(--ink)}
+  .lb-p .av{font-size:24px;flex-shrink:0}
+  .lb-p .nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lb-p .tag{font-size:10px;font-weight:900;letter-spacing:.06em;background:var(--yellow);color:#5a4500;padding:3px 9px;border-radius:100px;flex-shrink:0}
+  .lb-p.empty .nm{color:var(--ink-faint)}
+  .lb-p.empty .av{animation:lbpulse 1.2s ease-in-out infinite}
+  @keyframes lbpulse{0%,100%{opacity:.4}50%{opacity:1}}
+  .lb-modes{display:flex;gap:9px;justify-content:center;margin-bottom:20px;flex-wrap:wrap}
+  .lb-mode{font-size:12.5px;font-weight:900;padding:7px 14px;border-radius:100px;background:var(--panel-2);color:var(--ink-dim)}
+  .lb-mode.on{background:var(--purple);color:#fff;box-shadow:0 3px 0 #6d3fd6}
+  .lb-mode.off{opacity:.55}
+  .lb-mode small{font-weight:800;opacity:.8}
+  /* duel header: you on the left, them on the right, series + turn in the middle */
+  .duel-p .av{font-size:17px}
+  .duel-p .nm{max-width:11ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .duel-p.turn{box-shadow:0 0 0 3px var(--yellow)}
+  .duel-mid{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
+  .duel-turn{font-family:var(--font-display);font-size:15px;letter-spacing:.04em;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.22);white-space:nowrap}
+  .duel-turn.me{color:var(--yellow)}
+  .duel-series{display:flex;gap:6px}
+  .duel-series i{width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,.32);box-shadow:inset 0 -2px 0 rgba(0,0,0,.12)}
+  .duel-series i.w{background:var(--green)} .duel-series i.l{background:var(--miss)} .duel-series i.d{background:var(--yellow)}
+  /* who tapped a tile — the tapper's avatar in the corner */
+  .tile .who{position:absolute;top:5px;left:7px;font-size:13px;filter:drop-shadow(0 1px 0 rgba(0,0,0,.2))}
+  .mx-winner{display:flex;align-items:center;justify-content:center;gap:11px;margin:6px 0 2px}
+  .mx-winner .av{font-size:34px;filter:drop-shadow(0 3px 0 rgba(0,0,0,.15))}
+  .mx-winner .nm{font-family:var(--font-display);font-size:26px;color:var(--ink)}
+
   /* ===== CATEGORY PICK ===== */
   .pick h2{font-family:var(--font-display);font-size:30px;text-align:center;margin-bottom:24px;color:var(--ink)}
   .pick .sub{text-align:center;color:var(--ink-dim);font-weight:800;margin-bottom:22px}
@@ -536,6 +572,7 @@
   <button class="menu-item m0" id="miStart" role="menuitem"><span class="mi-ic">🏠</span><span class="mi-label">Start</span></button>
   <button class="menu-item m1" id="miCategories" role="menuitem"><span class="mi-ic">🗂️</span><span class="mi-label">All categories</span></button>
   <button class="menu-item m5" id="miCreate" role="menuitem"><span class="mi-ic">✏️</span><span class="mi-label">Create a set</span></button>
+  <button class="menu-item m0" id="miVersus" role="menuitem"><span class="mi-ic">⚔️</span><span class="mi-label">Play a friend</span></button>
   <button class="menu-item m2" id="miHighScores" role="menuitem"><span class="mi-ic">🏆</span><span class="mi-label">High scores</span></button>
   <button class="menu-item m3" id="miHowTo" role="menuitem"><span class="mi-ic">❓</span><span class="mi-label">How to play</span></button>
   <button class="menu-item m4" id="miProfile" role="menuitem"><span class="mi-ic">👤</span><span class="mi-label">Profile</span></button>
@@ -782,6 +819,80 @@
     </div>
   </section>
 
+  <!-- ===== VERSUS (multiplayer home: host or join) ===== -->
+  <section class="screen auth versus" id="scVersus">
+    <div class="card">
+      <h2>⚔️ Play a friend</h2>
+      <div class="sub">One shared board, two phones, alternating taps.<br>Best of 5 — first to win 3 boards takes the duel.</div>
+      <button class="btn go teal" id="vsHost">Host a duel <span>→</span></button>
+      <div class="vs-or">or</div>
+      <div class="field">
+        <label class="lbl" for="vsCode">Join with a code</label>
+        <div class="vs-joinrow">
+          <input class="uname" id="vsCode" type="text" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="0000" />
+          <button class="btn go" id="vsJoin">Join</button>
+        </div>
+      </div>
+      <div class="err" id="vsErr"></div>
+    </div>
+  </section>
+
+  <!-- ===== LOBBY (room code + waiting for the challenger) ===== -->
+  <section class="screen auth lobby" id="scLobby">
+    <div class="card">
+      <h2>Room code</h2>
+      <div class="sub" id="lbSub">Your friend opens Bank It → Play a friend → enters this code.</div>
+      <div class="lb-code" id="lbCode">0000</div>
+      <button class="btn ghost lb-share" id="lbShare">Copy invite link 🔗</button>
+      <div class="lb-players">
+        <div class="lb-p"><span class="av" id="lbAv1">🎯</span><span class="nm" id="lbNm1">Host</span><span class="tag">HOST</span></div>
+        <div class="lb-p empty" id="lbP2"><span class="av" id="lbAv2">⏳</span><span class="nm" id="lbNm2">Waiting for a challenger…</span></div>
+      </div>
+      <div class="lb-modes">
+        <span class="lb-mode on">⚔️ Duel</span>
+        <span class="lb-mode off">🏁 Race <small>· soon</small></span>
+        <span class="lb-mode off">🎈 Party <small>· soon</small></span>
+      </div>
+      <button class="btn go green" id="lbStart" disabled>Start the duel ⚔️</button>
+      <div class="err" id="lbErr"></div>
+      <div class="switch"><button id="lbLeave" type="button">← Leave the lobby</button></div>
+    </div>
+  </section>
+
+  <!-- ===== DUEL (the shared board) ===== -->
+  <section class="screen board wide duel" id="scDuel">
+    <div class="bhead">
+      <span class="pill duel-p" id="duMe"><span class="av" id="duMeAv">🎯</span><span class="nm" id="duMeNm">You</span><span class="big" id="duMeSc">0</span></span>
+      <span class="duel-mid">
+        <span class="duel-series" id="duSeries"></span>
+        <span class="duel-turn" id="duTurn">YOUR TURN</span>
+      </span>
+      <span class="pill duel-p" id="duThem"><span class="av" id="duThemAv">🎯</span><span class="nm" id="duThemNm">Them</span><span class="big" id="duThemSc">0</span></span>
+    </div>
+    <div class="qcard">
+      <div class="qcat" id="duBnum">Board 1 of 5</div>
+      <div class="qtitle" id="duTitle">Loading…</div>
+    </div>
+    <div class="pips" id="duPips"></div>
+    <div class="tiles" id="duTiles"></div>
+    <div class="bfoot"><button class="btn ghost" id="duQuit">Quit match</button></div>
+  </section>
+
+  <!-- ===== MATCH RESULTS (series winner) ===== -->
+  <section class="screen results" id="scMatch">
+    <div class="card">
+      <div class="crown" id="mxCrown">🏆</div>
+      <h2 id="mxHead">Winner!</h2>
+      <div class="mx-winner"><span class="av" id="mxAv">🎯</span><span class="nm" id="mxName">Player</span></div>
+      <div class="score"><span id="mxSeries">3–0</span><small> boards</small></div>
+      <div class="rmsg" id="mxMsg">What a duel.</div>
+      <div class="actions">
+        <button class="btn teal" id="mxAgain">Play again</button>
+        <button class="btn ghost" id="mxHome">Home</button>
+      </div>
+    </div>
+  </section>
+
 </div>
 
 <!-- feedback flash -->
@@ -950,9 +1061,13 @@ function commitSignup(){
   saveUser();
   fetchStats();          // warm the profile/stats in the background
   loadMySets();          // pull this player's custom sets into BOARDS
-  goToPick();
+  afterAuth();
 }
 function goToPick(){ show('scPick'); renderPick(); }
+// where to land after signing in — Pick by default, or a stashed destination
+// (e.g. a #/join/CODE invite link that needed a username first)
+let AFTER_AUTH = null;
+function afterAuth(){ const f = AFTER_AUTH; AFTER_AUTH = null; if(f) f(); else goToPick(); }
 
 //// ===== profile screen =====
 function fillProfile(){
@@ -1473,6 +1588,208 @@ async function renderHighScores(){
   });
 }
 
+//// ===== multiplayer duel (Play a friend: versus → lobby → duel → results) =====
+// The server referees everything; phones just poll /api/match (~1.2s) and re-render
+// whenever the state version moves. M.role: 1 = host, 2 = guest.
+const M = { id:null, room:null, role:0, sig:null, data:null, timer:null,
+            lastBoardIdx:0, lastSeries:[0,0], pendingJoin:null };
+const myKey = ()=> (USER && USER.name) ? USER.name.trim().toLowerCase() : '';
+
+function stopPoll(){ if(M.timer){ clearInterval(M.timer); M.timer=null; } }
+function startPoll(){ stopPoll(); M.timer = setInterval(pollMatch, 1200); }
+function leaveMatch(){ stopPoll(); M.id=null; M.sig=null; M.data=null; }
+
+async function mApi(path, body){
+  try{
+    const r = await fetch(path, body ? { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) } : undefined);
+    return { ok:r.ok, status:r.status, d:await r.json().catch(()=>null) };
+  }catch(e){ return { ok:false, status:0, d:null }; }
+}
+
+function renderVersus(){
+  if(!(USER && USER.name)){ AFTER_AUTH = renderVersus; renderAuth(); return; }
+  $('vsErr').textContent='';
+  $('vsCode').value = M.pendingJoin || '';
+  show('scVersus');
+  if(M.pendingJoin){ const c = M.pendingJoin; M.pendingJoin = null; joinDuel(c); }
+}
+
+async function hostDuel(){
+  $('vsErr').textContent='';
+  const r = await mApi('/api/match', { name:USER.name, avatar:USER.avatar });
+  if(!r.ok){ $('vsErr').textContent = (r.d && r.d.error) || 'Could not host — try again.'; return; }
+  enterMatch(r.d);
+}
+async function joinDuel(code){
+  $('vsErr').textContent='';
+  const r = await mApi('/api/match-join', { room:code, name:USER.name, avatar:USER.avatar });
+  if(!r.ok){ $('vsErr').textContent = (r.d && r.d.error) || 'Could not join — try again.'; show('scVersus'); return; }
+  enterMatch(r.d);
+}
+function enterMatch(d){
+  M.id = d.match.id; M.room = d.match.room; M.sig = null;
+  M.role = d.match.host.key === myKey() ? 1 : 2;
+  M.lastBoardIdx = d.match.boardIdx;
+  M.lastSeries = [d.match.seriesHost, d.match.seriesGuest];
+  applyMatch(d);
+  startPoll();
+}
+
+async function pollMatch(){
+  if(!M.id) return;
+  const r = await mApi('/api/match?id='+M.id);
+  if(r.ok && M.id) applyMatch(r.d);
+}
+
+function applyMatch(d){
+  // skip renders when nothing moved (the version bumps on every server write)
+  const sig = d.match.status + ':' + (d.state ? d.state.version : 0) + ':' + (d.match.guest ? d.match.guest.key : '');
+  if(sig === M.sig) return;
+  M.sig = sig; M.data = d;
+  if(d.match.status === 'lobby'){ renderLobby(d); }
+  else if(d.match.status === 'playing'){ noticeBoardChange(d); renderDuel(d); }
+  else { stopPoll(); noticeBoardChange(d); renderMatchEnd(d); }
+}
+
+// a board finished and the series moved on — tell this player how it went
+function noticeBoardChange(d){
+  const finishedBoards = d.match.status === 'done' ? d.match.boardIdx + 1 : d.match.boardIdx;
+  if(finishedBoards > 0 && d.match.boardIdx !== M.lastBoardIdx){
+    const dh = d.match.seriesHost - M.lastSeries[0], dg = d.match.seriesGuest - M.lastSeries[1];
+    const iWon = (M.role === 1 ? dh : dg) > 0, theyWon = (M.role === 1 ? dg : dh) > 0;
+    if(iWon){ flash('BOARD WON! 🎉','hit'); sndPoint(6); }
+    else if(theyWon){ flash('BOARD LOST 😬','death'); }
+    else { flash('BOARD DRAWN 🤝'); }
+  }
+  M.lastBoardIdx = d.match.boardIdx;
+  M.lastSeries = [d.match.seriesHost, d.match.seriesGuest];
+}
+
+function renderLobby(d){
+  const meHost = M.role === 1;
+  $('lbCode').textContent = d.match.room;
+  $('lbAv1').textContent = d.match.host.avatar;
+  $('lbNm1').textContent = d.match.host.name + (meHost ? ' (you)' : '');
+  const p2 = $('lbP2');
+  if(d.match.guest){
+    p2.classList.remove('empty');
+    $('lbAv2').textContent = d.match.guest.avatar;
+    $('lbNm2').textContent = d.match.guest.name + (meHost ? '' : ' (you)');
+  } else {
+    p2.classList.add('empty');
+    $('lbAv2').textContent = '⏳';
+    $('lbNm2').textContent = 'Waiting for a challenger…';
+  }
+  $('lbStart').style.display = meHost ? '' : 'none';
+  $('lbStart').disabled = !d.match.guest;
+  $('lbSub').textContent = meHost
+    ? 'Your friend opens Bank It → Play a friend → enters this code.'
+    : `Waiting for ${d.match.host.name} to start…`;
+  if(!$('scLobby').classList.contains('on')) show('scLobby');
+}
+
+function renderDuel(d){
+  const s = d.state, me = M.role;
+  const host = d.match.host, guest = d.match.guest;
+  const mine  = me === 1 ? host : guest, theirs = me === 1 ? guest : host;
+  $('duMeAv').textContent = mine.avatar;  $('duMeNm').textContent = 'You';
+  $('duThemAv').textContent = theirs.avatar; $('duThemNm').textContent = theirs.name;
+  $('duMeSc').textContent   = me === 1 ? s.scoreHost : s.scoreGuest;
+  $('duThemSc').textContent = me === 1 ? s.scoreGuest : s.scoreHost;
+  const myTurn = s.turn === me && s.boardStatus === 'playing';
+  $('duTurn').textContent = s.boardStatus !== 'playing' ? 'BOARD OVER' : (myTurn ? 'YOUR TURN' : 'THEIR TURN…');
+  $('duTurn').classList.toggle('me', myTurn);
+  $('duMe').classList.toggle('turn', myTurn);
+  $('duThem').classList.toggle('turn', !myTurn && s.boardStatus === 'playing');
+
+  // series dots: your board wins green, theirs red, draws gold, the rest still open
+  const myWins = me === 1 ? d.match.seriesHost : d.match.seriesGuest;
+  const theirWins = me === 1 ? d.match.seriesGuest : d.match.seriesHost;
+  const played = d.match.status === 'done' ? d.match.boardIdx + 1 : d.match.boardIdx;
+  const draws = Math.max(0, played - myWins - theirWins);
+  const sw = $('duSeries'); sw.innerHTML = '';
+  for(let k = 0; k < d.match.boardCount; k++){
+    const i = document.createElement('i');
+    if(k < myWins) i.className = 'w';
+    else if(k < myWins + theirWins) i.className = 'l';
+    else if(k < myWins + theirWins + draws) i.className = 'd';
+    sw.appendChild(i);
+  }
+
+  $('duBnum').textContent = `Board ${d.match.boardIdx + 1} of ${d.match.boardCount} · best of 5`;
+  $('duTitle').textContent = d.board ? d.board.title : '…';
+
+  // found pips (shared count for the board)
+  const found = s.tiles.filter(t => t.by && (t.hit ?? t.on)).length;
+  const p = $('duPips'); p.innerHTML = '';
+  for(let k = 0; k < 10; k++){ const dd = document.createElement('div'); dd.className = 'pip' + (k < found ? ' lit' : ''); p.appendChild(dd); }
+
+  // tiles — rebuilt per state version (20 nodes, cheap)
+  const wrap = $('duTiles'); wrap.innerHTML = '';
+  const over = s.boardStatus !== 'playing';
+  s.tiles.forEach((t, idx) => {
+    const el = document.createElement('button');
+    let cls = 'tile';
+    if(t.by){ cls += (t.hit ?? t.on) ? ' hit locked' : ' miss locked'; }
+    else if(over){ cls += t.on ? ' missed' : ' dud'; cls += ' locked'; }
+    else if(!myTurn){ cls += ' locked'; }
+    el.className = cls;
+    const who = t.by ? `<span class="who">${t.by === 1 ? host.avatar : guest.avatar}</span>` : '';
+    el.innerHTML = `${who}<span class="chk">✔</span>${esc(t.t)}`;
+    if(!t.by && !over && myTurn) el.onclick = () => duelTap(idx, el);
+    wrap.appendChild(el);
+  });
+
+  if(!$('scDuel').classList.contains('on')) show('scDuel');
+}
+
+let TAP_BUSY = false;   // one tap in flight at a time — a double-tap must not spend two turns
+async function duelTap(idx, el){
+  if(TAP_BUSY) return;
+  if(!M.data || !M.data.state || M.data.state.turn !== M.role) return;
+  TAP_BUSY = true;
+  el.classList.add('locked');
+  try{
+    const r = await mApi('/api/match-tap', { id:M.id, key:myKey(), idx, version:M.data.state.version });
+    if(r.ok){
+      const t = r.d.tap;
+      if(t.hit){ sndPoint(3); flash('+1 ✔','hit'); } else { flash('−1 ✘','death'); }
+      applyMatch(r.d);
+    } else if(r.status === 409){ pollMatch(); }
+    else { flash('TAP LOST — RETRY'); el.classList.remove('locked'); }
+  } finally { TAP_BUSY = false; }
+}
+
+function renderMatchEnd(d){
+  const w = d.match.winner; // 1 host · 2 guest · 0 drawn series
+  const winP = w === 1 ? d.match.host : w === 2 ? d.match.guest : null;
+  const iWon = w === M.role;
+  const mySeries = M.role === 1 ? d.match.seriesHost : d.match.seriesGuest;
+  const theirSeries = M.role === 1 ? d.match.seriesGuest : d.match.seriesHost;
+  $('mxCrown').textContent = w === 0 ? '🤝' : iWon ? '🏆' : '💪';
+  $('mxHead').textContent = w === 0 ? 'Dead heat!' : iWon ? 'You win the duel!' : `${winP.name} takes it!`;
+  $('mxAv').textContent = winP ? winP.avatar : '🤝';
+  $('mxName').textContent = winP ? winP.name : 'Nobody';
+  $('mxSeries').textContent = `${mySeries}–${theirSeries}`;
+  $('mxMsg').textContent = w === 0 ? 'Five boards and nothing settled. Run it back.'
+    : iWon ? 'Champion of the best-of-5. Defend the title?' : 'So close — run it back.';
+  if(iWon){ sndFanfare(); confettiBurst(); }
+  leaveMatch();
+  show('scMatch');
+}
+
+// shareable links: #/join/1234 lands here (sign-in first if needed, then auto-join)
+function checkJoinHash(){
+  const m = location.hash.match(/^#\/join\/(\d{4})/);
+  if(!m) return false;
+  M.pendingJoin = m[1];
+  history.replaceState(null, '', location.pathname + location.search);
+  loadUser();
+  renderVersus();
+  return true;
+}
+window.addEventListener('hashchange', checkJoinHash);
+
 //// ===== flow wiring =====
 // "Let's play" → sign in / sign up first; Pick is gated behind a username.
 function playEntry(){ loadUser(); renderAuth(); }
@@ -1484,7 +1801,7 @@ $('rAgain').onclick=()=>{ if(USER && USER.name){ goToPick(); } else { playEntry(
 
 //// ===== auth wiring =====
 $('authStart').onclick   = commitSignup;
-$('authContinue').onclick= goToPick;                    // returning player keeps going
+$('authContinue').onclick= afterAuth;                   // returning player keeps going
 $('authSwitch').onclick  = ()=>{ USER=null; clearMySets(); $('unameInput').value=''; renderAuth(); $('unameInput').focus(); };
 $('unameInput').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); commitSignup(); } });
 
@@ -1520,6 +1837,7 @@ $('unameInput').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventD
   $('miStart').onclick      =()=>go(()=>show('scStart'));
   $('miCategories').onclick =()=>go(()=>{ show('scCategories'); renderCategories(); });
   $('miCreate').onclick     =()=>go(()=>renderEditor());
+  $('miVersus').onclick     =()=>go(()=>{ leaveMatch(); renderVersus(); });
   $('miHighScores').onclick =()=>go(()=>{ show('scHighScores'); renderHighScores(); });
   $('miHowTo').onclick      =()=>go(()=>show('scHowTo'));
   $('miProfile').onclick         =()=>go(()=>renderProfile());
@@ -1538,6 +1856,27 @@ $('edSignIn').onclick=playEntry;
 $('edFill').onclick=fillDecoys;
 $('edMySets').onclick=()=>renderMySetsScreen();
 $('mySetsBack').onclick=()=>renderEditor();
+// multiplayer buttons
+$('vsHost').onclick=hostDuel;
+$('vsJoin').onclick=()=>{ const c=$('vsCode').value.trim(); if(!/^\d{4}$/.test(c)){ $('vsErr').textContent='Enter the 4-digit room code.'; return; } joinDuel(c); };
+$('vsCode').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); $('vsJoin').click(); } });
+$('lbStart').onclick=async()=>{
+  $('lbStart').disabled=true; $('lbErr').textContent='';
+  const r=await mApi('/api/match',{action:'start', id:M.id, key:myKey()});
+  if(r.ok) applyMatch(r.d);
+  else { $('lbErr').textContent=(r.d&&r.d.error)||'Could not start — try again.'; $('lbStart').disabled=false; }
+};
+$('lbShare').onclick=async()=>{
+  const link=`${location.origin}${location.pathname}#/join/${M.room}`;
+  try{ await navigator.clipboard.writeText(link); flash('LINK COPIED 🔗','hit'); }
+  catch(e){ prompt('Copy this invite link:', link); }
+};
+$('lbLeave').onclick=()=>{ leaveMatch(); renderVersus(); };
+$('duQuit').onclick=()=>{ leaveMatch(); show('scStart'); };
+$('mxAgain').onclick=()=>renderVersus();
+$('mxHome').onclick=()=>show('scStart');
+// invite links (#/join/1234) land straight in the join flow
+checkJoinHash();
 $('profileSwitch').onclick =()=>{ USER=null; STATS=null; clearMySets(); try{localStorage.removeItem(USER_KEY);}catch(e){} renderAuth(); $('unameInput').value=''; $('unameInput').focus(); };
 (function(){
   const root=document.documentElement, rs=root.style;
