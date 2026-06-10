@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/nyd-user-1/bankit#readme",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.104.1",
     "dotenv": "^17.4.2",
     "pg": "^8.21.0"
   }

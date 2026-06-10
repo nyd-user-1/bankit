@@ -212,6 +212,10 @@
     border:2.5px solid transparent;border-radius:11px;padding:10px 13px;outline:none;margin-bottom:8px;transition:border-color .15s}
   .ed-in::placeholder{color:var(--ink-faint)}
   .ed-in:focus{border-color:var(--teal)}
+  .ed-fill{display:block;width:100%;margin:0 0 9px;background:var(--panel-2);color:var(--ink-dim);font-weight:800;font-size:12.5px;
+    border-radius:10px;padding:9px 12px;font-family:inherit;transition:filter .12s,color .12s}
+  .ed-fill:hover{filter:brightness(.97);color:var(--ink)}
+  .ed-fill:disabled{opacity:.6;cursor:default}
   .ed-colors{display:flex;gap:10px}
   .ed-colors i{width:34px;height:34px;border-radius:11px;cursor:pointer;border:3px solid transparent;display:block;box-shadow:0 3px 0 rgba(0,0,0,.18)}
   .ed-colors i.on{border-color:var(--ink)}
@@ -708,7 +712,10 @@
           </div>
           <div class="ed-grid">
             <div class="ed-col"><div class="colhead yes">✔ On the list (10)</div><div id="edAnswers"></div></div>
-            <div class="ed-col"><div class="colhead no">✕ Decoys (10)</div><div id="edDecoys"></div></div>
+            <div class="ed-col"><div class="colhead no">✕ Decoys (10)</div>
+              <button type="button" class="ed-fill" id="edFill">✨ Fill in the decoys for me</button>
+              <div id="edDecoys"></div>
+            </div>
           </div>
           <div class="ed-foot">
             <button class="btn go green" id="edSubmit" style="margin-top:16px">Save my set ✔</button>
@@ -1026,6 +1033,34 @@ async function submitSet(){
     $('edTitle').value=''; [...$('edAnswers').children,...$('edDecoys').children].forEach(i=>i.value='');
     flash('SET SAVED ✔','hit'); sndPoint(1);
   }catch(e){ err.textContent='Could not save — check your connection.'; }
+  finally{ btn.disabled=false; btn.textContent=old; }
+}
+
+// ✨ fill the EMPTY decoy slots via /api/decoys (Claude-generated near-misses).
+// Needs the title + all 10 answers first; never overwrites decoys the user typed.
+async function fillDecoys(){
+  const err=$('edErr'); err.textContent='';
+  const tidy=v=>v.trim().replace(/\s+/g,' ');
+  const title=tidy($('edTitle').value);
+  const answers=[...$('edAnswers').children].map(i=>tidy(i.value));
+  if(title.length<2 || answers.some(t=>!t)){
+    err.textContent='Type the title and all 10 answers first — decoys are made to match them.'; return;
+  }
+  const dIns=[...$('edDecoys').children];
+  const existing=dIns.map(i=>tidy(i.value)).filter(Boolean);
+  if(existing.length===10){ err.textContent='All 10 decoy slots are already filled.'; return; }
+  const btn=$('edFill'); btn.disabled=true; const old=btn.textContent; btn.textContent='✨ Conjuring decoys…';
+  try{
+    const r=await fetch('/api/decoys',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ title, answers, existing })
+    });
+    const d=await r.json().catch(()=>null);
+    if(!r.ok || !d || !Array.isArray(d.decoys)){ err.textContent=(d && d.error) || 'Could not conjure decoys — try again.'; return; }
+    let k=0;
+    dIns.forEach(inp=>{ if(!tidy(inp.value) && k<d.decoys.length) inp.value=d.decoys[k++]; });
+    sndPoint(3);
+  }catch(e){ err.textContent='Could not conjure decoys — check your connection.'; }
   finally{ btn.disabled=false; btn.textContent=old; }
 }
 
@@ -1431,6 +1466,7 @@ $('profileSignIn').onclick =playEntry;
 // set editor buttons
 $('edSubmit').onclick=submitSet;
 $('edSignIn').onclick=playEntry;
+$('edFill').onclick=fillDecoys;
 $('profileSwitch').onclick =()=>{ USER=null; STATS=null; clearMySets(); try{localStorage.removeItem(USER_KEY);}catch(e){} renderAuth(); $('unameInput').value=''; $('unameInput').focus(); };
 (function(){
   const root=document.documentElement, rs=root.style;

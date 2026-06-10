@@ -77,6 +77,18 @@ auto-generate for them.
   (`MY_SETS`) are **folded into `BOARDS`** with `mine:true` (`mergeMySets()`), so
   `startBoard`/retry/score-submit work on them unchanged; cleared on player switch
   (`clearMySets()`). User-typed text is escaped with `esc()` wherever it hits `innerHTML`.
+- Editor layout: desktop ≥861px is a wide (1080px) card capped at
+  `min(744px, 100dvh − 120px)` — meta column (title / 4×4 icon grid / colors / save) on the
+  left, the two answer lists side-by-side on the right with their own scroll, so Save never
+  leaves the screen. Mobile keeps the stacked flow. Icon + color choices style the set's
+  **category card** everywhere it appears (Pick, All categories, Your sets, trophies).
+- **✨ Decoy generation** (`api/decoys.js`, button `edFill` → `fillDecoys()`): POST
+  title + 10 answers (+ already-typed decoys) → Claude **Haiku** (`claude-haiku-4-5`,
+  official SDK, structured `json_schema` output, ~$0.001/call) returns near-miss decoys at
+  the 7–9 difficulty rule; only EMPTY decoy slots are filled, user-typed decoys are never
+  overwritten. Needs `ANTHROPIC_API_KEY` in env (`.env.local` + Vercel); without it the
+  route returns 503 "Decoy magic is not set up yet." For user-created sets the user MAY
+  still hand-write decoys — never auto-generate without the button press.
 
 ## Players, points & the Profile screen
 
