@@ -1176,7 +1176,9 @@ async function renderCategories(){
   $('catsSub').textContent=`${words[n]||n} boards · all fun`;
   const wrap=$('catgrid'); wrap.innerHTML='';
   BOARDS.forEach((b,i)=>{
-    const slot=(b.colorSlot ?? i) % SLOT_COLORS.length;
+    // the catalog cycles the FULL 7-color spectrum by position (official boards only
+    // store the original four slots); a player's own sets keep their picked color
+    const slot=(b.mine ? (b.colorSlot ?? 0) : i) % SLOT_COLORS.length;
     const btn=document.createElement('button'); btn.className='pcat c'+slot+(S.played[i]?' played':'');
     btn.innerHTML=`<span class="ic">${b.icon}</span><div class="cname">${esc(b.title)}</div>`;
     btn.onclick=()=>startBoard(i);
