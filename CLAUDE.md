@@ -97,36 +97,52 @@ auto-generate for them.
 - **Mode-aware from the start:** `matches.mode='duel'` today; race/party are future
   siblings (the lobby's mode picker shows them greyed). Stay **static + Neon + ~1.2s
   polling** — the duel is turn-based, no realtime service, no sockets.
-- **Tables** (`scripts/migrate-matches.mjs`, idempotent): `matches` (room_code CHAR(4)
-  unique among live matches, host/guest identity, `board_ids[]` = the best-of-5 list,
-  series counts, `winner` 1 host · 2 guest · 0 drawn) + `match_state` (ONE row per match =
-  the current board: `tiles_json` [{t,on,by}] with by 0/1/2, turn, scores, wrong-tap
-  counts, `version` bumped on every write so clients skip stale polls).
+- **Match shape: 3 boards, best 2 of 3** (first to 2 board wins ends it; the 3rd board
+  decides a 1–1 split). **No −1**: a wrong tap scores 0 and passes the turn (wrong-tap
+  counts are still recorded, stats only). **Points are cumulative** across the match
+  (`matches.points_host/guest`, banked per finished board; the live board adds on top
+  client-side) — the header badges and footer show the running totals.
+- **Tables** (`scripts/migrate-matches.mjs` + `scripts/migrate-duel2.mjs`, idempotent):
+  `matches` (room_code CHAR(4) unique among live matches, host/guest identity,
+  `board_ids[]`, series counts, `points_*`, `winner` 1 host · 2 guest) + `match_state`
+  (ONE row per match = the current board: `tiles_json` [{t,on,by}] with by 0/1/2, turn,
+  scores, wrong counts, `version` bumped on every write, plus the tiebreak fields
+  `tb_question/tb_answer/tb_tried_*`; `board_status` ∈ playing·tiebreak·done).
+- **10s shot clock:** client shows a draining bar + a "⏰ TIME'S UP" takeover (deep
+  buzzer); the SERVER enforces at 12s (2s network grace) — `expireStaleTurn()` flips
+  overdue turns on every poll, and a tap on an expired turn 409s and passes instead.
+  `state.turnMs` (age of the turn) keeps both phones' countdowns in sync.
+- **Sudden death (tied board):** all 10 answers found at 5–5 → `board_status='tiebreak'`,
+  a generated two-step mental-math question (`genTiebreak()`; answer NEVER sent to
+  clients). First correct typed answer wins the board (`POST /api/match-tap` with
+  `{answer}` instead of `{idx}`); one try per player per question, both wrong → fresh
+  question, locks reset.
 - **Routes** (flat files — the `vercel.json` functions glob is `api/*.js`; `_match.js` is
   the shared helper, underscore = not a lambda):
-  - `POST /api/match` — `{name,avatar}` creates a lobby (5 random official boards, 4-digit
+  - `POST /api/match` — `{name,avatar}` creates a lobby (3 random official boards, 4-digit
     code, 24h stale-lobby sweep); `{action:'start',id,key}` host-only, deals board 1.
   - `POST /api/match-join` — `{room,name,avatar}`; rejoin by the same key is allowed,
     third player / own room / dead code are 4xx.
-  - `GET /api/match?id=` (or `?room=`) — THE POLL. **Answers are never leaked mid-board:**
-    untapped tiles carry no `on`; tapped tiles reveal only their own `hit`; full reveal
-    only once the board/match is done.
-  - `POST /api/match-tap` — `{id,key,idx,version}`. The server is the referee: turn check,
-    tile lock, +1/−1 (negatives OK), flip turn, board ends when all 10 answers found,
-    tie → fewer wrong taps, dead-equal → drawn board (no series point). First to 3 boards
-    (or the 5th board) ends the match; otherwise it deals the next board in the same row,
-    opening turn alternating (board 0 host, board 1 guest, …). All inside a transaction
-    with `SELECT … FOR UPDATE`.
+  - `GET /api/match?id=` (or `?room=`) — THE POLL (also runs the shot-clock expiry).
+    **Answers are never leaked mid-board:** untapped tiles carry no `on`; tapped tiles
+    reveal only their own `hit`; full reveal once the board is in tiebreak/done.
+  - `POST /api/match-tap` — tap `{id,key,idx,version}` or solve `{id,key,answer}`.
+    The server is the referee: turn check, shot clock, tile lock, +1/0, flip turn; board
+    ends when all 10 answers found; `advanceSeries()` banks points + deals the next board
+    (opening turn alternates) or ends the match. All in a transaction with FOR UPDATE.
 - **Client** (`index.html`): `M` state + `mApi()`; screens `scVersus` (host / join-by-code),
-  `scLobby` (code, copy-invite-link, players, mode picker, host-only start), `scDuel`
-  (you-vs-them header, series dots from YOUR perspective, turn banner, shared tiles with
-  tapper avatars), `scMatch` (series winner). Poll loop `startPoll()/applyMatch()` keys
-  re-renders off a `status:version:guest` signature. Board-to-board transitions are
-  client-inferred (`noticeBoardChange` diffs the series counts → BOARD WON/LOST/DRAWN
-  flash). Invite links: `#/join/1234` (`checkJoinHash()`; signs the player in first via
-  the `AFTER_AUTH` hook, then auto-joins).
+  `scLobby` (code, copy-invite-link, players, mode picker, host-only start), `scDuel`,
+  `scMatch` (series winner + final points). **scDuel anatomy:** badges + "vs." header —
+  whose TURN = whose badge GROWS (`.duel-p.turn`, scale 1.16 + gold ring), no turn text;
+  category-only qcard (no board-strip); segmented `dprog` "X of 10 found" tracker; the
+  `duel-clock` bar; tiles with tapper avatars; `duelfoot` = board № + series dots +
+  cumulative totals pill left, QUIT right. Tiebreak = `tbLayer` takeover (question, typed
+  entry, lockout message). Poll loop `startPoll()/applyMatch()` keys re-renders off a
+  `status:version:guest` signature and re-syncs the clock from `turnMs`.
+  Invite links: `#/join/1234` (`checkJoinHash()`; signs in first via `AFTER_AUTH`).
 - **Known MVP gaps:** quitting only stops the local poll (the other phone is not told);
-  abandoned games are swept after 24h by the next lobby creation.
+  abandoned games are swept after 24h by the next lobby creation; duel results still
+  don't feed the players/leaderboard tables.
 
 ## Players, points & the Profile screen
 

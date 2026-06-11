@@ -18,9 +18,39 @@ async function buildTiles(client, boardId) {
   return pool;
 }
 
+// the 10-second shot clock, server-enforced with a 2s network grace. A turn older
+// than this is flipped (no point change) by the next poll or tap that notices.
+const TURN_LIMIT_MS = 12000;
+
+// sudden-death math question: two-step mental arithmetic, answer in 10–99-ish range.
+// Unbiased (no trivia), always answerable, infinite supply.
+function genTiebreak() {
+  const r = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
+  const a = r(11, 48), b = r(11, 48), c = r(2, 9), d = r(3, 12);
+  const forms = [
+    { q: `${a} + ${b} − ${c}`, ans: a + b - c },
+    { q: `${a} − ${c} + ${b}`, ans: a - c + b },
+    { q: `${c} × ${d} + ${a}`, ans: c * d + a },
+    { q: `${a} + ${c} × ${d}`, ans: a + c * d },
+  ];
+  return forms[Math.floor(Math.random() * forms.length)];
+}
+
+// flip a turn that ran past the shot clock (atomic conditional update — safe against
+// a concurrent tap because match-tap holds FOR UPDATE on the row).
+async function expireStaleTurn(client, matchId) {
+  await client.query(
+    `UPDATE match_state SET turn = 3 - turn, version = version + 1, updated_at = now()
+      WHERE match_id = $1 AND board_status = 'playing'
+        AND updated_at < now() - make_interval(secs => ${TURN_LIMIT_MS / 1000})`,
+    [matchId]
+  );
+}
+
 // the poll payload. Answers are NOT leaked mid-board: an untapped tile carries no
-// `on`; a tapped tile reveals only its own outcome. Once the board is done (or the
-// match is over) everything is revealed so clients can show the gold/dud reveal.
+// `on`; a tapped tile reveals only its own outcome. Once the board is done (or in
+// tiebreak, or the match is over) everything is revealed for the gold/dud reveal.
+// The tiebreak ANSWER is never sent — only the question text + who has tried.
 async function matchPayload(client, matchId) {
   const { rows: [m] } = await client.query(`SELECT * FROM matches WHERE id=$1`, [matchId]);
   if (!m) return null;
@@ -32,7 +62,7 @@ async function matchPayload(client, matchId) {
       `SELECT id, title, icon, color_slot FROM boards WHERE id=$1`, [boardId]
     );
     board = b ? { id: b.id, title: b.title, icon: b.icon, colorSlot: b.color_slot } : null;
-    const revealAll = s.board_status === 'done' || m.status === 'done';
+    const revealAll = s.board_status !== 'playing' || m.status === 'done';
     const tiles = s.tiles_json.map((t) =>
       revealAll ? { t: t.t, by: t.by, on: t.on }
         : t.by ? { t: t.t, by: t.by, hit: !!t.on }
@@ -42,6 +72,9 @@ async function matchPayload(client, matchId) {
       tiles, turn: s.turn, boardStatus: s.board_status, version: s.version,
       scoreHost: s.score_host, scoreGuest: s.score_guest,
       wrongHost: s.wrong_host, wrongGuest: s.wrong_guest,
+      turnMs: Math.max(0, Date.now() - new Date(s.updated_at).getTime()),
+      tbQuestion: s.board_status === 'tiebreak' ? s.tb_question : null,
+      tbTriedHost: !!s.tb_tried_host, tbTriedGuest: !!s.tb_tried_guest,
     };
   }
   return {
@@ -52,9 +85,10 @@ async function matchPayload(client, matchId) {
       guest: m.guest_key ? { key: m.guest_key, name: m.guest_name, avatar: m.guest_avatar } : null,
       boardIdx: m.current_board_idx, boardCount: m.board_ids.length,
       seriesHost: m.series_host, seriesGuest: m.series_guest, winner: m.winner,
+      pointsHost: m.points_host, pointsGuest: m.points_guest,
     },
     board, state,
   };
 }
 
-module.exports = { getPool, keyOf, buildTiles, matchPayload };
+module.exports = { getPool, keyOf, buildTiles, matchPayload, genTiebreak, expireStaleTurn, TURN_LIMIT_MS };

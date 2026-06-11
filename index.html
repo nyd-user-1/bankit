@@ -284,16 +284,48 @@
   .lb-mode.on{background:var(--purple);color:#fff;box-shadow:0 3px 0 #6d3fd6}
   .lb-mode.off{opacity:.55}
   .lb-mode small{font-weight:800;opacity:.8}
-  /* duel header: you on the left, them on the right, series + turn in the middle */
+  /* duel header: you on the left, them on the right, a simple "vs." between.
+     WHOSE TURN = that player's badge GROWS (and gets the gold ring); no text needed. */
+  .duel-p{transition:transform .3s cubic-bezier(.2,1.5,.4,1)}
   .duel-p .av{font-size:17px}
   .duel-p .nm{max-width:11ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .duel-p.turn{box-shadow:0 0 0 3px var(--yellow)}
-  .duel-mid{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
-  .duel-turn{font-family:var(--font-display);font-size:15px;letter-spacing:.04em;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.22);white-space:nowrap}
-  .duel-turn.me{color:var(--yellow)}
+  .duel-p .big{font-size:24px}
+  .duel-p.turn{transform:scale(1.16);box-shadow:0 0 0 3px var(--yellow)}
+  .duel-vs{font-family:var(--font-display);font-size:17px;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.22);opacity:.92;flex-shrink:0}
+  /* the 10-second shot clock */
+  .duel-clock{height:9px;max-width:430px;margin:0 auto 16px;border-radius:100px;background:rgba(0,0,0,.18);overflow:hidden}
+  .duel-clock i{display:block;height:100%;width:100%;background:var(--green);border-radius:100px}
+  .duel-clock.low i{background:var(--red)}
+  .duel-clock.hide{visibility:hidden}
+  /* found-progress: 10 chunky segments + a live count (replaces the faint pips) */
+  .dprog{display:flex;align-items:center;justify-content:center;gap:12px;margin:18px 0}
+  .dprog-bar{display:flex;gap:4px;background:rgba(0,0,0,.18);padding:5px 6px;border-radius:100px}
+  .dprog-bar i{width:20px;height:11px;border-radius:100px;background:rgba(255,255,255,.28)}
+  .dprog-bar i.on{background:var(--yellow);box-shadow:0 0 10px rgba(255,210,63,.8)}
+  .dprog-lbl{color:#fff;font-weight:900;font-size:12.5px;text-shadow:0 1px 0 rgba(0,0,0,.2);white-space:nowrap}
+  /* duel footer: series + board + cumulative points live HERE; quit sits right */
+  .duelfoot{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:26px}
+  .du-info{display:flex;align-items:center;gap:13px;background:rgba(255,255,255,.18);backdrop-filter:blur(6px);
+    padding:10px 18px;border-radius:100px;color:#fff;font-weight:900;font-size:12.5px}
+  .du-info .bnum{text-transform:uppercase;letter-spacing:.06em;opacity:.92;white-space:nowrap}
+  .du-info .tot{font-family:var(--font-display);font-size:17px;letter-spacing:.03em;white-space:nowrap}
   .duel-series{display:flex;gap:6px}
   .duel-series i{width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,.32);box-shadow:inset 0 -2px 0 rgba(0,0,0,.12)}
   .duel-series i.w{background:var(--green)} .duel-series i.l{background:var(--miss)} .duel-series i.d{background:var(--yellow)}
+  /* sudden-death tiebreak takeover */
+  .tb-layer{position:fixed;inset:0;z-index:55;display:grid;place-items:center;background:rgba(10,2,4,.6);backdrop-filter:blur(3px)}
+  .tb-card{background:var(--panel);border-radius:24px;box-shadow:0 10px 0 var(--shadow);padding:30px 32px;
+    width:min(420px,calc(100vw - 48px));text-align:center;animation:pop .4s cubic-bezier(.2,1.4,.4,1) both}
+  .tb-card .zap{font-size:44px;line-height:1}
+  .tb-card h3{font-family:var(--font-display);font-size:26px;color:var(--ink);margin:6px 0 2px}
+  .tb-card .tb-sub{color:var(--ink-dim);font-weight:800;font-size:13px;margin-bottom:16px}
+  .tb-q{font-family:var(--font-display);font-size:38px;color:var(--ink);background:var(--panel-2);border-radius:16px;padding:14px;margin-bottom:14px}
+  .tb-row{display:flex;gap:10px}
+  .tb-row input{flex:1;min-width:0;font-family:var(--font-display);font-size:26px;text-align:center;color:var(--ink);
+    background:var(--panel-2);border:3px solid transparent;border-radius:14px;padding:10px;outline:none}
+  .tb-row input:focus{border-color:var(--teal)}
+  .tb-row .btn{flex-shrink:0}
+  .tb-wait{color:var(--ink-dim);font-weight:800;font-size:13px;min-height:18px;margin-top:12px}
   /* who tapped a tile — the tapper's avatar in the corner */
   .tile .who{position:absolute;top:5px;left:7px;font-size:13px;filter:drop-shadow(0 1px 0 rgba(0,0,0,.2))}
   .mx-winner{display:flex;align-items:center;justify-content:center;gap:11px;margin:6px 0 2px}
@@ -850,7 +882,7 @@
   <section class="screen auth versus" id="scVersus">
     <div class="card">
       <h2>⚔️ Play a friend</h2>
-      <div class="sub">One shared board, two phones, alternating taps.<br>Best of 5 — first to win 3 boards takes the duel.</div>
+      <div class="sub">One shared board, two phones, alternating taps.<br>Three boards — win 2 to take the duel.</div>
       <button class="btn go teal" id="vsHost">Host a duel <span>→</span></button>
       <div class="vs-or">or</div>
       <div class="field">
@@ -890,19 +922,23 @@
   <section class="screen board wide duel" id="scDuel">
     <div class="bhead">
       <span class="pill duel-p" id="duMe"><span class="av" id="duMeAv">🎯</span><span class="nm" id="duMeNm">You</span><span class="big" id="duMeSc">0</span></span>
-      <span class="duel-mid">
-        <span class="duel-series" id="duSeries"></span>
-        <span class="duel-turn" id="duTurn">YOUR TURN</span>
-      </span>
+      <span class="duel-vs">vs.</span>
       <span class="pill duel-p" id="duThem"><span class="av" id="duThemAv">🎯</span><span class="nm" id="duThemNm">Them</span><span class="big" id="duThemSc">0</span></span>
     </div>
     <div class="qcard">
-      <div class="qcat" id="duBnum">Board 1 of 5</div>
       <div class="qtitle" id="duTitle">Loading…</div>
     </div>
-    <div class="pips" id="duPips"></div>
+    <div class="dprog"><div class="dprog-bar" id="duProgBar"></div><span class="dprog-lbl" id="duProgLbl">0 of 10 found</span></div>
+    <div class="duel-clock" id="duClock"><i id="duClockBar"></i></div>
     <div class="tiles" id="duTiles"></div>
-    <div class="bfoot"><button class="btn ghost" id="duQuit">Quit match</button></div>
+    <div class="bfoot duelfoot">
+      <span class="du-info">
+        <span class="bnum" id="duBnum">Board 1 of 3</span>
+        <span class="duel-series" id="duSeries"></span>
+        <span class="tot" id="duTotals">0–0</span>
+      </span>
+      <button class="btn ghost" id="duQuit">Quit match</button>
+    </div>
   </section>
 
   <!-- ===== MATCH RESULTS (series winner) ===== -->
@@ -920,6 +956,21 @@
     </div>
   </section>
 
+</div>
+
+<!-- sudden-death tiebreak (duel: tied board → first correct answer wins it) -->
+<div class="tb-layer" id="tbLayer" style="display:none">
+  <div class="tb-card">
+    <div class="zap">⚡</div>
+    <h3>Tie-breaker!</h3>
+    <div class="tb-sub">Dead even. First correct answer takes the board.</div>
+    <div class="tb-q" id="tbQ">12 + 34 − 5 = ?</div>
+    <div class="tb-row">
+      <input id="tbIn" type="text" inputmode="numeric" autocomplete="off" maxlength="4" placeholder="=" />
+      <button class="btn yellow" id="tbGo">Lock it in</button>
+    </div>
+    <div class="tb-wait" id="tbWait"></div>
+  </div>
 </div>
 
 <!-- feedback flash -->
@@ -1618,13 +1669,49 @@ async function renderHighScores(){
 //// ===== multiplayer duel (Play a friend: versus → lobby → duel → results) =====
 // The server referees everything; phones just poll /api/match (~1.2s) and re-render
 // whenever the state version moves. M.role: 1 = host, 2 = guest.
-const M = { id:null, room:null, role:0, sig:null, data:null, timer:null,
-            lastBoardIdx:0, lastSeries:[0,0], pendingJoin:null };
+const M = { id:null, room:null, role:0, sig:null, data:null, timer:null, clock:null,
+            lastBoardIdx:0, lastSeries:[0,0], pendingJoin:null,
+            turnStart:0, timedOut:false, tbQ:null };
 const myKey = ()=> (USER && USER.name) ? USER.name.trim().toLowerCase() : '';
 
-function stopPoll(){ if(M.timer){ clearInterval(M.timer); M.timer=null; } }
-function startPoll(){ stopPoll(); M.timer = setInterval(pollMatch, 1200); }
-function leaveMatch(){ stopPoll(); M.id=null; M.sig=null; M.data=null; }
+function stopPoll(){ if(M.timer){ clearInterval(M.timer); M.timer=null; } stopClock(); }
+function startPoll(){ stopPoll(); M.timer = setInterval(pollMatch, 1200); startClock(); }
+function leaveMatch(){ stopPoll(); M.id=null; M.sig=null; M.data=null; $('tbLayer').style.display='none'; }
+
+//// the 10-second shot clock (server enforces at 12s; the bar and TIME'S UP are local)
+function stopClock(){ if(M.clock){ clearInterval(M.clock); M.clock=null; } }
+function startClock(){
+  stopClock();
+  M.clock = setInterval(()=>{
+    const d = M.data;
+    const live = d && d.state && d.state.boardStatus === 'playing' && d.match.status === 'playing';
+    $('duClock').classList.toggle('hide', !live);
+    if(!live) return;
+    const left = Math.max(0, 10000 - (Date.now() - M.turnStart));
+    $('duClockBar').style.width = (left / 100) + '%';
+    $('duClock').classList.toggle('low', left <= 3000);
+    if(left === 0 && !M.timedOut){
+      M.timedOut = true;
+      if(d.state.turn === M.role) timesUp();   // it was YOUR clock that hit zero
+      pollMatch();                              // pick up the server-side turn pass
+    }
+  }, 100);
+}
+// the TIME'S UP takeover — the screen-of-death pattern, but a clock + deep buzzer
+function timesUp(){
+  const f=$('flash'); f.classList.remove('hit'); f.classList.add('death');
+  $('flashMsg').textContent = "⏰ TIME'S UP";
+  f.classList.remove('show'); void f.offsetWidth; f.classList.add('show');
+  const stage=document.querySelector('.stage');
+  stage.classList.remove('glitch'); void stage.offsetWidth; stage.classList.add('glitch');
+  setTimeout(()=>stage.classList.remove('glitch'),600);
+  sndTimeUp();
+}
+function sndTimeUp(){ try{
+  const ctx=_ac(), t=ctx.currentTime;
+  _tone(ctx,t,'square',150,45,0.75,0.26);   // deep descending buzzer
+  _tone(ctx,t,'sine',85,32,0.6,0.36);
+}catch(e){} }
 
 async function mApi(path, body){
   try{
@@ -1673,6 +1760,7 @@ function applyMatch(d){
   const sig = d.match.status + ':' + (d.state ? d.state.version : 0) + ':' + (d.match.guest ? d.match.guest.key : '');
   if(sig === M.sig) return;
   M.sig = sig; M.data = d;
+  if(d.state){ M.turnStart = Date.now() - (d.state.turnMs || 0); M.timedOut = false; }
   if(d.match.status === 'lobby'){ renderLobby(d); }
   else if(d.match.status === 'playing'){ noticeBoardChange(d); renderDuel(d); }
   else { stopPoll(); noticeBoardChange(d); renderMatchEnd(d); }
@@ -1721,35 +1809,50 @@ function renderDuel(d){
   const mine  = me === 1 ? host : guest, theirs = me === 1 ? guest : host;
   $('duMeAv').textContent = mine.avatar;  $('duMeNm').textContent = 'You';
   $('duThemAv').textContent = theirs.avatar; $('duThemNm').textContent = theirs.name;
-  $('duMeSc').textContent   = me === 1 ? s.scoreHost : s.scoreGuest;
-  $('duThemSc').textContent = me === 1 ? s.scoreGuest : s.scoreHost;
+  // CUMULATIVE points: banked boards + the live board (once the match is done,
+  // the final board is already banked into match.points)
+  const liveH = d.match.status === 'playing' ? s.scoreHost : 0;
+  const liveG = d.match.status === 'playing' ? s.scoreGuest : 0;
+  const ptsMine   = (me === 1 ? d.match.pointsHost + liveH : d.match.pointsGuest + liveG);
+  const ptsTheirs = (me === 1 ? d.match.pointsGuest + liveG : d.match.pointsHost + liveH);
+  $('duMeSc').textContent = ptsMine;
+  $('duThemSc').textContent = ptsTheirs;
+  // whose turn = whose badge is big
   const myTurn = s.turn === me && s.boardStatus === 'playing';
-  $('duTurn').textContent = s.boardStatus !== 'playing' ? 'BOARD OVER' : (myTurn ? 'YOUR TURN' : 'THEIR TURN…');
-  $('duTurn').classList.toggle('me', myTurn);
   $('duMe').classList.toggle('turn', myTurn);
   $('duThem').classList.toggle('turn', !myTurn && s.boardStatus === 'playing');
 
-  // series dots: your board wins green, theirs red, draws gold, the rest still open
+  $('duTitle').textContent = d.board ? d.board.title : '…';
+
+  // found-progress: 10 segments + live count
+  const found = s.tiles.filter(t => t.by && (t.hit ?? t.on)).length;
+  const pb = $('duProgBar'); pb.innerHTML = '';
+  for(let k = 0; k < 10; k++){ const i = document.createElement('i'); if(k < found) i.className = 'on'; pb.appendChild(i); }
+  $('duProgLbl').textContent = `${found} of 10 found`;
+
+  // footer: board number, series dots, cumulative points
+  $('duBnum').textContent = `Board ${d.match.boardIdx + 1} of ${d.match.boardCount}`;
   const myWins = me === 1 ? d.match.seriesHost : d.match.seriesGuest;
   const theirWins = me === 1 ? d.match.seriesGuest : d.match.seriesHost;
-  const played = d.match.status === 'done' ? d.match.boardIdx + 1 : d.match.boardIdx;
-  const draws = Math.max(0, played - myWins - theirWins);
   const sw = $('duSeries'); sw.innerHTML = '';
   for(let k = 0; k < d.match.boardCount; k++){
     const i = document.createElement('i');
     if(k < myWins) i.className = 'w';
     else if(k < myWins + theirWins) i.className = 'l';
-    else if(k < myWins + theirWins + draws) i.className = 'd';
     sw.appendChild(i);
   }
+  $('duTotals').textContent = `${ptsMine}–${ptsTheirs}`;
 
-  $('duBnum').textContent = `Board ${d.match.boardIdx + 1} of ${d.match.boardCount} · best of 5`;
-  $('duTitle').textContent = d.board ? d.board.title : '…';
-
-  // found pips (shared count for the board)
-  const found = s.tiles.filter(t => t.by && (t.hit ?? t.on)).length;
-  const p = $('duPips'); p.innerHTML = '';
-  for(let k = 0; k < 10; k++){ const dd = document.createElement('div'); dd.className = 'pip' + (k < found ? ' lit' : ''); p.appendChild(dd); }
+  // sudden death: tied board → the math takeover
+  const tb = s.boardStatus === 'tiebreak' && d.match.status === 'playing';
+  $('tbLayer').style.display = tb ? '' : 'none';
+  if(tb){
+    $('tbQ').textContent = s.tbQuestion + ' = ?';
+    const mineTried = me === 1 ? s.tbTriedHost : s.tbTriedGuest;
+    $('tbIn').disabled = mineTried; $('tbGo').disabled = mineTried;
+    $('tbWait').textContent = mineTried ? 'Locked out — waiting for a fresh question…' : '';
+    if(M.tbQ !== s.tbQuestion){ M.tbQ = s.tbQuestion; $('tbIn').value=''; if(!mineTried) $('tbIn').focus(); }
+  } else { M.tbQ = null; }
 
   // tiles — rebuilt per state version (20 nodes, cheap)
   const wrap = $('duTiles'); wrap.innerHTML = '';
@@ -1780,11 +1883,28 @@ async function duelTap(idx, el){
     const r = await mApi('/api/match-tap', { id:M.id, key:myKey(), idx, version:M.data.state.version });
     if(r.ok){
       const t = r.d.tap;
-      if(t.hit){ sndPoint(3); flash('+1 ✔','hit'); } else { flash('−1 ✘','death'); }
+      if(t.hit){ sndPoint(3); flash('+1 ✔','hit'); } else { flash('WRONG ✘','death'); }
       applyMatch(r.d);
     } else if(r.status === 409){ pollMatch(); }
     else { flash('TAP LOST — RETRY'); el.classList.remove('locked'); }
   } finally { TAP_BUSY = false; }
+}
+
+// sudden-death answer: typed entry, first correct submission takes the board
+let TB_BUSY = false;
+async function solveTb(){
+  if(TB_BUSY) return;
+  const v = $('tbIn').value.trim();
+  if(!v) return;
+  TB_BUSY = true; $('tbGo').disabled = true;
+  try{
+    const r = await mApi('/api/match-tap', { id:M.id, key:myKey(), answer:v });
+    if(r.ok){
+      if(r.d.solve && r.d.solve.correct){ flash('CORRECT! ⚡','hit'); sndPoint(8); }
+      else if(r.d.solve){ flash('WRONG ✘','death'); }
+      applyMatch(r.d);
+    } else { pollMatch(); }
+  } finally { TB_BUSY = false; }
 }
 
 function renderMatchEnd(d){
@@ -1798,8 +1918,11 @@ function renderMatchEnd(d){
   $('mxAv').textContent = winP ? winP.avatar : '🤝';
   $('mxName').textContent = winP ? winP.name : 'Nobody';
   $('mxSeries').textContent = `${mySeries}–${theirSeries}`;
-  $('mxMsg').textContent = w === 0 ? 'Five boards and nothing settled. Run it back.'
-    : iWon ? 'Champion of the best-of-5. Defend the title?' : 'So close — run it back.';
+  const myPts = M.role === 1 ? d.match.pointsHost : d.match.pointsGuest;
+  const theirPts = M.role === 1 ? d.match.pointsGuest : d.match.pointsHost;
+  $('mxMsg').textContent = (w === 0 ? 'Nothing settled. Run it back.'
+    : iWon ? 'Best 2 of 3 — champion. Defend the title?' : 'So close — run it back.')
+    + ` Points: ${myPts}–${theirPts}.`;
   if(iWon){ sndFanfare(); confettiBurst(); }
   leaveMatch();
   show('scMatch');
@@ -1902,6 +2025,8 @@ $('lbShare').onclick=async()=>{
 };
 $('lbLeave').onclick=()=>{ leaveMatch(); renderVersus(); };
 $('duQuit').onclick=()=>{ leaveMatch(); show('scStart'); };
+$('tbGo').onclick=solveTb;
+$('tbIn').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); solveTb(); } });
 $('mxAgain').onclick=()=>renderVersus();
 $('mxHome').onclick=()=>show('scStart');
 // invite links (#/join/1234) land straight in the join flow

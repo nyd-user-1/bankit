@@ -2,7 +2,7 @@
 //   POST {action:'create', name, avatar}            → new lobby, returns room code
 //   POST {action:'start',  id, key}                 → host starts the match (needs a guest)
 //   GET  ?id=  (or ?room=)                          → THE POLL: full match + current board state
-const { getPool, keyOf, buildTiles, matchPayload } = require('./_match');
+const { getPool, keyOf, buildTiles, matchPayload, expireStaleTurn } = require('./_match');
 
 module.exports = async (req, res) => {
   const pool = getPool();
@@ -19,6 +19,7 @@ module.exports = async (req, res) => {
         matchId = m && m.id;
       }
       if (!matchId) { res.status(404).json({ error: 'Match not found.' }); return; }
+      await expireStaleTurn(pool, matchId);   // shot clock: pass any turn that ran out
       const payload = await matchPayload(pool, matchId);
       if (!payload) { res.status(404).json({ error: 'Match not found.' }); return; }
       res.status(200).json(payload);
@@ -67,11 +68,11 @@ module.exports = async (req, res) => {
     const avatar = String(body.avatar || '🎯').slice(0, 8);
     if (name.length < 2) { res.status(400).json({ error: 'Sign in first.' }); return; }
 
-    // the best-of-5 set list: 5 random official boards
+    // the match list: 3 random official boards — best 2 of 3
     const { rows: boards } = await pool.query(
-      `SELECT id FROM boards WHERE is_active AND owner_key IS NULL ORDER BY random() LIMIT 5`
+      `SELECT id FROM boards WHERE is_active AND owner_key IS NULL ORDER BY random() LIMIT 3`
     );
-    if (boards.length < 5) { res.status(503).json({ error: 'Not enough boards to duel.' }); return; }
+    if (boards.length < 3) { res.status(503).json({ error: 'Not enough boards to duel.' }); return; }
     const boardIds = boards.map((b) => b.id);
 
     // 4-digit room code, retried if a live match already holds it
