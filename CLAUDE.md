@@ -9,7 +9,7 @@ think are on the hidden list. Every correct tap is +1; one wrong tap ends the ro
 Design notes, playtest feedback, decisions, and session threads live OUTSIDE this repo in
 the HQ Obsidian vault: `~/vaults/hq/bank-it/`. Read `*launchpad/000 Workflow.md` there before
 doing vault work (it defines the note system); `*launchpad/002 Roadmap.md`
-is the living project picture; each thread is a `NNN Topic/` folder. The repo holds the product; the vault holds the process.
+is the living project picture; each thread is a `NNN Topic/` folder (screenshots in `NNN img/`). The repo holds the product; the vault holds the process.
 
 ## Stack & layout
 
