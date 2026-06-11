@@ -278,7 +278,8 @@
   .lb-share{display:block;margin:0 auto 20px}
   /* once the challenger arrives, the code+share swap for a counting-up digital clock */
   .lb-clock{display:none;font-family:var(--font-display);font-size:56px;text-align:center;letter-spacing:.1em;color:var(--ink);
-    margin:6px 0 20px;animation:lbtick 2s ease-in-out infinite}
+    margin:6px 0 20px;padding-top:8px;line-height:1.15;animation:lbtick 2s ease-in-out infinite}
+  .lobby #lbStart{margin-top:24px}
   @keyframes lbtick{0%,100%{opacity:1}50%{opacity:.55}}
   .lobby.full .lb-code,.lobby.full .lb-share{display:none}
   .lobby.full .lb-clock{display:block}
@@ -307,19 +308,25 @@
   .duel-p .big{font-size:24px}
   .duel-p.turn{transform:scale(1.16);box-shadow:0 0 0 3px var(--yellow)}
   .duel-vs{font-family:var(--font-display);font-size:17px;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.22);opacity:.92;flex-shrink:0}
-  /* the 10-second shot clock */
-  .duel-clock{height:9px;max-width:430px;margin:0 auto 16px;border-radius:100px;background:rgba(0,0,0,.18);overflow:hidden}
-  .duel-clock i{display:block;height:100%;width:100%;background:var(--green);border-radius:100px}
-  .duel-clock.low i{background:var(--red)}
-  .duel-clock.hide{visibility:hidden}
+  /* the 30-second turn clock — a digital countdown beside the active player's badge
+     (inner side, flanking the "vs."). 3×/2×/1× scoring windows live on the server. */
+  .duel-tclock{font-family:var(--font-display);font-size:23px;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.25);
+    min-width:42px;text-align:center;visibility:hidden;flex-shrink:0}
+  .duel-tclock.on{visibility:visible}
+  .duel-tclock.low{color:var(--yellow);animation:lbtick 1s ease-in-out infinite}
   /* found-progress: 10 chunky segments + a live count (replaces the faint pips) */
   .dprog{display:flex;align-items:center;justify-content:center;gap:12px;margin:18px 0}
   .dprog-bar{display:flex;gap:4px;background:rgba(0,0,0,.18);padding:5px 6px;border-radius:100px}
   .dprog-bar i{width:20px;height:11px;border-radius:100px;background:rgba(255,255,255,.28)}
   .dprog-bar i.on{background:var(--yellow);box-shadow:0 0 10px rgba(255,210,63,.8)}
   .dprog-lbl{color:#fff;font-weight:900;font-size:12.5px;text-shadow:0 1px 0 rgba(0,0,0,.2);white-space:nowrap}
-  /* duel footer: series + board + cumulative points live HERE; quit sits right */
-  .duelfoot{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:26px}
+  /* duel footer: board info flush LEFT, quit flush RIGHT */
+  .duelfoot{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:26px;width:100%}
+  .duelfoot .du-info{margin-right:auto}
+  .duelfoot .btn{margin-left:auto}
+  /* the found-order badge on duel tiles (replaces the tiny ✔) */
+  .duel .tile .chk{font-family:var(--font-display);font-size:16px;opacity:0;top:4px;right:8px}
+  .duel .tile.hit .chk{opacity:1}
   .du-info{display:flex;align-items:center;gap:13px;background:rgba(255,255,255,.18);backdrop-filter:blur(6px);
     padding:10px 18px;border-radius:100px;color:#fff;font-weight:900;font-size:12.5px}
   .du-info .bnum{text-transform:uppercase;letter-spacing:.06em;opacity:.92;white-space:nowrap}
@@ -941,14 +948,15 @@
   <section class="screen board wide duel" id="scDuel">
     <div class="bhead">
       <span class="pill duel-p" id="duMe"><span class="av" id="duMeAv">🎯</span><span class="nm" id="duMeNm">You</span><span class="big" id="duMeSc">0</span></span>
+      <span class="duel-tclock" id="duClockMe">30</span>
       <span class="duel-vs">vs.</span>
+      <span class="duel-tclock" id="duClockThem">30</span>
       <span class="pill duel-p" id="duThem"><span class="av" id="duThemAv">🎯</span><span class="nm" id="duThemNm">Them</span><span class="big" id="duThemSc">0</span></span>
     </div>
     <div class="qcard">
       <div class="qtitle" id="duTitle">Loading…</div>
     </div>
     <div class="dprog"><div class="dprog-bar" id="duProgBar"></div><span class="dprog-lbl" id="duProgLbl">0 of 10 found</span></div>
-    <div class="duel-clock" id="duClock"><i id="duClockBar"></i></div>
     <div class="tiles" id="duTiles"></div>
     <div class="bfoot duelfoot">
       <span class="du-info">
@@ -1715,22 +1723,28 @@ function stopPoll(){ if(M.timer){ clearInterval(M.timer); M.timer=null; } stopCl
 function startPoll(){ stopPoll(); M.timer = setInterval(pollMatch, 1200); startClock(); }
 function leaveMatch(){ stopPoll(); M.id=null; M.sig=null; M.data=null; $('tbLayer').style.display='none'; }
 
-//// the 10-second shot clock (server enforces at 12s; the bar and TIME'S UP are local)
+//// the 30-second turn clock (server enforces at 32s; the countdown and TIME'S UP are
+//// local). The digital count sits beside the ACTIVE player's badge; speed scoring is
+//// 3/2/1 points by 10-second window (server-judged).
 function stopClock(){ if(M.clock){ clearInterval(M.clock); M.clock=null; } }
 function startClock(){
   stopClock();
   M.clock = setInterval(()=>{
     const d = M.data;
     const live = d && d.state && d.state.boardStatus === 'playing' && d.match.status === 'playing';
-    $('duClock').classList.toggle('hide', !live);
-    if(!live) return;
-    const left = Math.max(0, 10000 - (Date.now() - M.turnStart));
-    $('duClockBar').style.width = (left / 100) + '%';
-    $('duClock').classList.toggle('low', left <= 3000);
+    const me = $('duClockMe'), them = $('duClockThem');
+    if(!live){ me.classList.remove('on'); them.classList.remove('on'); return; }
+    const left = Math.max(0, 30000 - (Date.now() - M.turnStart));
+    const secs = Math.ceil(left / 1000);
+    const mine = d.state.turn === M.role;
+    const active = mine ? me : them, idle = mine ? them : me;
+    active.textContent = secs;
+    active.classList.add('on'); idle.classList.remove('on');
+    active.classList.toggle('low', left <= 10000);
     if(left === 0 && !M.timedOut){
       M.timedOut = true;
-      if(d.state.turn === M.role) timesUp();   // it was YOUR clock that hit zero
-      pollMatch();                              // pick up the server-side turn pass
+      if(mine) timesUp();      // it was YOUR clock that hit zero
+      pollMatch();             // pick up the server-side turn pass
     }
   }, 100);
 }
@@ -1835,7 +1849,7 @@ function renderLobby(d){
   $('lbStart').style.display = meHost ? '' : 'none';
   $('lbStart').disabled = !d.match.guest;
   $('lbSub').textContent = meHost
-    ? (d.match.guest ? 'Challenger in — start when ready!' : 'Your friend opens Bank It → Play a friend → enters this code.')
+    ? (d.match.guest ? '' : 'Your friend opens Bank It → Play a friend → enters this code.')
     : `Waiting for ${d.match.host.name} to start…`;
   // both players in: the code+share have done their job — swap in the counting-up clock,
   // and the host's start button gets the green come-press-me pulse
@@ -1921,7 +1935,7 @@ function renderDuel(d){
     else if(!myTurn){ cls += ' locked'; }
     el.className = cls;
     const who = t.by ? `<span class="who">${t.by === 1 ? host.avatar : guest.avatar}</span>` : '';
-    el.innerHTML = `${who}<span class="chk">✔</span>${esc(t.t)}`;
+    el.innerHTML = `${who}<span class="chk">${t.n || ''}</span>${esc(t.t)}`;
     if(!t.by && !over && myTurn) el.onclick = () => duelTap(idx, el);
     wrap.appendChild(el);
   });
@@ -1939,7 +1953,7 @@ async function duelTap(idx, el){
     const r = await mApi('/api/match-tap', { id:M.id, key:myKey(), idx, version:M.data.state.version });
     if(r.ok){
       const t = r.d.tap;
-      if(t.hit){ sndPoint(3); flash('+1 ✔','hit'); } else { flash('WRONG ✘','death'); }
+      if(t.hit){ sndPoint(t.pts + 2); flash(`+${t.pts} ✔`,'hit'); } else { flash('WRONG ✘','death'); }
       applyMatch(r.d);
     } else if(r.status === 409){ pollMatch(); }
     else { flash('TAP LOST — RETRY'); el.classList.remove('locked'); }

@@ -18,9 +18,11 @@ async function buildTiles(client, boardId) {
   return pool;
 }
 
-// the 10-second shot clock, server-enforced with a 2s network grace. A turn older
+// the 30-second turn clock, server-enforced with a 2s network grace. A turn older
 // than this is flipped (no point change) by the next poll or tap that notices.
-const TURN_LIMIT_MS = 12000;
+// Speed pays: a correct tap in the first 10s scores 3, the next 10s scores 2, the
+// final 10s scores 1 (see match-tap).
+const TURN_LIMIT_MS = 32000;
 
 // sudden-death math question: two-step mental arithmetic, answer in 10–99-ish range.
 // Unbiased (no trivia), always answerable, infinite supply.
@@ -64,8 +66,8 @@ async function matchPayload(client, matchId) {
     board = b ? { id: b.id, title: b.title, icon: b.icon, colorSlot: b.color_slot } : null;
     const revealAll = s.board_status !== 'playing' || m.status === 'done';
     const tiles = s.tiles_json.map((t) =>
-      revealAll ? { t: t.t, by: t.by, on: t.on }
-        : t.by ? { t: t.t, by: t.by, hit: !!t.on }
+      revealAll ? { t: t.t, by: t.by, on: t.on, n: t.n }
+        : t.by ? { t: t.t, by: t.by, hit: !!t.on, n: t.n }
         : { t: t.t, by: 0 }
     );
     state = {

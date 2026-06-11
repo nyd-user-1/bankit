@@ -2,9 +2,10 @@
 //   tap:   {id, key, idx, version}     — tap a tile on your turn
 //   solve: {id, key, answer, version}  — answer the sudden-death tiebreak question
 // The server is the referee: validates it's your turn and the tile is free, applies
-// +1 (correct) / 0 (wrong — no penalty, the wrong-tap count is still recorded), locks
-// the tile for both, flips the turn. The 10s shot clock is enforced here too (12s with
-// network grace): a tap on an expired turn passes the turn instead of scoring.
+// +3/+2/+1 by turn speed (first/second/third 10s window) for a correct tap, 0 for a
+// wrong one (count still recorded), locks the tile for both, flips the turn. The 30s
+// turn clock is enforced here too (32s with network grace): a tap on an expired turn
+// passes the turn instead of scoring.
 // A board ends when all 10 real answers are found; higher score wins it. A TIED board
 // goes to sudden death: a generated mental-math question, first correct typed answer
 // takes the board (one try per player per question; both miss → a fresh question).
@@ -137,12 +138,17 @@ module.exports = async (req, res) => {
     const tile = tiles[idx];
     if (!tile || tile.by) return fail(409, 'That tile is taken.');
 
-    // apply the tap — correct +1, wrong 0 (no penalty; the wrong count feeds nothing
-    // game-deciding anymore, but we keep recording it for stats)
+    // apply the tap — speed pays: a correct tap in the first 10s of the turn scores 3,
+    // the next 10s scores 2, the final 10s scores 1. Wrong = 0 (count kept for stats).
     tile.by = role;
     let scoreHost = s.score_host, scoreGuest = s.score_guest;
     let wrongHost = s.wrong_host, wrongGuest = s.wrong_guest;
-    if (tile.on) { if (role === 1) scoreHost++; else scoreGuest++; }
+    let pts = 0;
+    if (tile.on) {
+      pts = turnAge < 10000 ? 3 : turnAge < 20000 ? 2 : 1;
+      if (role === 1) scoreHost += pts; else scoreGuest += pts;
+      tile.n = tiles.filter((t) => t.on && t.by).length;   // found-order badge (1–10)
+    }
     else { if (role === 1) wrongHost++; else wrongGuest++; }
 
     const found = tiles.filter((t) => t.on && t.by).length;
@@ -177,7 +183,7 @@ module.exports = async (req, res) => {
 
     await client.query('COMMIT');
     const payload = await matchPayload(pool, id);
-    payload.tap = { idx, hit: !!tile.on, by: role, boardResult: result };
+    payload.tap = { idx, hit: !!tile.on, by: role, pts, boardResult: result };
     res.status(200).json(payload);
   } catch (e) {
     await client.query('ROLLBACK');
