@@ -7,7 +7,7 @@ think are on the hidden list. Every correct tap is +1; one wrong tap ends the ro
 ## Vault (process journal)
 
 Design notes, playtest feedback, decisions, and session threads live OUTSIDE this repo in
-an Obsidian vault: `~/vaults/bank-it/Bank It/`. Read `000 Workflow.md` there before doing
+the HQ Obsidian vault: `~/vaults/hq/bank-it/`. Read `000 Workflow.md` there before doing
 vault work (it defines the note system); `002.1 Bank It — State & Roadmap.md` is the living
 project picture. The repo holds the product; the vault holds the process.
 
