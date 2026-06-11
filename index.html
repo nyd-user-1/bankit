@@ -171,6 +171,11 @@
   .auth .av:hover{transform:translateY(-2px)}
   .auth .av.on{border-color:var(--purple);background:var(--panel);box-shadow:0 4px 0 var(--shadow)}
   .auth .go{width:100%;justify-content:center;font-size:22px;margin-top:6px}
+  /* the ▶ play triangle (ported from the nysgpt-landing discover button, house green) */
+  .btn .tri{width:0;height:0;border-left:13px solid currentColor;border-top:8px solid transparent;border-bottom:8px solid transparent}
+  .auth .alt{margin-top:12px}
+  #authForm{display:none;margin-top:20px;padding-top:20px;border-top:2px dashed var(--panel-2)}
+  #authForm.open{display:block}
   .auth .err{text-align:center;color:var(--pink);font-weight:800;font-size:13px;min-height:18px;margin-top:10px}
   /* welcome-back card */
   .auth .wb{display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--panel-2);border-radius:20px;padding:24px 22px;margin-bottom:20px}
@@ -265,12 +270,22 @@
 
   /* ===== VERSUS / LOBBY / DUEL (play a friend) ===== */
   .vs-or{text-align:center;color:var(--ink-faint);font-weight:900;font-size:12px;letter-spacing:.1em;margin:18px 0;text-transform:uppercase}
+  /* join row: the Join BUTTON leads (big), the code input trails (compact) */
   .vs-joinrow{display:flex;gap:10px;align-items:stretch}
-  .vs-joinrow .uname{flex:1;min-width:0;text-align:center;letter-spacing:.3em;font-family:var(--font-display);font-size:24px}
-  /* the auth screen's .go is full-width — undo that here or it crushes the code input */
-  .vs-joinrow .btn{width:auto;flex-shrink:0;margin-top:0;padding-left:30px;padding-right:30px}
+  .vs-joinrow .btn{flex:1;min-width:0;margin-top:0;justify-content:center}
+  .vs-joinrow input.uname{width:128px;flex:0 0 128px;text-align:center;letter-spacing:.3em;font-family:var(--font-display);font-size:24px}
   .lb-code{font-family:var(--font-display);font-size:62px;text-align:center;letter-spacing:.16em;color:var(--ink);margin:4px 0 2px}
   .lb-share{display:block;margin:0 auto 20px}
+  /* once the challenger arrives, the code+share swap for a counting-up digital clock */
+  .lb-clock{display:none;font-family:var(--font-display);font-size:56px;text-align:center;letter-spacing:.1em;color:var(--ink);
+    margin:6px 0 20px;animation:lbtick 2s ease-in-out infinite}
+  @keyframes lbtick{0%,100%{opacity:1}50%{opacity:.55}}
+  .lobby.full .lb-code,.lobby.full .lb-share{display:none}
+  .lobby.full .lb-clock{display:block}
+  /* host's start button glows green once player 2 is in */
+  #lbStart.ready{animation:lbready 1.4s ease-in-out infinite}
+  @keyframes lbready{0%,100%{box-shadow:0 calc(6px * var(--pop)) 0 var(--green-sh),0 0 0 0 rgba(55,200,113,.55)}
+    50%{box-shadow:0 calc(6px * var(--pop)) 0 var(--green-sh),0 0 26px 7px rgba(55,200,113,.55)}}
   .lb-players{display:flex;flex-direction:column;gap:9px;margin-bottom:18px}
   .lb-p{display:flex;align-items:center;gap:12px;background:var(--panel-2);border-radius:14px;padding:12px 16px;font-weight:800;color:var(--ink)}
   .lb-p .av{font-size:24px;flex-shrink:0}
@@ -665,17 +680,21 @@
       <!-- sign-up block (new player / switching) -->
       <div id="authSignup">
         <h2>Who's playing?</h2>
-        <div class="sub">Pick a name and a face. Your points stick around.</div>
-        <div class="field">
-          <label class="lbl" for="unameInput">Your username</label>
-          <input class="uname" id="unameInput" type="text" maxlength="20" autocomplete="off"
-                 autocapitalize="words" spellcheck="false" placeholder="e.g. FoxBanker" />
+        <div class="sub">Jump right in — or sign in so your points stick around.</div>
+        <button class="btn go green" id="authQuick"><span class="tri"></span> Quick play</button>
+        <button class="btn go ghost alt" id="authShowForm">Sign in / sign up</button>
+        <div id="authForm">
+          <div class="field">
+            <label class="lbl" for="unameInput">Username</label>
+            <input class="uname" id="unameInput" type="text" maxlength="20" autocomplete="off"
+                   autocapitalize="words" spellcheck="false" placeholder="e.g. FoxBanker" />
+          </div>
+          <div class="field">
+            <label class="lbl">Pick an avatar</label>
+            <div class="avrow" id="avRow"></div>
+          </div>
+          <button class="btn go green" id="authStart"><span class="tri"></span> Play</button>
         </div>
-        <div class="field">
-          <label class="lbl">Pick an avatar</label>
-          <div class="avrow" id="avRow"></div>
-        </div>
-        <button class="btn go" id="authStart">Start banking <span>→</span></button>
         <div class="err" id="authErr"></div>
       </div>
     </div>
@@ -882,14 +901,13 @@
   <section class="screen auth versus" id="scVersus">
     <div class="card">
       <h2>⚔️ Play a friend</h2>
-      <div class="sub">One shared board, two phones, alternating taps.<br>Three boards — win 2 to take the duel.</div>
       <button class="btn go teal" id="vsHost">Host a duel <span>→</span></button>
       <div class="vs-or">or</div>
       <div class="field">
         <label class="lbl" for="vsCode">Join with a code</label>
         <div class="vs-joinrow">
-          <input class="uname" id="vsCode" type="text" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="0000" />
           <button class="btn go" id="vsJoin">Join</button>
+          <input class="uname" id="vsCode" type="text" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="0000" />
         </div>
       </div>
       <div class="err" id="vsErr"></div>
@@ -899,10 +917,11 @@
   <!-- ===== LOBBY (room code + waiting for the challenger) ===== -->
   <section class="screen auth lobby" id="scLobby">
     <div class="card">
-      <h2>Room code</h2>
+      <h2 id="lbHead">Room code</h2>
       <div class="sub" id="lbSub">Your friend opens Bank It → Play a friend → enters this code.</div>
       <div class="lb-code" id="lbCode">0000</div>
       <button class="btn ghost lb-share" id="lbShare">Copy invite link 🔗</button>
+      <div class="lb-clock" id="lbClock">0:00</div>
       <div class="lb-players">
         <div class="lb-p"><span class="av" id="lbAv1">🎯</span><span class="nm" id="lbNm1">Host</span><span class="tag">HOST</span></div>
         <div class="lb-p empty" id="lbP2"><span class="av" id="lbAv2">⏳</span><span class="nm" id="lbNm2">Waiting for a challenger…</span></div>
@@ -1124,11 +1143,29 @@ function renderAuth(){
       $('wbPts').textContent = (STATS && STATS.total_points!=null) ? STATS.total_points : 0; });
   } else {
     $('authErr').textContent='';
+    // fresh sign-up: form closed, the two big buttons showing
+    $('authForm').classList.remove('open');
+    $('authQuick').style.display=''; $('authShowForm').style.display='';
     // default the picker back to the first avatar for a clean sign-up
     pendingAvatar = AVATARS[0];
     const row=$('avRow'); if(row) row.querySelectorAll('.av').forEach((x,i)=>x.classList.toggle('on',i===0));
   }
   show('scAuth');
+}
+
+// ▶ Quick play — zero-typing casual identity: a generated name with its matching avatar
+const QP_ADJ = ['Turbo','Lucky','Cosmic','Snazzy','Mega','Wild','Zippy','Golden','Sneaky','Bold','Disco','Rocket'];
+const QP_ANIMALS = [['Fox','🦊'],['Panda','🐼'],['Otter','🐙'],['Tiger','🐯'],['Eagle','🦅'],['Frog','🐸'],
+                    ['Dragon','🐲'],['Bee','🐝'],['Unicorn','🦄'],['Robot','🤖'],['Goblin','👾'],['Ace','🎯']];
+function quickPlay(){
+  const adj = QP_ADJ[Math.floor(Math.random()*QP_ADJ.length)];
+  const [animal, avatar] = QP_ANIMALS[Math.floor(Math.random()*QP_ANIMALS.length)];
+  const num = 10 + Math.floor(Math.random()*90);
+  USER = { name:`${adj}${animal}${num}`, avatar };
+  saveUser();
+  fetchStats();
+  loadMySets();
+  afterAuth();
 }
 
 // commit a new username + avatar, then head to Pick
@@ -1674,7 +1711,7 @@ const M = { id:null, room:null, role:0, sig:null, data:null, timer:null, clock:n
             turnStart:0, timedOut:false, tbQ:null };
 const myKey = ()=> (USER && USER.name) ? USER.name.trim().toLowerCase() : '';
 
-function stopPoll(){ if(M.timer){ clearInterval(M.timer); M.timer=null; } stopClock(); }
+function stopPoll(){ if(M.timer){ clearInterval(M.timer); M.timer=null; } stopClock(); stopLobbyClock(); }
 function startPoll(){ stopPoll(); M.timer = setInterval(pollMatch, 1200); startClock(); }
 function leaveMatch(){ stopPoll(); M.id=null; M.sig=null; M.data=null; $('tbLayer').style.display='none'; }
 
@@ -1762,7 +1799,7 @@ function applyMatch(d){
   M.sig = sig; M.data = d;
   if(d.state){ M.turnStart = Date.now() - (d.state.turnMs || 0); M.timedOut = false; }
   if(d.match.status === 'lobby'){ renderLobby(d); }
-  else if(d.match.status === 'playing'){ noticeBoardChange(d); renderDuel(d); }
+  else if(d.match.status === 'playing'){ stopLobbyClock(); noticeBoardChange(d); renderDuel(d); }
   else { stopPoll(); noticeBoardChange(d); renderMatchEnd(d); }
 }
 
@@ -1798,10 +1835,29 @@ function renderLobby(d){
   $('lbStart').style.display = meHost ? '' : 'none';
   $('lbStart').disabled = !d.match.guest;
   $('lbSub').textContent = meHost
-    ? 'Your friend opens Bank It → Play a friend → enters this code.'
+    ? (d.match.guest ? 'Challenger in — start when ready!' : 'Your friend opens Bank It → Play a friend → enters this code.')
     : `Waiting for ${d.match.host.name} to start…`;
+  // both players in: the code+share have done their job — swap in the counting-up clock,
+  // and the host's start button gets the green come-press-me pulse
+  $('scLobby').classList.toggle('full', !!d.match.guest);
+  $('lbHead').textContent = d.match.guest ? '⚔️ Get ready!' : 'Room code';
+  $('lbStart').classList.toggle('ready', meHost && !!d.match.guest);
+  if(d.match.guest){ startLobbyClock(); } else { stopLobbyClock(); }
   if(!$('scLobby').classList.contains('on')) show('scLobby');
 }
+
+// the lobby wait clock — counts up from the moment both players are in
+function startLobbyClock(){
+  if(M.clockTimer) return;
+  M.waitStart = Date.now();
+  const tick = ()=>{
+    const s = Math.floor((Date.now() - M.waitStart) / 1000);
+    $('lbClock').textContent = `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+  };
+  tick();
+  M.clockTimer = setInterval(tick, 1000);
+}
+function stopLobbyClock(){ if(M.clockTimer){ clearInterval(M.clockTimer); M.clockTimer=null; } M.waitStart=0; }
 
 function renderDuel(d){
   const s = d.state, me = M.role;
@@ -1951,6 +2007,9 @@ $('rAgain').onclick=()=>{ if(USER && USER.name){ goToPick(); } else { playEntry(
 
 //// ===== auth wiring =====
 $('authStart').onclick   = commitSignup;
+$('authQuick').onclick   = quickPlay;
+$('authShowForm').onclick= ()=>{ $('authQuick').style.display='none'; $('authShowForm').style.display='none';
+  $('authForm').classList.add('open'); $('unameInput').focus(); };
 $('authContinue').onclick= afterAuth;                   // returning player keeps going
 $('authSwitch').onclick  = ()=>{ USER=null; clearMySets(); $('unameInput').value=''; renderAuth(); $('unameInput').focus(); };
 $('unameInput').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); commitSignup(); } });
