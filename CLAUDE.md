@@ -4,6 +4,13 @@ A quick push-your-luck party game. Pick a category, see **20** answers, tap the 
 think are on the hidden list. Every correct tap is +1; one wrong tap ends the round — so
 *bank it & stop* while you're ahead. A perfect 10/10 is a "clean sweep."
 
+## Vault (process journal)
+
+Design notes, playtest feedback, decisions, and session threads live OUTSIDE this repo in
+an Obsidian vault: `~/vaults/bank-it/Bank It/`. Read `000 Workflow.md` there before doing
+vault work (it defines the note system); `002.1 Bank It — State & Roadmap.md` is the living
+project picture. The repo holds the product; the vault holds the process.
+
 ## Stack & layout
 
 - **Frontend:** ONE self-contained `index.html` — plain HTML/CSS/JS, **no build step**, no
