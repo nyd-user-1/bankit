@@ -1,0 +1,35 @@
+#!/bin/sh
+# Local secret-hygiene gate — scans the exact commit range about to be pushed with
+# gitleaks, so a leak is caught before it leaves the machine (CI is the backstop,
+# not the first line). Requires the gitleaks binary (`brew install gitleaks`).
+# Bypass in a real pinch with `git push --no-verify`.
+#
+# One-time setup on a fresh clone:  git config core.hooksPath .githooks
+set -e
+
+zero="0000000000000000000000000000000000000000"
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "⚠ gitleaks not installed (brew install gitleaks) — skipping local scan."
+  echo "  CI will still catch it on push, but install locally to catch it sooner."
+  exit 0
+fi
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  if [ "$local_sha" = "$zero" ]; then
+    continue # deleting a branch — nothing new to scan
+  fi
+  if [ "$remote_sha" = "$zero" ]; then
+    range="$local_sha"
+  else
+    range="$remote_sha..$local_sha"
+  fi
+
+  echo "▶ pre-push gate: gitleaks over $range (bypass with --no-verify)…"
+  if ! gitleaks git --log-opts="$range" -v .; then
+    echo "✗ gitleaks found a potential secret in $range — push aborted."
+    exit 1
+  fi
+done
+
+echo "✓ gitleaks pre-push gate passed."
