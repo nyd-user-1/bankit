@@ -1,23 +1,19 @@
 // POST /api/decoys — generate 10 plausible decoys for a custom set via Claude Haiku.
 // Body: { title, answers[10], existing[] (decoys the user already typed) }.
 // Returns { decoys: [10 strings] } that don't collide with answers or existing decoys.
-// Costs ~$0.001 per call (Haiku, ~300 tokens in / ~150 out). Needs ANTHROPIC_API_KEY_BANKIT.
-const Anthropic = require('@anthropic-ai/sdk');
-
-const DECOY_SCHEMA = {
-  type: 'object',
-  properties: {
-    decoys: { type: 'array', items: { type: 'string' } },
-  },
-  required: ['decoys'],
-  additionalProperties: false,
-};
+// Costs ~$0.001 per call (Haiku, ~300 tokens in / ~150 out).
+// Runs on AWS Bedrock (2026-08-18): AnthropicBedrock is a drop-in for the Anthropic
+// client and reads AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY / AWS_REGION from env.
+// Bedrock does not support the structured-output beta, so the model is asked for
+// bare JSON and the reply is fence-stripped before parsing.
+const { AnthropicBedrock } = require('@anthropic-ai/bedrock-sdk');
+const BEDROCK_MODEL = 'us.anthropic.claude-haiku-4-5-20251001-v1:0';
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
   // trim: a whitespace-only env value is truthy but useless as a credential
-  const apiKey = (process.env.ANTHROPIC_API_KEY_BANKIT || '').trim();
-  if (!apiKey) {
+  const configured = (process.env.AWS_ACCESS_KEY_ID || '').trim() && (process.env.AWS_SECRET_ACCESS_KEY || '').trim();
+  if (!configured) {
     res.status(503).json({ error: 'Decoy magic is not set up yet.' }); return;
   }
   try {
@@ -33,10 +29,10 @@ module.exports = async (req, res) => {
       res.status(400).json({ error: 'Need a title and all 10 answers first.' }); return;
     }
 
-    const client = new Anthropic({ apiKey });
+    const client = new AnthropicBedrock({ awsRegion: process.env.AWS_REGION || 'us-east-1' });
     const taken = [...answers, ...existing];
     const response = await client.messages.create({
-      model: 'claude-haiku-4-5',
+      model: BEDROCK_MODEL,
       max_tokens: 600,
       system:
         'You write decoy tiles for a party game board. The board names a category and hides a list of 10 real answers; ' +
@@ -46,7 +42,8 @@ module.exports = async (req, res) => {
         'Example: for "Girls\' Names With 4 Letters" the decoys are OTHER real 4-letter girls\' names — the trick is which ' +
         'names made the list, not name length. ' +
         'Rules: short Title-Case labels (under 40 characters), each distinct, and none may duplicate or trivially restate ' +
-        'anything on the taken list you are given.',
+        'anything on the taken list you are given. ' +
+        'Reply with ONLY a JSON object of the form {"decoys":["...", ...]} — no prose, no code fences.',
       messages: [{
         role: 'user',
         content:
@@ -54,12 +51,13 @@ module.exports = async (req, res) => {
           `Taken (the real answers + decoys already in use — produce nothing that matches these): ${taken.join('; ')}\n\n` +
           'Produce exactly 14 candidate decoys for this category.',
       }],
-      output_config: { format: { type: 'json_schema', schema: DECOY_SCHEMA } },
     });
 
     const block = response.content.find((b) => b.type === 'text');
     let parsed = null;
-    try { parsed = JSON.parse(block && block.text); } catch (e) {}
+    const text = String((block && block.text) || '').replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+    const start = text.indexOf('{'), end = text.lastIndexOf('}');
+    try { parsed = JSON.parse(start >= 0 && end > start ? text.slice(start, end + 1) : text); } catch (e) {}
     const seen = new Set(taken.map((t) => t.toLowerCase()));
     const decoys = [];
     for (const raw of (parsed && parsed.decoys) || []) {
