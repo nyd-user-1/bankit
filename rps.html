@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Rock Paper Scissors</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Nunito:wght@700;800;900&family=Fredoka:wght@600;700&display=swap" rel="stylesheet" />
+<script>(function(){ try{ if(localStorage.getItem('nysgpt-theme-f3')==='dark') document.documentElement.setAttribute('data-theme','dark'); }catch(e){} })();</script>
+<link rel="stylesheet" href="shell.css" />
+<style>
+  /* Rock Paper Scissors's own stage */
+  :root{
+    --bg:#ff4d8d; --panel:#fffaf2; --panel-2:#ffe9f1; --ink:#2a1a3e; --ink-dim:#7a6385; --ink-faint:#b6a6c0; --shadow:#b0245c;
+    --teal:#1fc7b6; --teal-sh:#13978a; --pink:#ff4d8d; --yellow:#ffd23f; --purple:#8b5cf6; --purple-sh:#6d3fd6;
+    --p0:#8b5cf6; --p0-sh:#6d3fd6; --p1:#ff7a3c; --p1-sh:#c9531c;
+    --font-display:"Luckiest Guy",system-ui,sans-serif; --font-body:"Nunito",system-ui,sans-serif; --pop:1;
+    --sh-a:var(--p0); --sh-a-sh:var(--p0-sh); --sh-b:var(--p1); --sh-b-sh:var(--p1-sh);
+  }
+  :root[data-theme="dark"]{ --bg:#2e0c1c; --panel:#43162c; --panel-2:#57203a; --ink:#f6f1ff; --ink-dim:#bcaee3; --ink-faint:#7a6aa8; --shadow:#08051a; }
+  :root{color-scheme:light} :root[data-theme="dark"]{color-scheme:dark}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{min-height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-weight:800;-webkit-font-smoothing:antialiased;transition:background .4s,color .4s;background-attachment:fixed;
+    background-image:radial-gradient(circle at 18% 16%, rgba(255,255,255,.10), transparent 42%),radial-gradient(circle at 84% 82%, rgba(255,255,255,.07), transparent 46%)}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  .bgfloat{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+  .bgfloat .b{position:absolute;border-radius:50%;opacity:.16;background:#fff;animation:bob 7s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-26px) rotate(6deg)}}
+  .stage{position:relative;z-index:2;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:92px 18px 40px}
+  .screen{display:none;width:100%;max-width:520px}
+  .screen.on{display:block}
+  .card{background:var(--panel);border-radius:28px;box-shadow:0 calc(11px * var(--pop)) 0 var(--shadow);padding:34px 36px;width:100%;animation:pop .42s cubic-bezier(.2,1.4,.4,1) both}
+  @keyframes pop{from{opacity:0;transform:scale(.9) translateY(14px)}to{opacity:1;transform:none}}
+  @media(max-width:560px){.card{padding:28px 22px}}
+  h1{font-family:var(--font-display);font-size:clamp(34px,7vw,50px);text-align:center;line-height:.98;margin-bottom:10px;font-weight:400}
+  h1 .x{color:var(--p0)} h1 .o{color:var(--p1);display:inline-block;transform:rotate(-4deg)}
+  .sub{text-align:center;color:var(--ink-dim);font-size:15px;margin-bottom:22px;line-height:1.5}
+  .rules{background:var(--panel-2);border-radius:18px;padding:18px 20px;margin-bottom:22px;display:flex;flex-direction:column;gap:11px}
+  .rule{display:flex;align-items:center;gap:13px;font-size:14.5px}
+  .rule .n{width:30px;height:30px;flex-shrink:0;border-radius:9px;background:var(--teal);color:#053d38;display:grid;place-items:center;font-family:var(--font-display);font-size:15px;box-shadow:0 3px 0 var(--teal-sh)}
+  .rule:nth-child(2) .n{background:var(--pink);box-shadow:0 3px 0 #cc2f6e;color:#fff}
+  .rule:nth-child(3) .n{background:var(--yellow);box-shadow:0 3px 0 #d9a800;color:#5a4500}
+  .btn{display:flex;align-items:center;justify-content:center;width:100%;font-family:var(--font-display);font-size:22px;letter-spacing:.02em;color:#fff;background:var(--p0);
+    padding:15px 26px;border-radius:16px;position:relative;top:0;box-shadow:0 calc(6px * var(--pop)) 0 var(--p0-sh);transition:top .08s,box-shadow .08s}
+  .btn:active{top:5px;box-shadow:0 1px 0 var(--p0-sh)}
+
+  .play{max-width:520px}
+  .score{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+  .score.three{grid-template-columns:1fr auto 1fr}
+  .pill{background:var(--panel);border-radius:16px;box-shadow:0 calc(5px * var(--pop)) 0 var(--shadow);padding:10px 12px;text-align:center;transition:transform .15s,box-shadow .15s;min-width:0}
+  .pill .k{font-family:var(--font-display);font-size:15px;letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pill .v{font-family:var(--font-display);font-size:30px;line-height:1.1}
+  .pill.p0 .k{color:var(--p0)} .pill.p1 .k{color:var(--p1)} .pill.pd .k{color:var(--ink-faint)}
+  .pill.turn{transform:scale(1.07);box-shadow:0 5px 0 var(--shadow),0 0 0 4px var(--yellow)}
+  .status{font-family:var(--font-display);font-size:24px;text-align:center;color:#fff;text-shadow:0 3px 0 var(--shadow);min-height:34px;margin-bottom:14px}
+  .boardcard{background:var(--panel);border-radius:26px;padding:16px;box-shadow:0 calc(11px * var(--pop)) 0 var(--shadow);animation:pop .42s cubic-bezier(.2,1.4,.4,1) both}
+  .arena{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;padding:18px 6px 8px}
+  .hand{display:flex;flex-direction:column;align-items:center;gap:10px}
+  .hand .h{font-size:clamp(70px,18vw,108px);line-height:1;height:1.1em;display:grid;place-items:center}
+  .hand.me .h{transform:scaleX(-1)}
+  .hand .who{font-family:var(--font-display);font-size:16px;color:var(--ink-dim);max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hand .tick{font-size:13px;color:var(--ink-faint);min-height:18px}
+  .vs{font-family:var(--font-display);font-size:24px;color:var(--ink-faint)}
+  .shake .h{animation:shake .3s ease-in-out 3}
+  .hand.me.shake .h{animation-name:shakeme}
+  @keyframes shake{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-22px) rotate(-10deg)}}
+  @keyframes shakeme{0%,100%{transform:scaleX(-1) translateY(0) rotate(0)}50%{transform:scaleX(-1) translateY(-22px) rotate(-10deg)}}
+  .hand.win .h{animation:winpulse .9s ease-in-out infinite}
+  @keyframes winpulse{0%,100%{scale:1}50%{scale:1.12}}
+  .hand.lose{opacity:.45}
+  .shoot{font-family:var(--font-display);text-align:center;font-size:26px;min-height:36px;color:var(--ink)}
+  .picks{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+  .pick{background:var(--panel-2);border-radius:18px;padding:14px 6px 12px;display:flex;flex-direction:column;align-items:center;gap:6px;position:relative;top:0;box-shadow:0 5px 0 rgba(0,0,0,.12);transition:top .08s,box-shadow .08s,filter .12s}
+  .pick .e{font-size:44px;line-height:1}
+  .pick .l{font-family:var(--font-display);font-size:16px}
+  .pick:hover{filter:brightness(.97);top:-2px}
+  .pick:active{top:4px;box-shadow:0 1px 0 rgba(0,0,0,.12)}
+  .pick.on{background:var(--yellow);color:#5a4500}
+  .picks.off .pick{opacity:.45;pointer-events:none}
+  .picks.off .pick.on{opacity:1}
+  .race{display:flex;justify-content:center;gap:6px;margin-top:6px}
+  .race i{width:12px;height:12px;border-radius:50%;background:var(--panel-2)}
+  .pill.p0 .race i.on{background:var(--p0)} .pill.p1 .race i.on{background:var(--p1)}
+</style>
+</head>
+<body>
+<div class="bgfloat" id="bgfloat"></div>
+<div class="stage">
+  <section class="screen on" id="scIntro">
+    <div class="card">
+      <h1><span class="x">Rock Paper</span> <span class="o">Scissors</span></h1>
+      <div class="sub">First to three rounds takes the match.<br>Play the computer or a friend.</div>
+      <div class="rules">
+        <div class="rule"><span class="n">1</span><span>Both players pick in secret.</span></div>
+        <div class="rule"><span class="n">2</span><span>Rock crushes scissors, scissors cut paper, paper covers rock.</span></div>
+        <div class="rule"><span class="n">3</span><span>Same pick is a tie — go again.</span></div>
+      </div>
+      <button class="btn" id="introGo">Let's play!</button>
+    </div>
+  </section>
+
+  <section class="screen play" id="scGame">
+    <div class="score">
+      <div class="pill p0" id="pA"><div class="k" id="kA"></div><div class="race" id="rA"></div></div>
+      <div class="pill p1" id="pB"><div class="k" id="kB"></div><div class="race" id="rB"></div></div>
+    </div>
+    <div class="status" id="status"></div>
+    <div class="boardcard">
+      <div class="arena">
+        <div class="hand me" id="hA"><div class="h" id="eA">✊</div><div class="tick" id="tA"></div></div>
+        <div class="vs">vs.</div>
+        <div class="hand" id="hB"><div class="h" id="eB">✊</div><div class="tick" id="tB"></div></div>
+      </div>
+      <div class="shoot" id="shoot"></div>
+      <div class="picks" id="picks">
+        <button class="pick" data-m="r"><span class="e">✊</span><span class="l">Rock</span></button>
+        <button class="pick" data-m="p"><span class="e">✋</span><span class="l">Paper</span></button>
+        <button class="pick" data-m="s"><span class="e">✌️</span><span class="l">Scissors</span></button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script src="shell.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const esc = Shell.esc;
+function show(id){ document.querySelectorAll('.screen').forEach(s => s.classList.remove('on')); $(id).classList.add('on'); }
+(function bg(){ const w=$('bgfloat'); for (let i=0;i<9;i++){ const b=document.createElement('div'); b.className='b'; const s=40+Math.random()*80;
+  Object.assign(b.style,{ width:s+'px', height:s+'px', left:Math.random()*100+'%', top:Math.random()*100+'%', animationDelay:(-Math.random()*7)+'s' }); w.appendChild(b); } })();
+
+//// ===== sounds =====
+let AC=null;
+function tone(f, dur, type='triangle', vol=.16, delay=0){
+  if (!Shell.soundOn()) return;
+  try{ AC ||= new (window.AudioContext||window.webkitAudioContext)();
+    const t=AC.currentTime+delay, o=AC.createOscillator(), g=AC.createGain();
+    o.type=type; o.frequency.setValueAtTime(f,t); g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.001,t+dur);
+    o.connect(g).connect(AC.destination); o.start(t); o.stop(t+dur); }catch(e){}
+}
+const sndWin = () => [523,659,784,1047].forEach((f,i) => tone(f, i===3 ? .5 : .14, 'triangle', .18, i*.09));
+const sndLose = () => [392,330,262].forEach((f,i) => tone(f, .22, 'sine', .15, i*.14));
+const sndDraw = () => [392,330].forEach((f,i) => tone(f, .22, 'sine', .15, i*.14));
+const plural = (n, w, ws=w+'s') => `${n} ${n===1 ? w : ws}`;
+
+const sndPick = () => tone(660, .08, 'triangle', .14);
+const sndBeat = i => tone(330 + i*60, .1, 'square', .07);
+const sndRound = won => won ? [659,880].forEach((f,i)=>tone(f,.14,'triangle',.16,i*.07)) : tone(262,.2,'sine',.14);
+
+//// ===== the game: first to 3 =====
+const TO = 3;
+const EM = { r:'✊', p:'✋', s:'✌️' }, BEATS = { r:'s', p:'r', s:'p' }, COUNTER = { r:'p', p:'s', s:'r' };
+// mode: 'cpu' or 'online'. mine/theirs = this round's picks
+const G = { mode:'cpu', level:'tricky', game:0, early:{}, round:0, mine:null, theirs:null, wins:[0,0], over:false, busy:false, room:null, hist:[] };
+
+//// ===== the computer: Easy = random; Tricky = learns what you tend to play after each move =====
+function cpuPick(){
+  const rnd = () => 'rps'[Math.floor(Math.random()*3)];
+  if (G.level==='easy' || G.hist.length<3 || Math.random()<.25) return rnd();
+  const last=G.hist[G.hist.length-1], next={ r:0, p:0, s:0 };
+  for (let i=1;i<G.hist.length;i++) if (G.hist[i-1]===last) next[G.hist[i]]++;
+  G.hist.forEach((m,i) => next[m] += .3);              // a little weight on overall habits
+  const guess = Object.keys(next).sort((a,b) => next[b]-next[a])[0];
+  return COUNTER[guess];
+}
+
+const nameOf = me => {
+  if (G.mode==='cpu') return me ? 'You' : 'Computer';
+  const q = me ? G.room.me : G.room.other;
+  return q ? `${q.avatar} ${q.name}` : 'Your friend';
+};
+function render(){
+  $('kA').textContent=nameOf(true); $('kB').textContent=nameOf(false);
+  const dots = n => Array.from({ length:TO }, (_,i) => `<i class="${i<n?'on':''}"></i>`).join('');
+  $('rA').innerHTML=dots(G.wins[0]); $('rB').innerHTML=dots(G.wins[1]);
+  $('picks').classList.toggle('off', !!G.mine || G.busy || G.over);
+  $('picks').querySelectorAll('.pick').forEach(b => b.classList.toggle('on', b.dataset.m===G.mine));
+  $('tA').textContent = G.mine && !G.busy ? 'Ready' : '';
+  $('tB').textContent = G.theirs && !G.busy ? 'Ready' : (G.mode==='online' && !G.busy && !G.over ? 'Picking…' : '');
+  $('status').innerHTML = G.over ? '' : G.busy ? '' : G.mine ? `Waiting for ${esc(nameOf(false))}…` : 'Pick one';
+}
+function pick(m){
+  if (G.mine || G.busy || G.over) return;
+  G.mine=m; sndPick(); G.hist.push(m);
+  if (G.mode==='cpu') G.theirs=cpuPick();
+  else G.room.send({ t:'pick', g:G.game, r:G.round, m });
+  render(); maybeReveal();
+}
+// both in: shake three times, then show the hands
+function maybeReveal(){
+  if (!G.mine || !G.theirs || G.busy) return;
+  G.busy=true; render();
+  const [a,b]=[$('hA'),$('hB')]; [a,b].forEach(h => h.classList.remove('win','lose'));
+  $('eA').textContent='✊'; $('eB').textContent='✊';
+  void a.offsetWidth; a.classList.add('shake'); b.classList.add('shake');
+  ['Rock…','Paper…','Scissors…'].forEach((w,i) => setTimeout(() => { $('shoot').textContent=w; sndBeat(i); }, i*300));
+  setTimeout(() => {
+    a.classList.remove('shake'); b.classList.remove('shake');
+    $('eA').textContent=EM[G.mine]; $('eB').textContent=EM[G.theirs];
+    const r = G.mine===G.theirs ? -1 : BEATS[G.mine]===G.theirs ? 0 : 1;
+    if (r>=0){ G.wins[r]++; (r ? b : a).classList.add('win'); (r ? a : b).classList.add('lose'); sndRound(r===0); }
+    else tone(440,.12,'sine',.12);
+    $('shoot').textContent = r<0 ? 'Tie — go again' : r===0 ? 'You take the round' : `${nameOf(false)} takes the round`;
+    setTimeout(() => {
+      G.round++; G.mine=null; G.theirs=G.early[G.game+':'+G.round] || null; G.busy=false;
+      if (G.wins[0]>=TO || G.wins[1]>=TO){ G.over=true; render(); return finish(); }
+      $('shoot').textContent=''; [a,b].forEach(h => h.classList.remove('win','lose'));
+      render(); maybeReveal();
+    }, 1500);
+  }, 950);
+}
+function newGame(){
+  G.game=(G.game||0)+1;
+  Object.assign(G, { round:0, mine:null, theirs:null, wins:[0,0], over:false, busy:false });
+  G.theirs = G.early[G.game+':0'] || null;
+  ['hA','hB'].forEach(id => $(id).classList.remove('win','lose','shake')); $('eA').textContent='✊'; $('eB').textContent='✊'; $('shoot').textContent='';
+  show('scGame'); render();
+}
+function finish(){
+  const won = G.wins[0]>G.wins[1];
+  if (won) sndWin(); else sndLose();
+  if (won) Shell.postScore('rps', 1);
+  setTimeout(() => Shell.results({
+    em: won ? '🏆' : (G.mode==='cpu' ? '🤖' : '😬'),
+    title: won ? 'You win!' : (G.mode==='cpu' ? 'The computer wins' : `${esc(nameOf(false))} wins`),
+    sub: `${plural(G.wins[0],'round')} to ${G.wins[1]}.`,
+    again: { label:'Play again', onClick:()=>{ if (G.mode==='online' && G.room) G.room.send({ t:'again' }); newGame(); } },
+    change: { label:'Change mode', onClick:()=>{ leaveRoom(); openMode(); } },
+  }), 700);
+}
+
+//// ===== the standard start sequence =====
+function openMode(){
+  Shell.mode({ options:[
+      { label:'Play the computer', onClick:pickLevel },
+      { label:'Play a friend', kind:'b', onClick:()=>Shell.friend(FRIEND) } ],
+    onBack:()=>show('scIntro') });
+}
+function pickLevel(){
+  Shell.mode({ title:'How tough?', options:[
+      { label:'Easy', onClick:()=>startCpu('easy') },
+      { label:'Tricky', kind:'b', onClick:()=>startCpu('tricky') } ],
+    onBack:openMode });
+}
+function startCpu(level){
+  Shell.hide(); leaveRoom();
+  Object.assign(G, { mode:'cpu', level, hist:[], early:{} }); newGame();
+}
+const FRIEND = {
+  game:'rps',
+  onBack: openMode,
+  onStart: R => { Object.assign(G, { mode:'online', room:R, hist:[], game:0, early:{} }); newGame(); },
+  onMessage: m => {
+    if (m.t==='pick'){
+      if (m.g===G.game && m.r===G.round && !G.busy && !G.over){ G.theirs=m.m; render(); maybeReveal(); }
+      else G.early[m.g+':'+m.r]=m.m;                  // they picked ahead while our reveal was still showing
+    }
+    else if (m.t==='again' && G.over){ Shell.hide(); newGame(); }
+  },
+  onLeft: () => { if (!G.over) $('status').textContent = 'Your friend left'; },
+};
+function leaveRoom(){ if (G.room){ Shell.leaveRoom(); G.room=null; } }
+
+$('picks').addEventListener('click', e => { const b=e.target.closest('.pick'); if (b) pick(b.dataset.m); });
+$('introGo').onclick = () => Shell.requirePlayer().then(openMode);
+Shell.addBack('#scIntro .card', () => Shell.nav('games'));
+Shell.init({
+  brand:'Rock&nbsp;Paper&nbsp;Scissors',
+  theme:{ key:'nysgpt-theme-f3', darkDefault:false },
+  beforeLeave:()=>!G.room || confirm('Leave this game?'),
+  onJoinLink: code => Shell.joinCode(FRIEND, code),
+  playground:{ swatches:['#ff4d8d','#ff7a3c','#1fc7b6','#8b5cf6','#2d6fd6','#37c871'].map(c=>({ bg:c, vars:{ '--bg':c } })) },
+});
+</script>
+</body>
+</html>

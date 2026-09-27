@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Mix It</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Nunito:wght@700;800;900&family=Fredoka:wght@600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="shell.css" />
+<script>
+  // shares Bank It's theme setting (light by default)
+  (function(){ try{ if(localStorage.getItem('nysgpt-theme-f3')==='dark') document.documentElement.setAttribute('data-theme','dark'); }catch(e){} })();
+</script>
+<style>
+  /* ===== Bank It's family look ===== */
+  :root{
+    --bg:#1fb3a3; --panel:#fbfffd; --panel-2:#e6f7f4; --line:#cdebe6;   /* Mix It's own stage: lab teal */
+    --ink:#16303a; --ink-dim:#4f6f78; --ink-faint:#93aeb3; --shadow:#0c6f65;
+    --teal:#1fc7b6; --teal-sh:#13978a; --pink:#ff4d8d; --yellow:#ffd23f; --purple:#8b5cf6; --purple-sh:#6d3fd6;
+    --chip:#ffffff; --chip-sh:rgba(42,26,62,.16);
+    --font-display:"Luckiest Guy",system-ui,sans-serif; --font-body:"Nunito",system-ui,sans-serif;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0a2826; --panel:#11393a; --panel-2:#174849; --line:#1f5a5a;
+    --ink:#eafffb; --ink-dim:#9fcac4; --ink-faint:#5d8d88; --shadow:#021110;
+    --chip:#1d5557; --chip-sh:rgba(0,0,0,.35);
+  }
+  :root{color-scheme:light} :root[data-theme="dark"]{color-scheme:dark}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{min-height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-weight:800;-webkit-font-smoothing:antialiased;transition:background .4s,color .4s;
+    background-image:radial-gradient(circle at 18% 16%, rgba(255,255,255,.10), transparent 42%),radial-gradient(circle at 84% 82%, rgba(255,255,255,.07), transparent 46%);background-attachment:fixed}
+  button,input{font-family:inherit}
+  button{cursor:pointer;border:none;background:none;color:inherit}
+
+  :root{--sh-a:#ff4d8d;--sh-a-sh:#cc2f6e;--sh-b:var(--teal);--sh-b-sh:var(--teal-sh);--sh-b-ink:#053d38}
+
+  .stage{position:relative;z-index:2;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:84px 18px 22px}
+  .screen .card h1{font-weight:400}
+  .screen{display:none;width:100%;max-width:520px}
+  .screen.on{display:block}
+  .card{background:var(--panel);border-radius:28px;box-shadow:0 11px 0 var(--shadow);padding:34px 36px;width:100%;animation:pop .42s cubic-bezier(.2,1.4,.4,1) both}
+  @keyframes pop{from{opacity:0;transform:scale(.9) translateY(14px)}to{opacity:1;transform:none}}
+  h1{font-family:var(--font-display);font-size:clamp(38px,8vw,56px);text-align:center;line-height:.98;margin-bottom:10px}
+  h1 .a{color:var(--pink)} h1 .b{color:var(--teal);display:inline-block;transform:rotate(-4deg)}
+  h2{font-family:var(--font-display);font-size:28px;text-align:center;margin-bottom:20px}
+  .sub{text-align:center;color:var(--ink-dim);font-size:15px;margin-bottom:22px;line-height:1.5}
+  .rules{background:var(--panel-2);border-radius:18px;padding:18px 20px;margin-bottom:22px;display:flex;flex-direction:column;gap:11px}
+  .rule{display:flex;align-items:center;gap:13px;font-size:14.5px}
+  .rule .n{width:30px;height:30px;flex-shrink:0;border-radius:9px;background:var(--teal);color:#053d38;display:grid;place-items:center;font-family:var(--font-display);font-size:15px;box-shadow:0 3px 0 var(--teal-sh)}
+  .rule:nth-child(2) .n{background:var(--pink);box-shadow:0 3px 0 #cc2f6e;color:#fff}
+  .rule:nth-child(3) .n{background:var(--yellow);box-shadow:0 3px 0 #d9a800;color:#5a4500}
+  .btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;font-family:var(--font-display);font-size:22px;letter-spacing:.02em;color:#fff;background:var(--pink);
+    padding:15px 26px;border-radius:16px;position:relative;top:0;box-shadow:0 6px 0 #cc2f6e;transition:top .08s,box-shadow .08s,filter .15s}
+  .btn:hover{filter:brightness(1.06)}
+  .btn:active{top:5px;box-shadow:0 1px 0 #cc2f6e}
+  .btn.teal{background:var(--teal);color:#053d38;box-shadow:0 6px 0 var(--teal-sh)}
+  .btn.purple{background:var(--purple);box-shadow:0 6px 0 var(--purple-sh)}
+  .or{text-align:center;color:var(--ink-faint);font-weight:900;font-size:12px;letter-spacing:.1em;margin:16px 0;text-transform:uppercase}
+  .lbl{display:block;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin:0 2px 8px}
+  .field{margin-bottom:18px}
+  input.txt{width:100%;font-family:var(--font-display);font-size:22px;color:var(--ink);background:var(--panel-2);border:2.5px solid transparent;border-radius:14px;padding:13px 16px;outline:none}
+  input.txt:focus{border-color:var(--teal)}
+  input.code{text-align:center;letter-spacing:.3em;font-size:34px;margin-bottom:14px}
+  .linkbtn{display:block;margin:16px auto 0;color:var(--ink-dim);font-weight:800;font-size:13px;text-decoration:underline}
+  .err{color:#e0245e;font-weight:800;font-size:13.5px;text-align:center;min-height:18px;margin-top:12px}
+
+  /* ===== the game: board(s) + your items ===== */
+  #scGame{max-width:none}
+  /* one card: the board(s) on the left, your items in the same card on the right */
+  .mix{display:grid;grid-template-columns:1fr 290px;width:100%;height:calc(100dvh - 106px);min-height:460px;
+    background:var(--panel);border-radius:24px;box-shadow:0 9px 0 var(--shadow);overflow:hidden;animation:pop .42s cubic-bezier(.2,1.4,.4,1) both}
+  .boards{display:grid;grid-template-columns:1fr;min-height:0}
+  .mix.duo .boards{grid-template-columns:1fr 1fr}
+  .bwrap{position:relative;display:flex;flex-direction:column;min-height:0;min-width:0}
+  .bwrap + .bwrap{border-left:2px solid var(--line)}
+  .bhead{position:absolute;top:12px;left:14px;z-index:3;font-family:var(--font-display);font-size:16px;color:var(--ink);background:var(--panel-2);
+    border-radius:10px;padding:6px 11px;display:flex;gap:10px;align-items:baseline;pointer-events:none}
+  .bhead:empty{display:none}
+  .bhead small{font-family:var(--font-body);font-size:12px;font-weight:900;color:var(--ink-dim)}
+  .board{position:relative;flex:1;overflow:hidden;touch-action:none;
+    background-image:radial-gradient(var(--line) 1.6px, transparent 1.7px);background-size:26px 26px}
+  .board .hint{position:absolute;inset:0;display:grid;place-items:center;color:var(--ink-faint);font-size:15px;text-align:center;padding:20px;pointer-events:none}
+  .board.them{background-color:var(--panel-2)}
+  .board.them .chip{cursor:default}
+  .wait{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:24px}
+  .wait .code{font-family:var(--font-display);font-size:54px;letter-spacing:.14em;color:var(--ink)}
+  .wait .w{color:var(--ink-dim);font-size:14px;margin-bottom:8px}
+  .wait .btn{width:auto;font-size:15px;padding:10px 18px;margin:12px auto 0;box-shadow:0 4px 0 var(--teal-sh)}
+
+  .chip{position:absolute;transform:translate(-50%,-50%);display:inline-flex;align-items:center;gap:7px;white-space:nowrap;background:var(--chip);color:var(--ink);
+    border-radius:13px;padding:8px 13px;font-size:16px;font-weight:900;box-shadow:0 4px 0 var(--chip-sh),0 0 0 2px var(--chip-sh);cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none}
+  .chip .e{font-size:19px;line-height:1}
+  .chip.drag{cursor:grabbing;z-index:5;box-shadow:0 10px 18px rgba(0,0,0,.18),0 0 0 2px var(--teal)}
+  .chip.target{box-shadow:0 4px 0 var(--chip-sh),0 0 0 3px var(--pink)}
+  .chip.busy{animation:busy .6s ease-in-out infinite}
+  @keyframes busy{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.08)}}
+  .chip.born{animation:born .45s cubic-bezier(.2,1.6,.4,1)}
+  @keyframes born{from{transform:translate(-50%,-50%) scale(.2)}to{transform:translate(-50%,-50%) scale(1)}}
+  .chip .star{color:#e6a800;font-size:13px}
+  .board.them .chip{font-size:13px;padding:6px 10px}.board.them .chip .e{font-size:15px}
+  .chip{transition:background .12s}
+  .board:not(.them) .chip:hover,.inv .chip:hover,.mm .chip.pick:hover{background:var(--hover)}
+  :root{--hover:#eaf5ff;--ray:rgba(120,170,255,.5)} :root[data-theme="dark"]{--hover:#24617a;--ray:rgba(150,200,255,.35)}
+  /* a faint ray of light behind a newly made item */
+  .rays{position:absolute;width:230px;height:230px;transform:translate(-50%,-50%);pointer-events:none;z-index:0;
+    background:repeating-conic-gradient(from 0deg, var(--ray) 0deg 9deg, transparent 9deg 30deg);
+    -webkit-mask:radial-gradient(circle, #000 12%, transparent 68%);mask:radial-gradient(circle, #000 12%, transparent 68%);
+    filter:blur(5px);animation:rays 1.9s ease-out forwards}
+  @keyframes rays{0%{opacity:0;rotate:0deg;scale:.5}20%{opacity:1;scale:1}100%{opacity:0;rotate:60deg;scale:1.1}}
+  .board .chip{z-index:1}
+  /* trophy (categories) bottom left, recipes bottom right */
+  .bbar{position:absolute;bottom:12px;z-index:4;display:flex;gap:8px}
+  .bbar.l{left:14px} .bbar.r{right:14px}
+  .bbar button{width:44px;height:44px;border-radius:12px;background:var(--panel);color:var(--ink-dim);display:grid;place-items:center;box-shadow:0 0 0 2px var(--line)}
+  .bbar button:hover{color:var(--ink);background:var(--hover)}
+  .bbar svg{width:22px;height:22px}
+  .bbar button[data-tip]{position:relative}
+  .bbar button[data-tip]:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);right:0;background:#333;color:#fff;font-size:12.5px;font-weight:800;padding:5px 9px;border-radius:7px;white-space:nowrap}
+  /* the categories / recipes window */
+  .mm{position:fixed;inset:0;z-index:40;display:none;place-items:center;background:rgba(10,30,30,.35);padding:20px}
+  .mm.on{display:grid}
+  .mm-card{position:relative;background:var(--panel);border-radius:24px;box-shadow:0 9px 0 var(--shadow);width:min(680px,100%);max-height:calc(100dvh - 60px);overflow-y:auto;padding:26px 26px 30px;animation:pop .3s cubic-bezier(.2,1.4,.4,1) both}
+  .mm-x{position:absolute;top:16px;right:16px;width:36px;height:36px;border-radius:10px;font-size:26px;line-height:1;color:var(--ink-faint)}
+  .mm-x:hover{color:var(--ink);background:var(--panel-2)}
+  .mm-h{display:flex;align-items:baseline;gap:12px;margin:0 44px 16px 0;font-family:var(--font-display);font-size:28px}
+  .mm-h small{font-family:var(--font-body);font-size:15px;color:var(--ink-dim)}
+  .mm-back{align-self:center;width:32px;height:32px;border-radius:9px;display:grid;place-items:center;color:var(--ink-dim)}
+  .mm-back:hover{background:var(--panel-2);color:var(--ink)}
+  .mm-back svg{width:18px;height:18px}
+  .cats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .cat{background:var(--panel);border-radius:14px;box-shadow:0 0 0 2px var(--line);padding:13px 15px;text-align:left;display:flex;flex-direction:column;gap:10px}
+  .cat:hover{background:var(--hover)}
+  .cat.daily{grid-column:1/-1;flex-direction:row;align-items:center;gap:10px;font-size:16px}
+  .cat.daily span.t{color:var(--ink-dim)} .cat.daily b{margin-left:auto;color:var(--teal-sh)}
+  .cat .top{display:flex;align-items:center;gap:9px;font-size:16px}
+  .cat .top .c{margin-left:auto;font-size:14px;color:var(--ink-dim)}
+  .bar{height:9px;border-radius:9px;background:var(--panel-2);overflow:hidden}
+  .bar i{display:block;height:100%;border-radius:9px;background:#5b8def}
+  .cat .bar i:not([style*="width:0"]){min-width:9px}
+  .mm .bar.big{height:14px;margin-bottom:16px}
+  .mm .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .mm .chip{position:static;transform:none;cursor:default}
+  .mm .chip.pick{cursor:pointer}
+  .mm .chip.no{opacity:.32;box-shadow:0 0 0 2px var(--chip-sh)}
+  .mm .search{margin-bottom:14px}
+  .recipe{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+  .recipe .plus{color:var(--ink-faint);font-size:18px}
+  .mm .none{color:var(--ink-dim);font-size:15px;padding:6px 2px}
+  @media(max-width:560px){.cats{grid-template-columns:1fr}}
+
+  .side{display:flex;flex-direction:column;border-left:2px solid var(--line);padding:16px;min-height:0}
+  .shead{font-family:var(--font-display);font-size:20px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:baseline}
+  .shead b{font-family:var(--font-body);font-size:15px;color:var(--ink-dim)}
+  .search{width:100%;font-size:15px;font-weight:800;color:var(--ink);background:var(--panel-2);border:2px solid transparent;border-radius:12px;padding:10px 12px;outline:none;margin-bottom:12px}
+  .search:focus{border-color:var(--teal)}
+  .inv{flex:1;overflow-y:auto;display:flex;flex-wrap:wrap;align-content:flex-start;gap:8px;padding:2px 2px 10px}
+  .inv .chip{position:static;transform:none}
+  .inv .chip.hide{display:none}
+  .sfoot{display:flex;gap:10px;margin-top:10px}
+  .sfoot button{flex:1;font-size:13px;font-weight:900;color:var(--ink-dim);background:var(--panel-2);border-radius:11px;padding:10px}
+  .sfoot button:hover{color:var(--ink)}
+  @media(max-width:860px){
+    .mix{grid-template-columns:1fr;height:auto}
+    .boards{height:62dvh}
+    .mix.duo .boards{grid-template-columns:1fr;grid-template-rows:1fr 1fr;height:88dvh}
+    .bwrap + .bwrap{border-left:none;border-top:2px solid var(--line)}
+    .side{max-height:40dvh;border-left:none;border-top:2px solid var(--line)}
+  }
+
+  .flash{position:fixed;inset:0;z-index:30;pointer-events:none;display:grid;place-items:center;opacity:0}
+  .flash.show{animation:flashin 1.3s ease}
+  @keyframes flashin{0%{opacity:0;transform:scale(.6)}18%{opacity:1;transform:scale(1)}78%{opacity:1}100%{opacity:0;transform:scale(1.1)}}
+  .flash .msg{font-family:var(--font-display);font-size:clamp(40px,8vw,80px);color:var(--pink);text-shadow:0 6px 0 #a3134f,0 0 30px rgba(255,255,255,.9);text-align:center;padding:0 20px}
+  .flash .msg small{display:block;font-size:.5em;margin-top:6px}
+  canvas.fx{position:fixed;inset:0;z-index:29;pointer-events:none;width:100%;height:100%}
+</style>
+</head>
+<body>
+<div class="stage">
+  <!-- ===== INTRO ===== -->
+  <section class="screen on" id="scIntro">
+    <div class="card">
+      <h1><span class="a">Mix</span> <span class="b">It</span></h1>
+      <div class="sub">Start with four elements.<br>Combine anything to make something new.</div>
+      <div class="rules">
+        <div class="rule"><span class="n">1</span><span>Drag one thing onto another.</span></div>
+        <div class="rule"><span class="n">2</span><span>They mix into something new.</span></div>
+        <div class="rule"><span class="n">3</span><span>Make it before anyone else: a <b>First Discovery</b>.</span></div>
+      </div>
+      <button class="btn" id="introGo">Let's play!</button>
+    </div>
+  </section>
+
+  <!-- ===== GAME ===== -->
+  <section class="screen" id="scGame">
+    <div class="mix" id="mix">
+      <div class="boards">
+        <div class="bwrap" id="themWrap" style="display:none"><div class="bhead" id="themHead"></div><div class="board them" id="themBoard"></div></div>
+        <div class="bwrap"><div class="bhead" id="meHead"></div><div class="board" id="board"><div class="hint" id="hint">Drag items from the right onto the board, then drop one onto another.</div></div>
+          <div class="bbar l"><button id="catBtn" type="button" aria-label="Categories"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3"/></svg></button></div>
+          <div class="bbar r"><button id="recBtn" type="button" aria-label="Recipes" data-tip="Recipes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg></button></div>
+        </div>
+      </div>
+      <aside class="side" id="side">
+        <div class="shead">Items <b id="count">4</b></div>
+        <input class="search" id="search" placeholder="Search items…" autocomplete="off" />
+        <div class="inv" id="inv"></div>
+        <div class="sfoot"><button id="clearBtn" type="button">Clear board</button><button id="leaveBtn" type="button">Leave</button></div>
+      </aside>
+    </div>
+  </section>
+</div>
+<canvas class="fx" id="fx"></canvas>
+<div class="flash" id="flash"><div class="msg" id="flashMsg"></div></div>
+<div class="mm" id="mm"><div class="mm-card"><button class="mm-x" id="mmX" type="button" aria-label="Close">×</button><div id="mmBody"></div></div></div>
+
+<script src="shell.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+function show(id){ document.querySelectorAll('.screen').forEach(s => s.classList.remove('on')); $(id).classList.add('on'); }
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function flash(html){ const f=$('flash'); $('flashMsg').innerHTML=html; f.classList.remove('show'); void f.offsetWidth; f.classList.add('show'); }
+const toast = t => Shell.toast(t);
+
+//// ===== sounds (synthesized) =====
+let AC=null;
+function tone(f, dur, type='triangle', vol=.15, delay=0){
+  if (!Shell.soundOn()) return;
+  try{ AC ||= new (window.AudioContext||window.webkitAudioContext)();
+    const t=AC.currentTime+delay, o=AC.createOscillator(), g=AC.createGain();
+    o.type=type; o.frequency.setValueAtTime(f,t); g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.001,t+dur);
+    o.connect(g).connect(AC.destination); o.start(t); o.stop(t+dur); }catch(e){}
+}
+const sndMix = () => { tone(440,.09,'sine',.12); tone(660,.12,'sine',.12,.07); };
+// a light "ting" for something new: a bell tone with a faint overtone
+const sndNew = () => { tone(1568,.7,'sine',.09); tone(3136,.4,'sine',.025); tone(4700,.2,'sine',.012); };
+const sndFirst = () => [523,659,784,1047,1319].forEach((f,i) => tone(f, i===4?.55:.14,'triangle',.18,i*.08));
+
+//// ===== fireworks (first discoveries) =====
+const FX={ parts:[], raf:0 };
+function fireworks(n){
+  const cv=$('fx'), g=cv.getContext('2d'); cv.width=innerWidth*devicePixelRatio; cv.height=innerHeight*devicePixelRatio; g.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  const cols=['#ff4d8d','#1fc7b6','#8b5cf6','#ff7a3c','#e6a800'];
+  for (let b=0;b<n;b++) setTimeout(()=>{
+    const x=innerWidth*(.2+Math.random()*.6), y=innerHeight*(.2+Math.random()*.35), c=cols[Math.floor(Math.random()*cols.length)];
+    for (let i=0;i<70;i++){ const a=Math.random()*7, v=2+Math.random()*5.5; FX.parts.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:1,c}); }
+    if (!FX.raf) FX.raf=requestAnimationFrame(step);
+  }, b*260);
+  function step(){
+    g.clearRect(0,0,innerWidth,innerHeight);
+    FX.parts.forEach(p=>{ p.x+=p.vx; p.y+=p.vy; p.vy+=.08; p.vx*=.985; p.life-=.013; g.globalAlpha=Math.max(0,p.life); g.fillStyle=p.c; g.beginPath(); g.arc(p.x,p.y,2.6,0,7); g.fill(); });
+    FX.parts=FX.parts.filter(p=>p.life>0); g.globalAlpha=1;
+    FX.raf = FX.parts.length ? requestAnimationFrame(step) : 0;
+    if (!FX.raf) g.clearRect(0,0,innerWidth,innerHeight);
+  }
+}
+
+//// ===== your items (kept in this browser) =====
+const STARTERS = [{name:'Water',emoji:'💧'},{name:'Fire',emoji:'🔥'},{name:'Wind',emoji:'🌬️'},{name:'Earth',emoji:'🌍'}];
+let INV = (() => { try{ const v=JSON.parse(localStorage.getItem('mixit-inv')||'null'); if (Array.isArray(v) && v.length) return v; }catch(e){} return STARTERS.slice(); })();
+const saveInv = () => localStorage.setItem('mixit-inv', JSON.stringify(INV));
+function addToInv(it){
+  if (INV.some(x => x.name.toLowerCase()===it.name.toLowerCase())) return false;
+  INV.push({ name:it.name, emoji:it.emoji, first:!!it.first }); saveInv(); renderInv(); return true;
+}
+function renderInv(){
+  const q=$('search').value.trim().toLowerCase();
+  $('count').textContent = INV.length;
+  $('inv').innerHTML = INV.map((it,i) =>
+    `<span class="chip${q && !it.name.toLowerCase().includes(q) ? ' hide':''}" data-i="${i}"><span class="e">${it.emoji}</span>${esc(it.name)}${it.first?' <span class="star" title="First Discovery">★</span>':''}</span>`).join('');
+}
+$('search').addEventListener('input', renderInv);
+
+//// ===== the board: items at normalized (0–1) positions, so the other player's view scales =====
+let ITEMS = [], nextId = 1;
+function chipHTML(it){ return `<span class="e">${it.emoji}</span>${esc(it.name)}`; }
+function place(el, it, board){ el.style.left=(it.x*100)+'%'; el.style.top=(it.y*100)+'%'; }
+function renderBoard(){
+  const b=$('board');
+  b.querySelectorAll('.chip').forEach(el => { if (!ITEMS.some(it => it.id==el.dataset.id)) el.remove(); });
+  ITEMS.forEach(it => {
+    let el=b.querySelector(`.chip[data-id="${it.id}"]`);
+    if (!el){ el=document.createElement('span'); el.className='chip'+(it.born?' born':''); el.dataset.id=it.id; el.innerHTML=chipHTML(it); b.appendChild(el); it.born=false; }
+    el.classList.toggle('busy', !!it.busy);
+    place(el, it, b);
+  });
+  $('hint').style.display = ITEMS.length ? 'none' : '';
+  sendBoard();
+}
+
+// ---- drag: from the item list (makes a copy) or around the board ----
+let DRAG = null;
+function boardPoint(e){ const r=$('board').getBoundingClientRect(); return { x:(e.clientX-r.left)/r.width, y:(e.clientY-r.top)/r.height, inside: e.clientX>=r.left && e.clientX<=r.right && e.clientY>=r.top && e.clientY<=r.bottom }; }
+function overlapTarget(it){
+  const el=$('board').querySelector(`.chip[data-id="${it.id}"]`); if (!el) return null;
+  const a=el.getBoundingClientRect(); let best=null, bestD=1e9;
+  for (const o of ITEMS){
+    if (o.id===it.id || o.busy) continue;
+    const oe=$('board').querySelector(`.chip[data-id="${o.id}"]`); if (!oe) continue;
+    const b=oe.getBoundingClientRect();
+    const hit = a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+    const d = Math.hypot((a.left+a.right)/2-(b.left+b.right)/2, (a.top+a.bottom)/2-(b.top+b.bottom)/2);
+    if (hit && d<bestD){ best=o; bestD=d; }
+  }
+  return best;
+}
+function startDrag(e, it, fromInv){
+  e.preventDefault();
+  DRAG = { it, fromInv, x0:e.clientX, y0:e.clientY, moved:false };
+  document.querySelectorAll('.board .chip').forEach(c => c.classList.remove('drag'));
+  const el=$('board').querySelector(`.chip[data-id="${it.id}"]`); if (el) el.classList.add('drag');
+}
+$('inv').addEventListener('pointerdown', e => {
+  const c=e.target.closest('.chip'); if (!c) return;
+  const src=INV[+c.dataset.i]; const p=boardPoint(e);
+  const it={ id:nextId++, name:src.name, emoji:src.emoji, x:p.x, y:p.y, born:true };
+  ITEMS.push(it); renderBoard(); startDrag(e, it, true);
+});
+// a click on the list (no drag) drops the item into an open spot on the board
+function openSpot(){
+  let best={ x:.5, y:.5 }, bestD=-1;
+  for (let k=0;k<24;k++){
+    const c={ x:.12+Math.random()*.76, y:.12+Math.random()*.76 };
+    const d=ITEMS.reduce((m,o)=>Math.min(m, Math.hypot(o.x-c.x, (o.y-c.y)*.7)), 9);
+    if (d>bestD){ best=c; bestD=d; }
+  }
+  return best;
+}
+$('board').addEventListener('pointerdown', e => {
+  const c=e.target.closest('.chip'); if (!c) return;
+  const it=ITEMS.find(x => x.id==c.dataset.id); if (!it || it.busy) return;
+  ITEMS = ITEMS.filter(x => x!==it).concat(it);   // bring to front
+  startDrag(e, it);
+});
+let lastSend=0;
+window.addEventListener('pointermove', e => {
+  if (!DRAG) return;
+  if (!DRAG.moved && Math.hypot(e.clientX-DRAG.x0, e.clientY-DRAG.y0) < 6) return;   // still a click
+  DRAG.moved = true;
+  const p=boardPoint(e); DRAG.it.x=p.x; DRAG.it.y=p.y;
+  const el=$('board').querySelector(`.chip[data-id="${DRAG.it.id}"]`); if (el) place(el, DRAG.it);
+  const t=overlapTarget(DRAG.it);
+  $('board').querySelectorAll('.chip.target').forEach(c => c.classList.remove('target'));
+  if (t){ const te=$('board').querySelector(`.chip[data-id="${t.id}"]`); if (te) te.classList.add('target'); }
+  if (performance.now()-lastSend > 70){ lastSend=performance.now(); sendBoard(true); }
+});
+window.addEventListener('pointerup', e => {
+  if (!DRAG) return;
+  const { it, fromInv, moved } = DRAG; DRAG=null;
+  $('board').querySelectorAll('.chip.drag,.chip.target').forEach(c => c.classList.remove('drag','target'));
+  if (!moved){
+    if (fromInv){ Object.assign(it, openSpot()); it.born=true;              // clicked in the list: add it
+      const el=$('board').querySelector(`.chip[data-id="${it.id}"]`); if (el) el.remove(); }
+    return renderBoard();                                                     // clicked on the board: leave it
+  }
+  const p=boardPoint(e);
+  if (!p.inside){ ITEMS=ITEMS.filter(x => x!==it); renderBoard(); return; }   // dropped off the board: gone
+  it.x=Math.min(.95,Math.max(.05,p.x)); it.y=Math.min(.95,Math.max(.05,p.y));
+  const t=overlapTarget(it);
+  if (t) combine(it, t); else renderBoard();
+});
+
+async function combine(a, b){
+  a.busy=b.busy=true; renderBoard(); sndMix();
+  try{
+    const r = await fetch('/api/mix', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ a:a.name, b:b.name, by: (Shell.player()||{}).name || null }) });
+    const d = await r.json().catch(()=>null);
+    if (!r.ok || !d || !d.name) throw new Error(d && d.error || 'mix failed');
+    ITEMS = ITEMS.filter(x => x!==a && x!==b);
+    const made = { id:nextId++, name:d.name, emoji:d.emoji, x:b.x, y:b.y, born:true };
+    ITEMS.push(made); renderBoard();
+    addRecipe(d.name, a.name, b.name);
+    const mine = addToInv(d);
+    if (mine) rays(made);
+    if (d.first){ sndFirst(); fireworks(6); flash(`${d.emoji} ${esc(d.name)}<small>First Discovery!</small>`); }
+    else if (mine){ sndNew(); flash(`${d.emoji} ${esc(d.name)}<small>New!</small>`); }
+    if (mine) wsSend({ t:'found', name:d.name, emoji:d.emoji, first:!!d.first });
+  }catch(err){
+    a.busy=b.busy=false; a.x=Math.min(.95,a.x+.06); renderBoard(); toast("Couldn't mix those — try again");
+  }
+}
+$('clearBtn').onclick = () => { ITEMS=[]; renderBoard(); };
+function rays(it){
+  const r=document.createElement('div'); r.className='rays';
+  r.style.left=(it.x*100)+'%'; r.style.top=(it.y*100)+'%';
+  $('board').appendChild(r); setTimeout(() => r.remove(), 2000);
+}
+
+//// ===== recipes: how you made each item (this browser) + every saved pair you could have made =====
+const RECIPES = (() => { try{ return JSON.parse(localStorage.getItem('mixit-recipes')||'{}') || {}; }catch(e){ return {}; } })();
+const lk = s => String(s).trim().toLowerCase();
+function addRecipe(res, a, b){
+  const k=lk(res), pair=[a,b].sort((x,y)=>lk(x)<lk(y)?-1:1);
+  const list=RECIPES[k] ||= [];
+  if (!list.some(p => lk(p[0])===lk(pair[0]) && lk(p[1])===lk(pair[1]))){ list.push(pair); localStorage.setItem('mixit-recipes', JSON.stringify(RECIPES)); }
+}
+const invItem = name => INV.find(x => lk(x.name)===lk(name));
+const staticChip = (it, cls='') => `<span class="chip ${cls}"><span class="e">${it.emoji}</span>${esc(it.name)}</span>`;
+
+//// ===== categories: fixed collections to fill, plus a daily challenge =====
+const CATS = [
+  { n:'Weather', e:'⛈️', items:'Rain,Snow,Storm,Cloud,Lightning,Thunder,Thunderstorm,Rainbow,Fog,Mist,Hail,Tornado,Hurricane,Blizzard,Sleet,Frost,Ice,Steam,Dew,Drizzle,Monsoon,Typhoon,Cyclone,Sandstorm,Heatwave,Drought,Flood,Tsunami,Avalanche,Snowflake,Sunshine,Breeze,Smog,Haze,Hailstorm,Climate,Wave,Humidity,Dust Storm,Weather' },
+  { n:'Space', e:'🌌', items:'Sun,Moon,Star,Planet,Galaxy,Comet,Asteroid,Meteor,Meteorite,Black Hole,Nebula,Supernova,Rocket,Astronaut,Satellite,Space,Universe,Mars,Jupiter,Saturn,Eclipse,Solar System,Constellation,Alien,UFO,Telescope,Orbit,Gravity,Space Station,Milky Way,Big Bang' },
+  { n:'Nature', e:'🌳', items:'Plant,Tree,Forest,Flower,Grass,Seed,Leaf,Mountain,Volcano,River,Lake,Ocean,Sea,Island,Beach,Desert,Swamp,Jungle,Cave,Canyon,Valley,Hill,Waterfall,Glacier,Oasis,Moss,Mushroom,Garden,Meadow,Coral Reef' },
+  { n:'Animals', e:'🐾', items:'Fish,Bird,Dog,Cat,Horse,Cow,Pig,Sheep,Lion,Tiger,Bear,Wolf,Fox,Rabbit,Snake,Frog,Turtle,Shark,Whale,Dolphin,Octopus,Butterfly,Bee,Spider,Eagle,Owl,Penguin,Bat,Crab,Jellyfish,Lizard,Duck,Chicken,Elephant,Monkey,Snail,Dinosaur,Dragon,Unicorn,Phoenix' },
+  { n:'Food & Drink', e:'🍕', items:'Bread,Cheese,Pizza,Cake,Cookie,Soup,Tea,Coffee,Chocolate,Honey,Salt,Sugar,Egg,Milk,Butter,Popcorn,Sandwich,Salad,Pasta,Rice,Sushi,Taco,Burger,Hot Dog,Pie,Ice Cream,Pancake,Juice,Lemonade,Smoothie' },
+  { n:'Materials', e:'🧱', items:'Mud,Clay,Brick,Stone,Rock,Sand,Glass,Metal,Iron,Steel,Gold,Silver,Diamond,Coal,Obsidian,Lava,Ash,Dust,Wood,Paper,Plastic,Rubber,Concrete,Crystal,Oil,Plasma,Energy,Electricity,Smoke,Pressure' },
+  { n:'Places', e:'🏙️', items:'House,Village,City,Castle,Farm,Tower,Bridge,Road,Wall,Lighthouse,Pyramid,Temple,School,Hospital,Library,Museum,Airport,Harbor,Skyscraper,Igloo,Tent,Cabin,Palace,Stadium,Park,Zoo,Prison,Factory,Laboratory,Beach House' },
+  { n:'Machines', e:'⚙️', items:'Wheel,Car,Train,Boat,Ship,Airplane,Bicycle,Engine,Robot,Computer,Phone,Television,Radio,Clock,Light Bulb,Battery,Generator,Windmill,Submarine,Helicopter,Tractor,Drone,Camera,Internet,Laser,Motorcycle,Bus,Truck,Steam Engine,Rocket Ship' },
+  { n:'People', e:'🧑', items:'Human,Farmer,Chef,Doctor,Wizard,Knight,King,Queen,Pirate,Sailor,Pilot,Scientist,Artist,Musician,Ninja,Cowboy,Firefighter,Baker,Fisherman,Vampire,Zombie,Ghost,Superhero,Mermaid,Giant,Witch,Angel,Monk,Teacher,Explorer' },
+  { n:'Holidays & Events', e:'🎉', items:'Christmas,Halloween,Easter,Birthday,Snowman,Santa,Jack-O-Lantern,Fireworks,Gift,Party,Wedding,Valentine,Christmas Tree,Turkey,Candy,Parade,Holiday,Vacation,New Year,Carnival' },
+].map(c => ({ ...c, items:c.items.split(',') }));
+const DAILY_POOL = 'Volcano,Rainbow,Steam Engine,Lighthouse,Snowman,Dragon,Pizza,Robot,Island,Tornado,Glass,Pirate,Castle,Coffee,Galaxy,Mermaid,Igloo,Fireworks,Sushi,Phoenix,Telescope,Windmill,Obsidian,Wizard,Submarine,Dinosaur,Chocolate,Oasis,Airplane,Ghost'.split(',');
+function dailyItem(){
+  const d=new Date(), n=d.getFullYear()*372+d.getMonth()*31+d.getDate();
+  return DAILY_POOL[(n*7919) % DAILY_POOL.length];
+}
+const have = name => !!invItem(name);
+const bar = (f, cls='') => `<div class="bar ${cls}"><i style="width:${Math.round(f*100)}%"></i></div>`;
+const BACK = `<button class="mm-back" type="button" data-back aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>`;
+function openMM(html, back){
+  $('mmBody').innerHTML=html; $('mm').classList.add('on');
+  const b=$('mmBody').querySelector('[data-back]'); if (b) b.onclick=back;
+}
+const closeMM = () => $('mm').classList.remove('on');
+$('mmX').onclick = closeMM;
+$('mm').addEventListener('pointerdown', e => { if (e.target===$('mm')) closeMM(); });
+addEventListener('keydown', e => { if (e.key==='Escape') closeMM(); });
+
+function showCats(){
+  const dy=dailyItem(), got=have(dy);
+  openMM(`<div class="mm-h">Categories</div><div class="cats">
+    <div class="cat daily">🔍 Daily Challenge: <span class="t">${esc(dy)}</span>${got?'<b>✓ Made it</b>':''}</div>
+    ${CATS.map((c,i) => { const n=c.items.filter(have).length;
+      return `<button class="cat" type="button" data-c="${i}"><span class="top">${c.e} ${esc(c.n)}<span class="c">${n} / ${c.items.length}</span></span>${bar(n/c.items.length)}</button>`; }).join('')}
+  </div>`);
+  $('mmBody').querySelectorAll('[data-c]').forEach(b => b.onclick=()=>showCat(CATS[+b.dataset.c]));
+}
+function showCat(c){
+  const n=c.items.filter(have).length;
+  openMM(`<div class="mm-h">${BACK}${c.e} ${esc(c.n)} <small>${n} / ${c.items.length}</small></div>${bar(n/c.items.length,'big')}
+    <div class="chips">${c.items.map(nm => { const it=invItem(nm);
+      return it ? staticChip(it) : `<span class="chip no">${esc(nm)}</span>`; }).join('')}</div>`, showCats);
+}
+$('catBtn').onclick = showCats;
+
+function showRecipes(q=''){
+  openMM(`<div class="mm-h">Recipes</div><input class="search" id="recQ" placeholder="Search items…" autocomplete="off" value="${esc(q)}" /><div class="chips" id="recList"></div>`);
+  const draw = () => { const v=$('recQ').value.trim().toLowerCase();
+    $('recList').innerHTML = INV.map((it,i) => !v || it.name.toLowerCase().includes(v) ? `<span class="chip pick" data-i="${i}"><span class="e">${it.emoji}</span>${esc(it.name)}</span>` : '').join('');
+    $('recList').querySelectorAll('[data-i]').forEach(c => c.onclick=()=>showRecipe(INV[+c.dataset.i], $('recQ').value)); };
+  $('recQ').oninput=draw; draw(); $('recQ').focus();
+}
+async function showRecipe(it, q){
+  const k=lk(it.name), pairs=new Map();
+  const put = (a,b) => { const [x,y]=[a,b].sort((m,n)=>lk(m)<lk(n)?-1:1); pairs.set(lk(x)+'+'+lk(y), [x,y]); };
+  (RECIPES[k]||[]).forEach(p => put(p[0],p[1]));
+  const draw = () => {
+    const list=[...pairs.values()], starter=STARTERS.some(s => lk(s.name)===k);
+    openMM(`<div class="mm-h">${BACK}${it.emoji} ${esc(it.name)} Recipes <small>${list.length} recipe${list.length===1?'':'s'}</small></div>
+      ${list.length ? list.map(([a,b]) => `<div class="recipe">${staticChip(invItem(a)||{name:a,emoji:'❔'})}<span class="plus">+</span>${staticChip(invItem(b)||{name:b,emoji:'❔'})}</div>`).join('')
+        : `<div class="none">${starter ? 'A starting element.' : 'Loading…'}</div>`}`, () => showRecipes(q));
+  };
+  draw();
+  try{
+    const r=await fetch('/api/mix?item='+encodeURIComponent(it.name)); const d=await r.json();
+    (d.recipes||[]).forEach(p => { if (have(p.a) && have(p.b)) put(p.a, p.b); });   // only pairs you could have made
+  }catch(e){}
+  if ($('mm').classList.contains('on')){ draw(); const n=$('mmBody').querySelector('.none'); if (n && n.textContent==='Loading…') n.textContent='No recipes yet.'; }
+}
+$('recBtn').onclick = () => showRecipes();
+
+//// ===== two players: the shared lobby (shell.js); each side streams its board, the other mirrors it =====
+const DUO = { room:null, otherCount:0 };
+const wsSend = m => { if (DUO.room) DUO.room.send(m); };
+function sendBoard(){
+  if (!DUO.room) return;
+  wsSend({ t:'board', items: ITEMS.map(it => ({ id:it.id, n:it.name, e:it.emoji, x:+it.x.toFixed(3), y:+it.y.toFixed(3) })), count: INV.length });
+}
+const other = () => DUO.room && DUO.room.other;
+function renderThemHead(){
+  const o = other();
+  $('themHead').innerHTML = o ? `${esc(o.avatar)} ${esc(o.name)} <small>${DUO.otherCount} items</small>` : 'Your friend';
+}
+function renderThem(){
+  renderThemHead();
+  const tb=$('themBoard');
+  if (!other()) tb.innerHTML = `<div class="wait"><div class="w">Your friend left</div></div>`;
+  else if (tb.querySelector('.wait')) tb.innerHTML='';
+}
+function drawThem(items){
+  const tb=$('themBoard'); if (tb.querySelector('.wait')) tb.innerHTML='';
+  const keep=new Set(items.map(i => String(i.id)));
+  tb.querySelectorAll('.chip').forEach(el => { if (!keep.has(el.dataset.id)) el.remove(); });
+  items.forEach(i => {
+    let el=tb.querySelector(`.chip[data-id="${i.id}"]`);
+    if (!el){ el=document.createElement('span'); el.className='chip born'; el.dataset.id=i.id; el.innerHTML=chipHTML({emoji:i.e, name:i.n}); tb.appendChild(el); }
+    el.style.left=(i.x*100)+'%'; el.style.top=(i.y*100)+'%';
+  });
+}
+const FRIEND = {
+  game:'mix',
+  onBack: () => openMode(),
+  onStart: R => { DUO.room=R; startDuo(); },
+  onRejoin: () => { renderThem(); sendBoard(); },
+  onLeft: () => renderThem(),
+  onMessage: m => {
+    if (m.t==='board'){ DUO.otherCount=m.count||0; drawThem(m.items||[]); renderThemHead(); }
+    else if (m.t==='found') toast(`${other() ? other().name : 'Your friend'} made ${m.emoji} ${m.name}${m.first?' — a First Discovery!':''}`);
+  },
+};
+function startDuo(){
+  $('mix').classList.add('duo'); $('themWrap').style.display='';
+  const me = Shell.player() || {};
+  $('meHead').innerHTML=`${esc(me.avatar||'')} ${esc(me.name||'')} <small>you</small>`;
+  $('themBoard').innerHTML='';
+  show('scGame'); renderInv(); renderBoard(); renderThem();
+}
+function startSolo(){
+  Shell.hide(); leaveRoom();
+  $('mix').classList.remove('duo'); $('themWrap').style.display='none'; $('meHead').innerHTML='';
+  show('scGame'); renderInv(); renderBoard();
+}
+function leaveRoom(){ if (DUO.room){ Shell.leaveRoom(); DUO.room=null; } }
+function leave(){ leaveRoom(); ITEMS=[]; show('scIntro'); }
+// the standard start sequence: intro → mode → (friend: host/join → lobby)
+function openMode(){
+  Shell.mode({ options:[
+      { label:'Play solo', onClick:startSolo },
+      { label:'Play a friend', kind:'b', onClick:()=>Shell.friend(FRIEND) } ],
+    onBack:()=>show('scIntro') });
+}
+
+//// ===== wiring =====
+$('introGo').onclick = () => Shell.requirePlayer().then(openMode);
+Shell.addBack('#scIntro .card', () => Shell.nav('games'));
+$('leaveBtn').onclick = leave;
+window.addEventListener('resize', () => { if ($('scGame').classList.contains('on')) renderBoard(); });
+
+//// ===== the shared frame =====
+Shell.init({
+  brand:'Mix&nbsp;It',
+  theme:{ key:'nysgpt-theme-f3', darkDefault:false },
+  beforeLeave:()=>!DUO.room || confirm('Leave this room?'),
+  onJoinLink: code => Shell.joinCode(FRIEND, code),
+  playground:{ swatches:['#1fb3a3','#ff7a3c','#8b5cf6','#ff4d8d','#2d6fd6','#37c871'].map(c=>({ bg:c, vars:{ '--bg':c } })) },
+});
+</script>
+</body>
+</html>

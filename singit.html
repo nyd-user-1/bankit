@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Sing It — the karaoke party game</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Nunito:wght@700;800;900&family=Fredoka:wght@600;700&family=Tilt+Neon&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="shell.css" />
+<script>
+  // Sing It keeps its own theme; the neon stage is dark by default
+  (function(){ try{ if(localStorage.getItem('singit-theme')==='light') document.documentElement.setAttribute('data-theme','light'); }catch(e){} })();
+</script>
+<style>
+  /* ===== Sing It design system: black stage, neon tube colors, die-cut stickers ===== */
+  :root{
+    --bg:#0b0b10; --panel:#15151d; --panel-2:#1d1d28; --line:#2b2b3a;
+    --pink:#ff4f9a; --pink-sh:#b3226a; --mint:#5fe0c6; --mint-sh:#2c9a85;
+    --yellow:#ffd84a; --yellow-sh:#c9a312; --lilac:#c8a8ff; --sky:#8fd6ff;
+    --ink:#ffffff; --ink-dim:#b3b3c7; --ink-faint:#6e6e86;
+    --shadow:#050508; --glow:1; --pop:1;
+    --font-display:"Luckiest Guy",system-ui,sans-serif;
+    --font-body:"Nunito",system-ui,sans-serif;
+    --font-card:var(--font-display);
+    --font-neon:"Tilt Neon","Nunito",system-ui,sans-serif;
+  }
+  /* light mode: a bright room; the game pieces (card, mic, track, tokens) stay black like the box */
+  :root[data-theme="light"]{
+    --bg:#f5f1fb; --panel:#ffffff; --panel-2:#f2edf9; --line:#e2daef;
+    --pink:#e8347f; --pink-sh:#a61d5b; --mint:#15b394; --mint-sh:#0d7a65; --yellow:#e6ad00; --yellow-sh:#a87e00;
+    --ink:#18131f; --ink-dim:#5a536e; --ink-faint:#958dab; --shadow:#d8cfe6;
+  }
+  :root{color-scheme:dark} :root[data-theme="light"]{color-scheme:light}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{min-height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-weight:800;transition:background .4s,color .4s;
+    -webkit-font-smoothing:antialiased;overflow-x:hidden}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  /* the box's scattered + and ♪ sparkles */
+  .sparkles{position:fixed;inset:0;pointer-events:none;z-index:0}
+  .sparkles i{position:absolute;font-style:normal;font-family:var(--font-neon);opacity:.55}
+  .app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:92px 18px 90px}
+  .sh-brand .s{color:var(--pink);text-shadow:0 0 calc(12px * var(--glow)) rgba(255,79,154,.55)}
+  .sh-brand .i{color:var(--mint);text-shadow:0 0 calc(12px * var(--glow)) rgba(95,224,198,.5)}
+  :root{--sh-a:var(--pink);--sh-a-sh:var(--pink-sh);--sh-a-ink:#0b0b10;--sh-b:var(--mint);--sh-b-sh:var(--mint-sh);--sh-b-ink:#0b0b10}
+  .sh-card{border:2px solid var(--line)}
+  .sh-res .em .tok{width:96px;height:96px}
+
+  .screen{display:none;width:100%}
+  .screen.on{display:flex;flex-direction:column;align-items:center;margin:auto 0}   /* centered in the leftover space, like the other games */
+  .card{background:var(--panel);border:2px solid var(--line);border-radius:26px;padding:30px 28px;width:100%;max-width:520px;
+    box-shadow:0 calc(10px * var(--pop)) 0 var(--shadow);animation:pop .42s cubic-bezier(.2,1.4,.4,1) both}
+  /* Bank It's entrance: a springy pop, replayed whenever a screen appears */
+  @keyframes pop{from{opacity:0;transform:scale(.9) translateY(14px)}to{opacity:1;transform:none}}
+  h1.logo{font-family:var(--font-display);font-size:64px;line-height:.95;text-align:center;text-transform:uppercase;margin-bottom:22px}
+  h1.logo .s{color:var(--pink);text-shadow:0 0 calc(22px * var(--glow)) rgba(255,79,154,.6)}
+  h1.logo .i{color:var(--mint);text-shadow:0 0 calc(22px * var(--glow)) rgba(95,224,198,.55)}
+  h1.logo.intro{font-size:60px;margin-bottom:14px}
+  .sub{text-align:center;color:var(--ink-dim);font-size:15px;font-weight:800;line-height:1.55;margin-bottom:22px}
+  .rules{background:var(--panel-2);border:2px solid var(--line);border-radius:18px;padding:18px 20px;margin-bottom:22px;display:flex;flex-direction:column;gap:11px}
+  .rule{display:flex;align-items:center;gap:13px;font-size:14.5px;font-weight:800;color:var(--ink)}
+  .rule b{color:var(--yellow)}
+  .rule .n{width:30px;height:30px;flex-shrink:0;border-radius:9px;background:var(--mint);color:#0b0b10;display:grid;place-items:center;
+    font-family:var(--font-display);font-size:15px;box-shadow:0 3px 0 var(--mint-sh)}
+  .rule:nth-child(2) .n{background:var(--pink);box-shadow:0 3px 0 var(--pink-sh)}
+  .rule:nth-child(3) .n{background:var(--yellow);box-shadow:0 3px 0 var(--yellow-sh)}
+  h2{font-family:var(--font-display);font-weight:900;font-size:28px;text-transform:uppercase;text-align:center;margin-bottom:20px;letter-spacing:.01em}
+  .lbl{display:block;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin:0 2px 8px}
+  .field{margin-bottom:18px}
+  input.txt{width:100%;font-family:var(--font-display);font-weight:800;font-size:20px;color:var(--ink);background:var(--panel-2);
+    border:2px solid var(--line);border-radius:14px;padding:13px 16px;outline:none;transition:border-color .15s}
+  input.txt:focus{border-color:var(--mint);box-shadow:0 0 0 4px rgba(95,224,198,.18)}
+  input.txt::placeholder{color:var(--ink-faint)}
+  input.code{text-align:center;letter-spacing:.35em;font-size:38px;font-family:var(--font-neon);margin-bottom:14px}
+
+  /* chunky pressy buttons, box colors, black ink */
+  .btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;font-family:var(--font-display);font-weight:900;
+    font-size:20px;text-transform:uppercase;letter-spacing:.03em;color:#0b0b10;background:var(--pink);padding:15px 22px;border-radius:16px;
+    position:relative;top:0;box-shadow:0 calc(6px * var(--pop)) 0 var(--pink-sh);transition:top .08s,box-shadow .08s,filter .15s}
+  .btn:hover{filter:brightness(1.07)}
+  .btn:active:not(:disabled){top:5px;box-shadow:0 1px 0 var(--pink-sh)}
+  .btn:disabled{opacity:.45;cursor:default}
+  .btn.mint{background:var(--mint);box-shadow:0 calc(6px * var(--pop)) 0 var(--mint-sh)}
+  .btn.mint:active:not(:disabled){box-shadow:0 1px 0 var(--mint-sh)}
+  .btn.yellow{background:var(--yellow);box-shadow:0 calc(6px * var(--pop)) 0 var(--yellow-sh)}
+  .btn.ghost{background:var(--panel-2);color:var(--ink);box-shadow:0 calc(6px * var(--pop)) 0 var(--shadow);border:2px solid var(--line)}
+  .or{text-align:center;color:var(--ink-faint);font-weight:900;font-size:12px;letter-spacing:.14em;margin:16px 0;text-transform:uppercase}
+  .linkbtn{display:block;margin:16px auto 0;color:var(--ink-dim);font-weight:800;font-size:13px;text-decoration:underline}
+  .err{color:var(--pink);font-weight:800;font-size:13.5px;text-align:center;min-height:18px;margin-top:12px}
+
+  /* ===== tokens: black die-cut stickers with a neon line icon ===== */
+  .tok{display:inline-grid;place-items:center;width:44px;height:44px;flex-shrink:0;filter:drop-shadow(0 3px 2px rgba(0,0,0,.55))}
+  .tok svg{width:100%;height:100%;overflow:visible;stroke-linecap:round;stroke-linejoin:round}
+  .tok .rim *{fill:#4a4a60;stroke:#4a4a60;stroke-width:9.5}
+  .tok .back *{fill:#0e0e14;stroke:#0e0e14;stroke-width:7}
+  .tok .ink *{fill:none;stroke:currentColor;stroke-width:1.7}
+  .tok .ink{filter:drop-shadow(0 0 calc(2.5px * var(--glow)) currentColor)}
+  .tokgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;justify-items:center}
+  .tokgrid .tok{width:54px;height:54px;cursor:pointer;transition:transform .12s}
+  .tokgrid .tok:hover{transform:scale(1.08)}
+  .tokgrid .tok.on{transform:scale(1.22) rotate(-6deg);filter:drop-shadow(0 0 8px var(--ink)) drop-shadow(0 3px 2px rgba(0,0,0,.55))}
+  .tokgrid .tok.taken{opacity:.25;cursor:default}
+
+  /* ===== lobby ===== */
+  .lobby .card{max-width:620px}
+  .room-code{font-family:var(--font-neon);font-size:66px;text-align:center;letter-spacing:.2em;color:var(--yellow);
+    text-shadow:0 0 calc(18px * var(--glow)) rgba(255,216,74,.55);margin:-6px 0 10px}
+  .invite{width:auto;margin:0 auto 22px;font-size:15px;padding:11px 20px}
+  .plist{display:flex;flex-direction:column;gap:9px;margin-bottom:20px}
+  .prow{display:flex;align-items:center;gap:12px;background:var(--panel-2);border:2px solid var(--line);border-radius:14px;padding:9px 12px}
+  .prow .nm{flex:1;min-width:0;font-weight:800;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .prow .tag{font-size:10px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:100px;background:var(--yellow);color:#0b0b10}
+  .prow .micst{font-size:11px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint)}
+  .prow .micst.ok{color:var(--mint)}
+  .prow.off{opacity:.4}
+  .seg{display:flex;background:var(--panel-2);border:2px solid var(--line);border-radius:14px;padding:4px;gap:4px;margin-bottom:12px}
+  .seg button{flex:1;font-weight:900;text-transform:uppercase;letter-spacing:.05em;font-size:14px;padding:10px;border-radius:10px;color:var(--ink-dim)}
+  .seg button.on{background:var(--pink);color:#0b0b10}
+  .seg.ro button{cursor:default}
+  .modehelp{color:var(--ink-faint);font-size:12.5px;font-weight:700;text-align:center;margin:8px 0 18px;min-height:17px}
+  .miccheck{display:flex;align-items:center;gap:12px;background:var(--panel-2);border:2px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:14px}
+  .miccheck .btn{width:auto;font-size:13px;padding:9px 14px;box-shadow:0 4px 0 var(--mint-sh);touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+  .tunebtn.done{background:var(--panel);color:var(--mint);border:2px solid var(--mint);box-shadow:none}
+  .tunemsg{color:var(--ink-faint);font-size:12.5px;font-weight:800;text-align:center;min-height:17px;margin:-8px 0 16px}
+  .meter{flex:1;height:12px;border-radius:100px;background:#0b0b10;overflow:hidden;border:1px solid var(--line)}
+  .meter i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--mint),var(--yellow),var(--pink));transition:width .06s}
+
+  /* ===== game ===== */
+  .game{max-width:1180px}
+  .stage-grid{display:grid;grid-template-columns:230px 1fr 270px;gap:22px;width:100%;align-items:start;animation:pop .42s cubic-bezier(.2,1.4,.4,1) both}
+  @media(max-width:980px){.stage-grid{grid-template-columns:1fr}.track-wrap{order:3}.side{order:2}}
+
+  /* the neon track: START at the bottom, WINNER! at the top */
+  .track{background:#0e0e14;border:2px solid #36364a;border-radius:16px;padding:6px 10px;box-shadow:0 0 0 3px #050508}
+  .trow{position:relative;display:flex;align-items:center;gap:6px;min-height:52px;padding:4px 0;border-bottom:2px solid var(--rc)}
+  .trow:last-child{border-bottom:none}
+  .trow .n{flex:1;text-align:left;padding-left:14px;font-family:var(--font-neon);font-size:32px;color:var(--rc);text-shadow:0 0 calc(10px * var(--glow)) var(--rc)}
+  .trow.end .n{font-size:24px;letter-spacing:.06em;text-transform:uppercase}
+  .trow .who{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:3px;max-width:58%}
+  .trow .who:empty{display:none}
+  .trow .who{position:relative;z-index:2;margin:-10px -6px -10px 0}
+  .trow .who .tok{width:40px;height:40px;margin-left:-8px;transition:transform .2s}
+  .trow .who .tok:first-child{margin-left:0}
+
+  .stage{display:flex;flex-direction:column;align-items:center;gap:16px}
+  .status{font-family:var(--font-display);font-weight:900;font-size:22px;text-transform:uppercase;letter-spacing:.02em;text-align:center;min-height:30px}
+  .status .cd{display:inline-block;min-width:1.2em;color:var(--pink);font-family:var(--font-neon)}
+  .status b{color:var(--yellow);text-shadow:0 0 10px rgba(255,216,74,.45)}
+  .note{color:var(--ink-dim);font-weight:800;font-size:13.5px;min-height:18px;text-align:center;margin-top:-8px}
+
+  /* the word card: split two-tone, word mirrored on the top half, value in the corners */
+  .wcard{width:300px;height:190px;border-radius:16px;overflow:hidden;display:grid;grid-template-rows:1fr 1fr;position:relative;
+    box-shadow:0 8px 0 #050508,0 0 0 2px #2a2a38;transform-style:preserve-3d}
+  .wcard .half{display:grid;place-items:center;font-family:var(--font-card);font-size:34px;text-transform:uppercase;letter-spacing:.02em;position:relative}
+  .wcard .top{background:#121218;color:#fff}
+  .wcard .top span{transform:rotate(180deg)}
+  .wcard .bot{background:var(--cc);color:#0b0b10}
+  .wcard .v{position:absolute;font-family:var(--font-card);font-size:15px}
+  .wcard .top .v{left:10px;top:8px;transform:rotate(180deg);color:var(--cc)}
+  .wcard .bot .v{right:10px;bottom:8px}
+  .wcard.c0{--cc:var(--pink)} .wcard.c1{--cc:var(--mint)} .wcard.c2{--cc:var(--yellow)}
+  .wcard.back{background:#121218}
+  .wcard.back .half{display:none}
+  .wcard.back::after{content:"♪";position:absolute;inset:0;display:grid;place-items:center;font-family:var(--font-neon);font-size:80px;
+    color:var(--pink);text-shadow:0 0 18px var(--pink)}
+  .wcard.flip{animation:flip .55s ease}
+  .wcard.flippable{cursor:pointer;animation:cardpulse 1.1s ease-in-out infinite}
+  @keyframes cardpulse{0%,100%{box-shadow:0 8px 0 #050508,0 0 0 2px #2a2a38}50%{box-shadow:0 8px 0 #050508,0 0 0 2px var(--pink),0 0 26px rgba(255,79,154,.55)}}
+  @keyframes flip{0%{transform:rotateY(90deg) scale(.9)}100%{transform:none}}
+
+  /* mic + thermometer + wave */
+  .miczone{display:flex;align-items:center;justify-content:center;gap:26px;margin-top:4px}
+  .therm{width:26px;height:190px;border-radius:100px;background:#0b0b10;border:2px solid #36364a;position:relative;overflow:hidden;box-shadow:0 0 0 3px #050508}
+  .therm i{position:absolute;left:0;right:0;bottom:0;height:0;background:var(--pink);box-shadow:0 0 14px var(--pink)}
+  .therm.air i{background:var(--mint);box-shadow:0 0 14px var(--mint)}
+  .mic{position:relative;width:120px;height:250px;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
+    transition:transform .12s,filter .2s;filter:grayscale(.9) brightness(.55)}
+  .mic.live{filter:none;animation:micpulse 1.1s ease-in-out infinite}
+  .mic.other{filter:none;opacity:.85}
+  .mic.held{filter:none;transform:scale(1.07) rotate(-6deg);animation:none}
+  @keyframes micpulse{0%,100%{filter:drop-shadow(0 0 0 rgba(255,79,154,0))}50%{filter:drop-shadow(0 0 18px rgba(255,79,154,.8))}}
+  .mic .head{position:absolute;left:4px;top:0;width:112px;height:112px;border-radius:50%;
+    background:radial-gradient(circle,#3b3b48 1.6px,transparent 2.2px) 0 0/9px 9px,radial-gradient(circle at 35% 30%,#2e2e38,#101014 70%);
+    border:3px solid #050508}
+  .mic .band{position:absolute;left:0;top:78px;width:120px;height:26px;border-radius:13px;background:var(--pink);border:3px solid #050508}
+  .mic .handle{position:absolute;left:27px;top:104px;width:66px;height:146px;border-radius:14px 14px 22px 22px;background:#16161c;border:3px solid #050508}
+  .mic .handle::before{content:"";position:absolute;left:-3px;right:-3px;top:-3px;height:16px;border-radius:10px;background:var(--pink);border:3px solid #050508}
+  .mic .dot{position:absolute;left:14px;top:42px;width:32px;height:32px;border-radius:50%;background:var(--pink);display:grid;place-items:center;
+    color:#0b0b10;font-size:16px;font-family:var(--font-neon)}
+  .mic .handle::after{content:"";position:absolute;left:-3px;right:-3px;bottom:-3px;height:30px;border-radius:0 0 22px 22px;background:var(--pink);border:3px solid #050508}
+  .miclabel{font-weight:900;text-transform:uppercase;letter-spacing:.08em;font-size:13px;color:var(--ink-faint);text-align:center;min-height:17px}
+  .miclabel.live{color:var(--pink)}
+  canvas.wave{width:100%;max-width:520px;height:74px;display:block}
+
+  /* live words from the singer's browser speech recognition; the prompt word lights up when heard */
+  .lyrics{max-width:560px;min-height:28px;text-align:center;font-family:var(--font-body);font-weight:800;font-size:19px;line-height:1.35;color:var(--ink-dim)}
+  .lyrics mark{background:none;color:var(--yellow);text-shadow:0 0 calc(12px * var(--glow)) rgba(255,216,74,.7);font-weight:900}
+  .lyrics.heard mark{animation:heard .5s ease}
+  @keyframes heard{0%{transform:scale(1)}40%{transform:scale(1.25)}100%{transform:scale(1)}}
+  .lyrics mark{display:inline-block}
+
+  /* veto / override */
+  .calls{display:flex;gap:12px;justify-content:center;min-height:54px}
+  .calls .btn{width:auto;min-width:170px;font-size:17px}
+
+  .side{display:flex;flex-direction:column;gap:9px}
+  .side .prow{padding:8px 10px}
+  .prow .tok{width:40px;height:40px}
+  .side .prow.turn{border-color:var(--yellow);box-shadow:0 0 14px rgba(255,216,74,.25)}
+  .side .prow.hold{border-color:var(--pink);box-shadow:0 0 16px rgba(255,79,154,.35)}
+  .side .pts{font-family:var(--font-neon);font-size:22px;color:var(--mint)}
+  .chips{display:flex;gap:4px}
+  .chip{font-size:9px;font-weight:900;letter-spacing:.05em;text-transform:uppercase;padding:2px 5px;border-radius:6px;border:1.5px solid currentColor}
+  .chip.veto{color:var(--pink)} .chip.ovr{color:var(--mint)} .chip.used{opacity:.25}
+
+  /* the YOU'RE ON MUTE! sticker */
+  .mute{display:inline-block;background:#0e0e14;border:2px solid #3a3a4c;box-shadow:0 0 0 3px #050508;border-radius:10px;padding:4px 8px;
+    font-family:var(--font-display);font-weight:900;font-size:10px;line-height:1.05;text-transform:uppercase;transform:rotate(-4deg);text-align:left}
+  .mute .a{color:var(--yellow)} .mute .b{color:var(--pink)} .mute .c{color:var(--mint)}
+  .mute.big{font-size:26px;padding:14px 20px;border-radius:18px}
+
+  /* host pause */
+  .pausebtn{display:none;font-weight:900;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--yellow);
+    border:2px solid var(--yellow);border-radius:100px;padding:7px 14px;margin-left:auto;margin-right:16px}
+  .pausebtn.on{display:inline-block}
+  .pausebtn.queued{opacity:.6}
+  .pausebtn.paused{background:var(--yellow);color:#0b0b10}
+  .pausebtn.ro{cursor:default}
+
+  .readout{position:fixed;left:22px;bottom:22px;z-index:40;display:none;background:var(--panel);border:2px solid var(--line);border-radius:14px;
+    padding:10px 14px;font-size:12.5px;font-weight:800;line-height:1.6;color:var(--ink-dim);box-shadow:0 5px 0 var(--shadow)}
+  .readout.on{display:block}
+  .readout b{color:var(--ink);font-family:var(--font-neon);font-size:15px}
+
+  .fireworks{position:fixed;inset:0;z-index:29;pointer-events:none;width:100%;height:100%}
+
+  /* result flash */
+  .flash{position:fixed;inset:0;z-index:30;display:grid;place-items:center;pointer-events:none;opacity:0}
+  .flash.show{animation:flashin 1.6s ease}
+  @keyframes flashin{0%{opacity:0;transform:scale(.7)}15%{opacity:1;transform:scale(1)}80%{opacity:1}100%{opacity:0;transform:scale(1.08)}}
+  .flash .msg{font-family:var(--font-display);font-weight:900;font-size:clamp(40px,8vw,84px);text-transform:uppercase;text-align:center;
+    color:var(--mint);text-shadow:0 0 26px rgba(95,224,198,.7),0 6px 0 #050508;padding:0 20px}
+  .flash.bad .msg{color:var(--pink);text-shadow:0 0 26px rgba(255,79,154,.7),0 6px 0 #050508}
+  .flash.warn .msg{color:var(--yellow);text-shadow:0 0 26px rgba(255,216,74,.6),0 6px 0 #050508}
+
+  /* winner */
+  .win .card{text-align:center}
+  .win .wword{font-family:var(--font-neon);font-size:62px;color:var(--yellow);text-shadow:0 0 22px rgba(255,216,74,.6);margin-bottom:14px}
+  .win .tok{width:96px;height:96px;border-radius:24px;margin-bottom:12px}
+  .win .wname{font-weight:900;font-size:28px;margin-bottom:22px}
+  .win .btn+.btn{margin-top:14px}
+</style>
+</head>
+<body>
+<div class="sparkles" id="sparkles"></div>
+<div class="app">
+  <button class="pausebtn" id="pauseBtn" type="button">Pause ⏸</button>
+
+  <!-- ===== INTRO ===== -->
+  <section class="screen on" id="scIntro">
+    <div class="card">
+      <h1 class="logo intro"><span class="s">Sing</span> <span class="i">It</span></h1>
+      <div class="sub">Every card has one word.<br>Grab the mic &amp; sing a lyric with it.</div>
+      <div class="rules">
+        <div class="rule"><span class="n">1</span><span>Flip the card.</span></div>
+        <div class="rule"><span class="n">2</span><span>Hold the mic and sing a line with the word.</span></div>
+        <div class="rule"><span class="n">3</span><span>Move up the track. First to <b>Winner!</b> wins.</span></div>
+      </div>
+      <button class="btn" id="introGo">Let's play!</button>
+    </div>
+  </section>
+
+  <!-- ===== HOME: who you are + host / join ===== -->
+  <section class="screen" id="scHome">
+    <div class="card">
+      <h2>Who's singing?</h2>
+      <div class="field">
+        <label class="lbl">Your token</label>
+        <div class="tokgrid" id="tokGrid"></div>
+      </div>
+      <div id="homeChoose">
+        <button class="btn" id="hostBtn">Host</button>
+        <div class="or">or</div>
+        <button class="btn mint" id="joinOpen">Join</button>
+      </div>
+      <div id="homeJoin" style="display:none">
+        <input class="txt code" id="joinCode" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="0000" aria-label="Room code" />
+        <button class="btn mint" id="joinBtn">Join now</button>
+      </div>
+      <div class="err" id="homeErr"></div>
+    </div>
+  </section>
+
+  <!-- ===== LOBBY ===== -->
+  <section class="screen lobby" id="scLobby">
+    <div class="card">
+      <h2>Invite your band</h2>
+      <div class="room-code" id="roomCode">0000</div>
+      <button class="btn ghost invite" id="inviteBtn">Invite link 🔗</button>
+      <div class="plist" id="lobbyPlayers"></div>
+      <label class="lbl">Mode</label>
+      <div class="seg" id="modeSeg"><button data-m="basic">Basic</button><button data-m="race">Race</button></div>
+      <div class="modehelp" id="modeHelp"></div>
+      <div class="miccheck">
+        <button class="btn mint tunebtn" id="tuneBtn">Hold to tune your mic</button>
+        <div class="meter"><i id="tuneMeter"></i></div>
+      </div>
+      <div class="tunemsg" id="tuneMsg"></div>
+      <button class="btn yellow" id="startBtn">Start</button>
+      <div class="err" id="lobbyErr"></div>
+    </div>
+  </section>
+
+  <!-- ===== GAME ===== -->
+  <section class="screen game" id="scGame">
+    <div class="stage-grid">
+      <div class="track-wrap"><div class="track" id="track"></div></div>
+      <div class="stage">
+        <div class="status" id="status"></div>
+        <div class="note" id="note"></div>
+        <div class="wcard back" id="wcard">
+          <div class="half top"><span id="wTop"></span><i class="v" id="vTop"></i></div>
+          <div class="half bot"><span id="wBot"></span><i class="v" id="vBot"></i></div>
+        </div>
+        <div class="miczone">
+          <div class="therm" id="therm"><i id="thermFill"></i></div>
+          <div class="mic" id="mic" aria-label="Hold to sing" role="button">
+            <div class="handle"><div class="dot">♪</div></div>
+            <div class="head"></div>
+            <div class="band"></div>
+          </div>
+        </div>
+        <div class="miclabel" id="micLabel"></div>
+        <canvas class="wave" id="wave" width="1040" height="148"></canvas>
+        <div class="lyrics" id="lyrics"></div>
+        <div class="calls" id="calls"></div>
+      </div>
+      <div class="side" id="side"></div>
+    </div>
+  </section>
+</div>
+<canvas class="fireworks" id="fireworks"></canvas>
+<div class="readout" id="readout"></div>
+<div class="flash" id="flash"><div class="msg" id="flashMsg"></div></div>
+
+<script src="shell.js"></script>
+<script>
+//// ===== tunables =====
+const RESPONSE_MS = 5000;    // card flipped → this long to grab the mic (the thermometer)
+const HOLD_CAP    = 20000;   // longest a single hold can last
+const REVIEW_MS   = 5000;    // veto window after the mic comes down
+const OVR_MS      = 5000;    // override window after a veto
+const RESULT_MS   = 1700;    // result flash before play continues
+const COLLECT_MS  = 350;     // race: gather grabs this long, then fastest reaction wins
+const FINISH      = 10;      // START=0 … 9, WINNER!=10
+const TUNE_MS     = 3000;    // hold-to-tune: this long in a quiet room sets the room level
+const VOICE_OVER  = 8;       // singing = smoothed level this many dB over the tuned room level…
+const VOICE_NEED  = 250;     // …for this many ms in total…
+const VOICE_WIN   = 600;     // …within the last this-many ms (dips between syllables don't reset it)
+const SMOOTH_MS   = 150;     // level smoothing time constant
+
+//// ===== the deck: common lyric words, valued 1–3 by how hard they are to sing =====
+const WORDS = {
+  1: `love baby heart night tonight dance girl boy time feel know want need world life forever fire rain sun sky home dream eyes
+      hands together alone crazy money party music song kiss touch stars moon light dark run fly high away hold free wild young
+      sweet cry tears smile remember lonely goodbye hello friend gold blue summer radio car road morning sleep beautiful lover
+      soul body lips name rock fall shine heaven angel lie bad good sorry breathe again never always somebody nobody everybody
+      tomorrow yesterday today rhythm go stay come back feeling alright true`,
+  2: `mountain king queen river ocean window phone dollar whiskey church train highway diamond thunder hurricane sugar honey cherry
+      candy butterfly rainbow shadow mirror ghost prayer wings bridge prison weekend saturday sunday monday california texas
+      mexico paris london jungle desert island beach wave storm lightning snow winter december july birthday wedding ring dress
+      shoes jeans lipstick perfume cigarette bottle wine champagne coffee kitchen bed pillow roses flowers garden tree bird horse
+      tiger lion wolf dog cat cowboy soldier sailor pirate doctor teacher preacher mama daddy brother sister neighbor stranger hero`,
+  3: `elephant volcano pizza banana tornado bicycle library dinosaur spaceship astronaut submarine vampire zombie robot alien penguin
+      kangaroo avocado tuxedo umbrella calendar microwave elevator helicopter refrigerator lemonade chocolate cinnamon spaghetti
+      pancake hamburger sandwich popcorn taxi airport hospital museum casino basement garage backpack keyboard guitar piano violin
+      trumpet drum tambourine saxophone microphone television computer internet password chemistry homework detective`,
+};
+const DECK = Object.entries(WORDS).flatMap(([v, s]) => s.trim().split(/\s+/).map(w => ({ w, v: +v })));
+
+//// ===== tokens: neon line icons (the box's sticker sheet) =====
+const TOKENS = [
+  { k:'star',   c:'#ffd84a', svg:'<polygon points="12,2.8 14.8,8.7 21.2,9.4 16.4,13.8 17.8,20.2 12,16.9 6.2,20.2 7.6,13.8 2.8,9.4 9.2,8.7"/>' },
+  { k:'disco',  c:'#8fd6ff', svg:'<circle cx="12" cy="12" r="8.5"/><ellipse cx="12" cy="12" rx="4" ry="8.5"/><path d="M3.8 9h16.4M3.8 15h16.4M12 3.5v17"/>' },
+  { k:'guitar', c:'#ff4f9a', svg:'<path d="M13.5 10.5l6-6M18 3l3 3"/><path d="M10.6 9.6c-1.6-.4-3.4.1-4.6 1.3-2.2 2.2-2 5.8.3 8.1 2.3 2.3 5.9 2.5 8.1.3 1.2-1.2 1.7-3 1.3-4.6"/><circle cx="10" cy="14" r="1.6"/><path d="M11.2 12.8l2.3-2.3"/>' },
+  { k:'vinyl',  c:'#c8a8ff', svg:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5.5"/><circle cx="12" cy="12" r="1.6"/>' },
+  { k:'drum',   c:'#5fe0c6', svg:'<ellipse cx="12" cy="10" rx="8" ry="3"/><path d="M4 10v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/><path d="M8 12.8l2 5.9M16 12.8l-2 5.9M7 3l4 5M17 3l-4 5"/>' },
+  { k:'bolt',   c:'#ffd84a', svg:'<path d="M13.5 2.5L5 13.5h6.2l-1.2 8 8.5-11h-6.2z"/>' },
+  { k:'mic',    c:'#ff4f9a', svg:'<rect x="9" y="2.8" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6"/>' },
+  { k:'speaker',c:'#8fd6ff', svg:'<rect x="5.5" y="2.8" width="13" height="18.4" rx="2.2"/><circle cx="12" cy="14.2" r="3.6"/><circle cx="12" cy="7.3" r="1.5"/>' },
+  { k:'phones', c:'#5fe0c6', svg:'<path d="M4 16v-4a8 8 0 0 1 16 0v4"/><rect x="3" y="14" width="4.2" height="6.5" rx="1.6"/><rect x="16.8" y="14" width="4.2" height="6.5" rx="1.6"/>' },
+  { k:'note',   c:'#c8a8ff', svg:'<path d="M9 18V6l10-2.2V16"/><circle cx="6.8" cy="18" r="2.2"/><circle cx="16.8" cy="16" r="2.2"/>' },
+];
+const tokOf = k => TOKENS.find(t => t.k === k) || TOKENS[0];
+const tokSVG = t => `<svg viewBox="-3 -3 30 30"><g class="rim">${t.svg}</g><g class="back">${t.svg}</g><g class="ink">${t.svg}</g></svg>`;
+const tokHTML = k => { const t = tokOf(k); return `<span class="tok" style="color:${t.c}">${tokSVG(t)}</span>`; };
+const TRACK_COLORS = ['#ff4f9a', '#5fe0c6', '#ffd84a', '#c8a8ff', '#8fd6ff'];
+
+//// ===== helpers =====
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function show(id){ document.querySelectorAll('.screen').forEach(s => s.classList.remove('on')); $(id).classList.add('on'); }
+function flash(msg, kind){ const f=$('flash'); f.className='flash'+(kind?' '+kind:''); $('flashMsg').textContent=msg; void f.offsetWidth; f.classList.add('show'); }
+const shuffle = a => { for (let k=a.length-1;k>0;k--){ const j=Math.floor(Math.random()*(k+1)); [a[k],a[j]]=[a[j],a[k]]; } return a; };
+
+(function sparkles(){
+  const w=$('sparkles'), marks=['+','♪','+','♫','+'];
+  for (let i=0;i<26;i++){
+    const e=document.createElement('i'); e.textContent=marks[i%marks.length];
+    e.style.left=Math.random()*100+'%'; e.style.top=Math.random()*100+'%';
+    e.style.color=TRACK_COLORS[i%TRACK_COLORS.length]; e.style.fontSize=(12+Math.random()*16)+'px';
+    w.appendChild(e);
+  }
+})();
+
+//// ===== identity (name prefilled from Bank It if the player has one) =====
+const CID = sessionStorage.getItem('singit-cid') || (() => { const c=Math.random().toString(36).slice(2,12); sessionStorage.setItem('singit-cid', c); return c; })();
+let ME = (() => {
+  let tok = TOKENS[Math.floor(Math.random()*TOKENS.length)].k;
+  try { const m = JSON.parse(localStorage.getItem('singit-me') || 'null'); if (m && m.tok) tok = m.tok; } catch(e){}
+  return { name:(Shell.player()||{}).name||'', tok };
+})();
+function saveMe(){ localStorage.setItem('singit-me', JSON.stringify(ME)); }
+
+function renderTokGrid(taken){
+  const g=$('tokGrid'); g.innerHTML='';
+  TOKENS.forEach(t => {
+    const b=document.createElement('button'); b.type='button';
+    b.className='tok'+(t.k===ME.tok?' on':'')+(taken && taken.has(t.k) && t.k!==ME.tok?' taken':'');
+    b.style.color=t.c; b.innerHTML=tokSVG(t);
+    b.onclick=()=>{ ME.tok=t.k; saveMe(); renderTokGrid(taken); };
+    g.appendChild(b);
+  });
+}
+
+//// ===== microphone: open ONLY while tuning or holding the mic; local loudness only =====
+// Nothing is recorded. The stream is stopped the moment you let go; the only thing that
+// leaves this device is a 0–1 level (~15/s, while you hold the mic) for everyone's wave.
+const MIC = { tuned:false, base:null, db:-100, sm:-100, active:false, stream:null, ctx:null, src:null, an:null, buf:null, last:0, frames:[] };
+async function micOpen(){
+  if (MIC.active) return true;
+  try{
+    MIC.stream = await navigator.mediaDevices.getUserMedia({ audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false } });
+    MIC.ctx ||= new (window.AudioContext||window.webkitAudioContext)();
+    if (MIC.ctx.state==='suspended') await MIC.ctx.resume();
+    MIC.src = MIC.ctx.createMediaStreamSource(MIC.stream);
+    MIC.an = MIC.ctx.createAnalyser(); MIC.an.fftSize = 1024;
+    MIC.src.connect(MIC.an); MIC.buf = new Float32Array(MIC.an.fftSize);
+    MIC.active = true; MIC.sm = -100; MIC.last = performance.now(); MIC.frames = [];
+    (function loop(){
+      if (!MIC.active) return;
+      MIC.an.getFloatTimeDomainData(MIC.buf);
+      let s=0; for (let i=0;i<MIC.buf.length;i++) s+=MIC.buf[i]*MIC.buf[i];
+      MIC.db = 20*Math.log10(Math.sqrt(s/MIC.buf.length)+1e-7);
+      const now = performance.now(), dt = Math.min(100, now-MIC.last); MIC.last = now;
+      const a = 1-Math.exp(-dt/SMOOTH_MS);
+      MIC.sm = MIC.sm < -99 ? MIC.db : MIC.sm + a*(MIC.db-MIC.sm);
+      onMicFrame(now, dt);
+      requestAnimationFrame(loop);
+    })();
+    return true;
+  }catch(e){ return false; }
+}
+function micClose(){
+  MIC.active = false;
+  if (MIC.src) try{ MIC.src.disconnect(); }catch(_){}
+  if (MIC.stream) MIC.stream.getTracks().forEach(t => t.stop());
+  MIC.stream = null; MIC.src = null;
+}
+const level01 = db => Math.max(0, Math.min(1, (db+70)/60));
+const threshDb = () => (MIC.base ?? -60) + VOICE_OVER;
+
+// ---- tune: hold for 3s in a quiet room; the median level becomes your room level ----
+const TUNE = { on:false, t0:0, vals:[] };
+async function tuneDown(e){
+  e.preventDefault();
+  try { $('tuneBtn').setPointerCapture(e.pointerId); } catch(_){}
+  Object.assign(TUNE, { on:true, t0:performance.now(), vals:[] });
+  $('tuneBtn').textContent = 'Stay quiet…';
+  if (!(await micOpen())){ TUNE.on=false; renderTune('No mic access — you can still play; the group judges.'); }
+}
+function tuneUp(){
+  if (!TUNE.on) return;
+  TUNE.on = false; micClose();
+  renderTune(MIC.tuned ? '' : 'Keep holding for 3 seconds.');
+}
+function tuneFrame(now){
+  if (!TUNE.on) return;
+  TUNE.vals.push(MIC.sm);
+  const f = Math.min(1, (now-TUNE.t0)/TUNE_MS);
+  $('tuneMeter').style.width = (f*100)+'%';
+  if (f >= 1){
+    const v = TUNE.vals.slice().sort((a,z) => a-z);
+    MIC.base = Math.max(-80, Math.min(-25, v[Math.floor(v.length/2)]));
+    MIC.tuned = true; TUNE.on = false; micClose();
+    renderTune(''); sendHello();
+  }
+}
+function renderTune(msg){
+  $('tuneBtn').textContent = MIC.tuned ? 'Tuned ✓ · hold to retune' : 'Hold to tune your mic';
+  $('tuneBtn').classList.toggle('done', MIC.tuned);
+  if (!TUNE.on) $('tuneMeter').style.width = MIC.tuned ? '100%' : '0%';
+  $('tuneMsg').textContent = msg || (MIC.tuned ? '' : 'Quiet room · hold for 3 seconds');
+}
+
+//// ===== network: host referees, the relay fans out =====
+let ws=null, ROOM=null, HOST_ID=null, S=null;           // S = latest game state (from the host)
+const amHost = () => HOST_ID === CID;
+function connect(){
+  return new Promise((ok, fail) => {
+    ws = new WebSocket(Shell.wsUrl('relay', 'cid='+CID));
+    ws.onopen = () => { Shell.keepAlive(ws); ok(); };
+    ws.onerror = () => fail();
+    ws.onmessage = e => { let m; try{ m=JSON.parse(e.data); }catch(_){ return; } onMessage(m); };
+    ws.onclose = () => { if (ROOM) { ROOM=null; S=null; show('scHome'); $('homeErr').textContent='Disconnected from the room.'; } };
+  });
+}
+const wsSend = m => { if (ws && ws.readyState===1) ws.send(JSON.stringify(m)); };
+// every player intent goes to the host; the host handles its own directly
+function emit(m){ if (amHost()) hostIntent(CID, m); else wsSend(m); }
+function sendHello(){ if (ROOM) emit({ t:'hello', name:ME.name, tok:ME.tok, mic:MIC.tuned }); }
+
+function onMessage(m){
+  if (m.t==='created'){ ROOM=m.room; HOST_ID=CID; hostInit(); return; }
+  if (m.t==='joined'){ ROOM=m.room; HOST_ID=m.host; sendHello(); return; }
+  if (m.t==='error'){ $('homeErr').textContent=m.error; return; }
+  if (m.t==='host-left'){ ROOM=null; S=null; ws.close(); show('scHome'); $('homeErr').textContent='The host left — the room closed.'; return; }
+  if (m.t==='state'){ if (m.from===HOST_ID) applyState(m.s); return; }
+  if (m.t==='lvl'){ if (S && m.from===S.holder) pushLevel(m.l, m.th); return; }
+  if (m.t==='words'){ if (S && m.from===S.holder) showWords(String(m.w||'').slice(0,200)); return; }
+  if (amHost()){ if (m.t==='left') hostLeft(m.from); else hostIntent(m.from, m); }
+}
+
+//// ================= HOST: the referee =================
+let H = null;   // host-only memory: deck, timers, continuation
+function hostInit(){
+  H = { deck:[], T:null, collect:null, cands:[], dl:null };
+  S = { v:0, phase:'lobby', paused:false, pauseNext:false, mode:'basic', room:ROOM, host:CID,
+        players:[], order:[], turn:-1, flipper:null, faceUp:false, card:null, cardN:0, raceN:0, tried:[],
+        holder:null, voiced:false, frozen:null, vetoBy:null, ovrBy:null, result:null, note:'', winner:null, left:null };
+  hostIntent(CID, { t:'hello', name:ME.name, tok:ME.tok, mic:MIC.tuned });
+}
+const P = id => S.players.find(p => p.id===id);
+function push(dlMs){
+  if (dlMs !== undefined) H.dl = dlMs===null ? null : Date.now()+dlMs;
+  // a pause asked for mid-song lands as soon as the mic comes down
+  if (S.pauseNext && !['hold','lobby','won'].includes(S.phase)){ S.pauseNext=false; freeze(); }
+  S.v++;
+  S.left = S.paused ? H.dlRem : H.dl ? Math.max(0, H.dl-Date.now()) : null;
+  wsSend({ t:'state', s:S });
+  applyState(JSON.parse(JSON.stringify(S)));
+}
+function later(ms, fn){
+  clearTimeout(H.T); H.fn = fn;
+  if (S.paused){ H.rem = ms; return; }            // scheduled while paused: runs on resume
+  H.at = Date.now()+ms; H.T = setTimeout(fn, ms);
+}
+function idle(){ clearTimeout(H.T); H.fn = null; H.at = null; }   // no timer (waiting on a flip)
+// ---- host pause: freeze the pending timer, the display countdown and all intents ----
+function freeze(){
+  S.paused = true;
+  H.rem = H.fn && H.at ? Math.max(0, H.at-Date.now()) : null;
+  H.dlRem = H.dl ? Math.max(0, H.dl-Date.now()) : null;
+  clearTimeout(H.T); clearTimeout(H.collect); H.collect=null; H.cands=[];
+}
+function hostPause(){
+  if (!amHost() || !S || ['lobby','won'].includes(S.phase)) return;
+  if (S.paused) return;
+  if (S.phase==='hold'){ S.pauseNext = !S.pauseNext; return push(); }   // let the song finish
+  freeze(); push();
+}
+function hostResume(){
+  if (!amHost() || !S || !S.paused) return;
+  S.paused = false;
+  H.dl = H.dlRem!=null ? Date.now()+H.dlRem : null;
+  if (H.fn && H.rem!=null){ H.at = Date.now()+H.rem; H.T = setTimeout(H.fn, H.rem); }
+  S.raceN += S.phase==='race' ? 1 : 0;           // fresh race: reaction times restart from resume
+  push();
+}
+
+function hostIntent(from, m){
+  const p = P(from);
+  if (S.paused && m.t!=='hello') return;
+  switch(m.t){
+    case 'hello': {
+      const name = String(m.name||'Player').trim().slice(0,18) || 'Player';
+      if (p){ p.name=name; p.tok=m.tok; p.mic=!!m.mic; p.on=true; }
+      else S.players.push({ id:from, name, tok:m.tok, pos:0, mic:!!m.mic, on:true, muted:false, sit:false, veto:1, ovr:1 });
+      if (!S.order.includes(from) && S.phase!=='lobby') S.order.push(from);
+      return push();
+    }
+    case 'flip':    if (S.phase==='flip' && S.flipper===from) flipCard(); return;
+    case 'grab':    return hostGrab(from, m);
+    case 'voice':   if (S.phase==='hold' && S.holder===from && !S.voiced){ S.voiced=true; push(); } return;
+    case 'release':
+      H.cands = H.cands.filter(c => c.id!==from);
+      if (S.phase==='hold' && S.holder===from) finishHold();
+      return;
+    case 'veto':
+      if (S.phase==='review' && p && from!==S.holder && p.veto>0){
+        p.veto--; S.vetoBy=from;
+        if (S.players.some(q => q.on && q.ovr>0 && q.id!==S.holder && q.id!==from)){
+          S.phase='override'; later(OVR_MS, ()=>result('veto', failContinue)); push(OVR_MS);
+        } else result('veto', failContinue);
+      }
+      return;
+    case 'override':
+      if (S.phase==='override' && p && from!==S.holder && from!==S.vetoBy && p.ovr>0){ p.ovr--; S.ovrBy=from; move(); }
+      return;
+  }
+}
+function hostLeft(id){
+  const p = P(id); if (!p) return;
+  if (S.phase==='lobby'){ S.players=S.players.filter(q => q.id!==id); return push(); }
+  p.on=false;
+  H.cands = H.cands.filter(c => c.id!==id);
+  if (S.phase==='hold' && S.holder===id) return doDrop(false);
+  if (S.mode==='basic' && (S.phase==='flip' || S.phase==='turn') && S.order[S.turn]===id){ S.note=`${p.name} left`; return basicAdvance(true); }
+  if (S.mode==='race' && S.phase==='flip' && S.flipper===id){ S.flipper = nextFlipper(); }
+  push();
+}
+
+// ---- lobby controls (host) ----
+function hostSet(fn){ if (amHost() && S.phase==='lobby'){ fn(); push(); } }
+function hostStart(){
+  S.players = S.players.filter(p => p.on);
+  S.players.forEach(p => { p.pos=0; p.muted=false; p.sit=false; p.veto=1; p.ovr=1; });
+  S.order = S.players.map(p => p.id);
+  S.turn = -1; S.cardN = 0; S.winner = null; S.result = null; S.note = ''; S.paused = false; S.pauseNext = false; S.flipper = null;
+  // every game opens on FREE (drawn last-in, so it pops first)
+  H.deck = shuffle(DECK.filter(c => c.w!=='free')); H.deck.push(DECK.find(c => c.w==='free'));
+  if (S.mode==='basic') basicAdvance(false); else raceNewWord();
+}
+function newCard(){
+  if (!H.deck.length) H.deck = shuffle(DECK.slice());
+  const c = H.deck.pop();
+  S.cardN++; S.card = { w:c.w, v:c.v, c:S.cardN%3 }; S.tried=[];
+}
+function resetTurn(){ S.holder=null; S.voiced=false; S.frozen=null; S.vetoBy=null; S.ovrBy=null; }
+
+// ---- every turn starts face down; the flipper taps the card, which starts the 5s clock ----
+function awaitFlip(flipper){
+  S.phase='flip'; S.faceUp=false; S.flipper=flipper; idle(); push(null);
+}
+function flipCard(){
+  S.faceUp = true;
+  if (S.mode==='basic'){
+    const id = S.order[S.turn];
+    S.phase='turn';
+    later(RESPONSE_MS, ()=>{ S.holder=id; doDrop(true); });   // never grabbed: mic drop + mute
+    push(RESPONSE_MS);
+  } else raceOpen();
+}
+
+// ---- basic: turn by turn ----
+function pickNextBasic(){
+  const n = S.order.length;
+  for (let k=1;k<=n;k++){
+    const idx=(S.turn+k)%n, p=P(S.order[idx]);
+    if (!p || !p.on || S.tried.includes(p.id)) continue;
+    if (p.muted){ p.muted=false; S.note=`${p.name} is on mute — skipped`; continue; }
+    S.turn=idx; return p;
+  }
+  return null;
+}
+function basicAdvance(sameWord){
+  resetTurn();
+  if (!sameWord){ S.note=''; newCard(); }
+  let p = pickNextBasic();
+  if (!p){ newCard(); p = pickNextBasic(); }
+  if (!p){ S.phase='flip'; S.flipper=null; idle(); return push(null); }
+  awaitFlip(p.id);
+}
+
+// ---- race: a rotating flipper; everyone grabs ----
+function nextFlipper(){
+  const n = S.order.length, cur = S.order.indexOf(S.flipper);
+  for (let k=1;k<=n;k++){ const p=P(S.order[(cur+k+n)%n]); if (p && p.on) return p.id; }
+  return null;
+}
+function raceNewWord(){
+  resetTurn(); newCard();
+  S.players.forEach(p => { p.sit = p.muted; p.muted = false; });
+  const sitting = S.players.filter(p => p.sit && p.on).map(p => p.name).join(', ');
+  S.note = sitting ? `${sitting} on mute this word` : '';
+  awaitFlip(nextFlipper());
+}
+const raceEligible = id => { const p=P(id); return p && p.on && !p.sit && !S.tried.includes(id); };
+function raceOpen(){
+  if (!S.players.some(p => raceEligible(p.id))) return raceNewWord();
+  resetTurn(); S.raceN++; S.phase='race'; H.cands=[];
+  later(RESPONSE_MS, ()=>result('burn', raceNewWord)); push(RESPONSE_MS);
+}
+
+// ---- the grab ----
+function hostGrab(from, m){
+  if (S.mode==='basic'){
+    if (S.phase!=='turn' || S.order[S.turn]!==from || m.n!==S.cardN) return;
+    return startHold(from);
+  }
+  if (S.phase!=='race' || m.r!==S.raceN || !raceEligible(from)) return;
+  if (!H.cands.some(c => c.id===from)) H.cands.push({ id:from, rt:Math.max(0, +m.rt||0) });
+  if (!H.collect) H.collect = setTimeout(() => {
+    H.collect = null;
+    if (S.phase!=='race' || !H.cands.length) return;
+    H.cands.sort((a,z) => a.rt-z.rt);
+    startHold(H.cands[0].id); H.cands = [];
+  }, COLLECT_MS);
+}
+function startHold(id){
+  const p = P(id);
+  // the grab stops the thermometer where it stood (and keeps the time that was left)
+  H.respLeft = H.dl ? Math.max(0, H.dl-Date.now()) : 0;
+  S.frozen = Math.min(1, H.respLeft/RESPONSE_MS);
+  S.phase='hold'; S.holder=id;
+  S.voiced = !!(p && !p.mic);   // untuned / no mic: holding counts as singing; the group judges
+  later(HOLD_CAP, ()=>finishHold());
+  push(null);
+}
+function finishHold(){
+  if (S.phase!=='hold') return;
+  if (!S.voiced){
+    // put down without singing: the response clock resumes from where the grab froze it
+    if (S.mode==='basic' && H.respLeft > 250){
+      const id = S.holder;
+      S.phase='turn'; S.holder=null; S.frozen=null;
+      later(H.respLeft, ()=>{ S.holder=id; doDrop(true); });
+      return push(H.respLeft);
+    }
+    return doDrop(true);
+  }
+  const vetoers = S.players.some(q => q.on && q.veto>0 && q.id!==S.holder);
+  if (!vetoers) return move();
+  S.phase='review'; later(REVIEW_MS, move); push(REVIEW_MS);
+}
+function doDrop(mute){
+  const p = P(S.holder);
+  if (p && mute) p.muted = true;
+  result('drop', failContinue);
+}
+function failContinue(){
+  if (S.holder) S.tried.push(S.holder);
+  S.holder=null;
+  if (S.mode==='basic') basicAdvance(true);   // same word, next player, face down again
+  else raceOpen();                            // same word, race reopens for everyone else
+}
+function move(){
+  const p = P(S.holder);
+  if (!p) return failContinue();
+  p.pos = Math.min(FINISH, p.pos + S.card.v);
+  if (p.pos >= FINISH){ idle(); S.phase='won'; S.winner=p.id; S.result={k:'won', who:p.id}; return push(null); }
+  result('moved', () => { if (S.mode==='basic') basicAdvance(false); else raceNewWord(); });
+}
+function result(k, then){
+  clearTimeout(H.collect); H.collect=null;
+  S.phase='result'; S.result={ k, who:S.holder, by:S.vetoBy, ovr:S.ovrBy, v:S.card && S.card.v, n:S.v+1 };
+  later(RESULT_MS, then); push(null);
+}
+
+//// ================= CLIENT: render whatever the host says =================
+let lastV=-1, deadline=null, lastPhaseKey='', liveAt=0, seenResult=0, lastFace='';
+const HOLD = { on:false, t0:0, voiced:false, frames:[] };
+
+function applyState(s){
+  if (s.v <= lastV && !amHost()) return;
+  lastV = s.v; S = s;
+  deadline = s.left!=null ? performance.now()+s.left : null;
+  const key = s.phase+':'+s.cardN+':'+s.raceN+':'+s.turn;
+  if (key !== lastPhaseKey){
+    if (s.phase==='race' || s.phase==='turn') liveAt = performance.now();
+    lastPhaseKey = key;
+  }
+  const face = s.faceUp ? s.cardN+':'+s.turn+':'+s.raceN : '';
+  if (face && face!==lastFace && (s.phase==='turn' || s.phase==='race')){ const c=$('wcard'); c.classList.remove('flip'); void c.offsetWidth; c.classList.add('flip'); }
+  lastFace = face;
+  // lost the race, or the hold ended elsewhere — let go locally
+  const mine = s.phase==='hold' && s.holder===CID;
+  const pending = (s.phase==='race' && !s.holder) || (s.phase==='turn' && s.order[s.turn]===CID);
+  if (HOLD.on && !mine && !pending) endLocalHold();
+  // a new turn or a new singer clears the words
+  const wordsFor = s.phase==='hold' ? s.holder+':'+s.cardN+':'+s.raceN : s.phase==='flip' ? '' : lastWordsFor;
+  if (wordsFor !== lastWordsFor){ lastWordsFor = wordsFor; $('lyrics').textContent=''; $('lyrics').classList.remove('heard'); }
+  // started singing before the host confirmed the grab? say so again now that it's ours
+  if (HOLD.on && mine && !amHost() && HOLD.voiced && !s.voiced) wsSend({ t:'voice' });
+  if (s.result && s.phase==='result' && s.result.n !== seenResult){ seenResult = s.result.n; showResult(s); }
+  render();
+}
+
+//// ===== fireworks =====
+const FW = { parts:[], raf:0 };
+function fireworks(bursts){
+  const cv=$('fireworks'), g=cv.getContext('2d');
+  cv.width=innerWidth*devicePixelRatio; cv.height=innerHeight*devicePixelRatio; g.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  const cols=['#ff4f9a','#5fe0c6','#ffd84a','#c8a8ff','#8fd6ff'];
+  for (let b=0;b<bursts;b++){
+    setTimeout(() => {
+      const x = innerWidth*(.2+Math.random()*.6), y = innerHeight*(.18+Math.random()*.35), c = cols[Math.floor(Math.random()*cols.length)];
+      for (let i=0;i<70;i++){
+        const a=Math.random()*Math.PI*2, v=2+Math.random()*5.5;
+        FW.parts.push({ x, y, vx:Math.cos(a)*v, vy:Math.sin(a)*v, life:1, c: Math.random()<.2 ? '#ffffff' : c });
+      }
+      if (!FW.raf) FW.raf = requestAnimationFrame(step);
+    }, b*260);
+  }
+  function step(){
+    g.clearRect(0,0,innerWidth,innerHeight);
+    FW.parts.forEach(p => { p.x+=p.vx; p.y+=p.vy; p.vy+=0.08; p.vx*=.985; p.vy*=.985; p.life-=0.013;
+      g.globalAlpha=Math.max(0,p.life); g.fillStyle=p.c; g.shadowColor=p.c; g.shadowBlur=10; g.beginPath(); g.arc(p.x,p.y,2.4,0,7); g.fill(); });
+    FW.parts = FW.parts.filter(p => p.life>0);
+    g.globalAlpha=1;
+    FW.raf = FW.parts.length ? requestAnimationFrame(step) : 0;
+    if (!FW.raf) g.clearRect(0,0,innerWidth,innerHeight);
+  }
+}
+
+function showResult(s){
+  const r = s.result, p = s.players.find(q => q.id===r.who), nm = p ? p.name : '';
+  if (r.k==='moved'){ flash(r.ovr ? `Overruled! +${r.v}` : `+${r.v} ${nm}`); fireworks(3 + r.v); }
+  else if (r.k==='drop') flash('Mic dropped!', 'bad');
+  else if (r.k==='veto') flash('Vetoed!', 'bad');
+  else if (r.k==='burn') flash('Nobody grabbed it', 'warn');
+}
+
+function renderPause(){
+  const inGame = S && !['lobby','won'].includes(S.phase);
+  const host = amHost(), paused = !!(inGame && S.paused);
+  const pb = $('pauseBtn');
+  pb.classList.toggle('on', !!(inGame && (host || paused)));
+  pb.classList.toggle('paused', paused);
+  pb.classList.toggle('ro', !host);
+  pb.classList.toggle('queued', !!(S && S.pauseNext));
+  pb.textContent = paused ? (host ? 'Resume ▶' : 'Paused') : S && S.pauseNext ? 'Pausing after this song…' : 'Pause ⏸';
+}
+function render(){
+  renderPause();
+  if (!S) return;
+  if (S.phase!=='won' && winShown){ winShown=0; Shell.hide(); }
+  if (S.phase==='lobby') return renderLobby();
+  if (S.phase==='won') return renderWin();
+  show('scGame'); renderGame();
+}
+
+function renderLobby(){
+  show('scLobby');
+  $('roomCode').textContent = S.room;
+  const host = amHost();
+  $('lobbyPlayers').innerHTML = S.players.map(p =>
+    `<div class="prow${p.on?'':' off'}">${tokHTML(p.tok)}<span class="nm">${esc(p.name)}${p.id===CID?' (you)':''}</span>`+
+    `<span class="micst${p.mic?' ok':''}">${p.mic?'tuned':'not tuned'}</span>${p.id===S.host?'<span class="tag">host</span>':''}</div>`
+  ).join('');
+  document.querySelectorAll('#modeSeg button').forEach(b => b.classList.toggle('on', b.dataset.m===S.mode));
+  $('modeSeg').classList.toggle('ro', !host);
+  $('modeHelp').textContent = S.mode==='basic' ? 'Take turns. Flip your card, then hold the mic and sing.' : 'Everyone races. First to hold the mic sings.';
+  $('startBtn').style.display = host ? '' : 'none';
+  $('startBtn').disabled = S.players.filter(p => p.on).length < 2;
+  if (!TUNE.on) renderTune();
+  if (!host) $('lobbyErr').textContent = $('lobbyErr').textContent || 'Waiting for the host to start…';
+}
+
+function renderTrack(){
+  const rows=[];
+  for (let n=FINISH;n>=0;n--){
+    const c = TRACK_COLORS[n%TRACK_COLORS.length];
+    const here = S.players.filter(p => p.pos===n && p.on);
+    const label = n===FINISH ? 'Winner!' : n===0 ? 'Start' : n;
+    rows.push(`<div class="trow${n===FINISH||n===0?' end':''}" style="--rc:${c}">`+
+      `<span class="n">${label}</span><span class="who">${here.map(p => tokHTML(p.tok)).join('')}</span></div>`);
+  }
+  $('track').innerHTML = rows.join('');
+}
+
+function renderSide(){
+  const turnId = S.mode==='basic' && (S.phase==='turn'||S.phase==='flip') ? S.order[S.turn] : null;
+  $('side').innerHTML = S.players.map(p => {
+    const cls = ['prow']; if (!p.on) cls.push('off'); if (p.id===turnId) cls.push('turn'); if (p.id===S.holder) cls.push('hold');
+    const muted = p.muted || (S.mode==='race' && p.sit);
+    return `<div class="${cls.join(' ')}">${tokHTML(p.tok)}<span class="nm">${esc(p.name)}${p.id===CID?' (you)':''}</span>`+
+      (muted ? `<span class="mute"><span class="a">You're</span><br><span class="b">on</span> <span class="c">mute!</span></span>` :
+        `<span class="chips"><span class="chip veto${p.veto?'':' used'}">veto</span><span class="chip ovr${p.ovr?'':' used'}">ovr</span></span>`)+
+      `<span class="pts">${p.pos}</span></div>`;
+  }).join('');
+}
+
+function myMicLive(){
+  if (!S || S.paused) return false;
+  const me = S.players.find(p => p.id===CID); if (!me || !me.on) return false;
+  if (S.mode==='basic') return S.phase==='turn' && S.order[S.turn]===CID;
+  return S.phase==='race' && !S.holder && !me.sit && !S.tried.includes(CID);
+}
+const canFlip = () => S && !S.paused && S.phase==='flip' && S.flipper===CID;
+
+function renderGame(){
+  renderTrack(); renderSide();
+  const nm = id => { const p=S.players.find(q => q.id===id); return esc(p ? p.name : ''); };
+  const me = S.players.find(p => p.id===CID) || {};
+  // the card: face down until the flipper taps it
+  const c = $('wcard');
+  const up = S.card && S.faceUp;
+  c.className = 'wcard c'+(S.card ? S.card.c : 0)+(up ? '' : ' back')+(canFlip() ? ' flippable' : '')+(c.classList.contains('flip')?' flip':'');
+  if (S.card){ $('wTop').textContent=$('wBot').textContent=S.card.w; $('vTop').textContent=$('vBot').textContent=S.card.v; }
+  // status line
+  let st='';
+  if (S.phase==='flip') st = S.flipper===CID ? 'Tap the card to flip it' : `<b>${nm(S.flipper)}</b> flips the card`;
+  else if (S.phase==='turn') st = S.order[S.turn]===CID ? 'Grab the mic!' : `<b>${nm(S.order[S.turn])}</b>'s turn`;
+  else if (S.phase==='race') st = me.sit ? 'Sitting this one out' : S.tried.includes(CID) ? 'Mic dropped — watch' : 'Grab the mic!';
+  else if (S.phase==='hold') st = S.holder===CID ? (S.voiced ? 'On air — keep singing' : 'Sing!') : `<b>${nm(S.holder)}</b> has the mic`;
+  else if (S.phase==='review') st = `Veto <b>${nm(S.holder)}</b>? <span class="cd" id="cd"></span>`;
+  else if (S.phase==='override') st = `<b>${nm(S.vetoBy)}</b> vetoed — override? <span class="cd" id="cd"></span>`;
+  $('status').innerHTML = st;
+  $('note').textContent = S.note;
+  // mic
+  const live = myMicLive() && !HOLD.on;
+  $('mic').classList.toggle('live', live);
+  $('mic').classList.toggle('held', HOLD.on);
+  $('mic').classList.toggle('other', S.phase==='hold' && S.holder!==CID);
+  $('micLabel').className = 'miclabel'+(live?' live':'');
+  $('micLabel').textContent = HOLD.on ? (HOLD.voiced ? 'On air' : 'Sing!') : live ? 'Hold to sing' : '';
+  // veto / override buttons
+  let calls='';
+  if (S.phase==='review' && S.holder!==CID && me.veto>0) calls = `<button class="btn" id="vetoBtn">Veto ✋</button>`;
+  if (S.phase==='override' && S.holder!==CID && S.vetoBy!==CID && me.ovr>0) calls = `<button class="btn mint" id="ovrBtn">Override</button>`;
+  $('calls').innerHTML = calls;
+  if ($('vetoBtn')) $('vetoBtn').onclick = () => emit({ t:'veto' });
+  if ($('ovrBtn')) $('ovrBtn').onclick = () => emit({ t:'override' });
+}
+
+let winShown = 0;
+function renderWin(){
+  if (winShown === S.cardN+':'+S.winner) return;
+  winShown = S.cardN+':'+S.winner;
+  fireworks(9);
+  const w = S.players.find(p => p.id===S.winner) || {};
+  if (S.winner===CID) Shell.postScore('singit', 1);
+  Shell.results({ em: tokHTML(w.tok), title: S.winner===CID ? 'You win!' : `${esc(w.name||'')} wins!`,
+    sub: amHost() ? 'First to the top of the track.' : 'Waiting for the host to start the next game…',
+    again: amHost() ? { label:'Play again', onClick:()=>{ idle(); S.phase='lobby'; S.card=null; S.players.forEach(p => { p.pos=0; }); push(null); } } : null });
+}
+
+//// ===== hold to sing =====
+function micDown(e){
+  if (!myMicLive() || HOLD.on) return;
+  e.preventDefault();
+  try { $('mic').setPointerCapture(e.pointerId); } catch(_){}
+  Object.assign(HOLD, { on:true, t0:performance.now(), voiced:!MIC.tuned, frames:[] });
+  emit({ t:'grab', n:S.cardN, r:S.raceN, rt:Math.round(performance.now()-liveAt) });
+  if (MIC.tuned) micOpen();          // the mic opens only now, and closes when you let go
+  recStart();
+  render();
+}
+function micUp(){
+  if (!HOLD.on) return;
+  endLocalHold(); emit({ t:'release' }); render();
+}
+// every mic frame: tuning, voice onset (total voiced time in a sliding window), the level stream
+let lastLvl=0;
+function onMicFrame(now, dt){
+  tuneFrame(now);
+  renderReadout(now);
+  if (!HOLD.on) return;
+  const th = threshDb();
+  HOLD.frames.push({ t:now, dt, v: MIC.sm > th });
+  while (HOLD.frames.length && now-HOLD.frames[0].t > VOICE_WIN) HOLD.frames.shift();
+  if (!HOLD.voiced){
+    const voicedMs = HOLD.frames.reduce((a,f) => a + (f.v ? f.dt : 0), 0);
+    if (voicedMs >= VOICE_NEED){ HOLD.voiced=true; emit({ t:'voice' }); render(); }
+  }
+  if (now-lastLvl > 66 && S && S.holder===CID){
+    lastLvl=now;
+    const l=+level01(MIC.sm).toFixed(3), t=+level01(th).toFixed(3);
+    pushLevel(l, t); wsSend({ t:'lvl', l, th:t });
+  }
+}
+
+//// ===== live words: the browser's built-in speech recognition (Web Speech API) =====
+// Free, no key. Runs only on the singer's device and only while they hold the mic. Note:
+// in Chrome the browser itself sends the audio to Google's speech service to get the words.
+// Everyone sees the text (~160 chars); the prompt word lights up when it's heard. The words
+// are for fun — they never score or block a turn; the group's veto is still the judge.
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let REC = null, lastWordsFor = '';
+function recStart(){
+  if (!SR || REC) return;
+  try{
+    const r = new SR(); REC = r;
+    r.lang = 'en-US'; r.continuous = true; r.interimResults = true;
+    r.onresult = e => {
+      let t=''; for (let i=0;i<e.results.length;i++) t += e.results[i][0].transcript + ' ';
+      t = t.replace(/\s+/g,' ').trim().slice(-160);
+      showWords(t); wsSend({ t:'words', w:t });
+    };
+    r.onerror = () => {};
+    r.onend = () => { if (REC===r && HOLD.on) try{ r.start(); }catch(_){} };   // Chrome stops after a pause
+    r.start();
+  }catch(e){ REC = null; }
+}
+function recStop(){
+  const r = REC; REC = null;
+  if (r){ r.onend = null; try{ r.stop(); }catch(_){} }
+}
+function showWords(t){
+  const el=$('lyrics'), w = S && S.card ? S.card.w : '';
+  const re = w ? new RegExp('\\b('+w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')(s|es|\'s)?\\b','ig') : null;
+  const html = esc(t).replace(re || /$^/, '<mark>$&</mark>');
+  const heard = !!re && re.test(t);
+  if (heard && !el.classList.contains('heard')){ el.classList.remove('heard'); void el.offsetWidth; }
+  el.classList.toggle('heard', heard);
+  el.innerHTML = html;
+}
+function endLocalHold(){ HOLD.on=false; micClose(); recStop(); }
+
+//// ===== mic readout (playground toggle): live numbers for tuning the thresholds =====
+let READOUT = false;
+function renderReadout(now){
+  if (!READOUT) return;
+  const voicedMs = HOLD.frames.reduce((a,f) => a + (f.v ? f.dt : 0), 0);
+  $('readout').innerHTML =
+    `level <b>${MIC.active ? MIC.sm.toFixed(1) : '—'}</b> dB<br>`+
+    `room <b>${MIC.base!=null ? MIC.base.toFixed(1) : 'not tuned'}</b> dB<br>`+
+    `singing line <b>${MIC.base!=null ? threshDb().toFixed(1) : '—'}</b> dB<br>`+
+    `voiced <b>${Math.round(voicedMs)}</b> / ${VOICE_NEED} ms`;
+}
+
+//// ===== the wave (everyone sees the singer) + the thermometer =====
+const LV = new Array(90).fill(0);
+let TH = null;            // the singer's singing line, 0–1 (null = untuned / no line)
+function pushLevel(l, th){ LV.push(l); LV.shift(); if (th!=null) TH = th; }
+(function draw(){
+  const cv=$('wave'), g=cv.getContext('2d'), W=cv.width, Hh=cv.height;
+  g.clearRect(0,0,W,Hh);
+  const bw = W/LV.length, mid = Hh/2;
+  const singing = S && S.phase==='hold';
+  if (!singing && !(S && S.paused)) { for (let i=0;i<LV.length;i++) LV[i]*=0.9; }
+  // the singing wave
+  g.shadowColor='#ff4f9a'; g.shadowBlur=10; g.fillStyle='#ff4f9a';
+  LV.forEach((l,i) => { const h=Math.max(2, l*(Hh-8)); g.fillRect(i*bw+2, mid-h/2, bw-4, h); });
+  // the baseline: the singer's tuned room level + margin — bars past it count as singing
+  if (singing && TH!=null){
+    const h = TH*(Hh-8)/2;
+    g.shadowColor='#5fe0c6'; g.shadowBlur=8; g.strokeStyle='#5fe0c6'; g.lineWidth=3; g.setLineDash([14,10]);
+    g.beginPath(); g.moveTo(0, mid-h); g.lineTo(W, mid-h); g.moveTo(0, mid+h); g.lineTo(W, mid+h); g.stroke();
+    g.setLineDash([]);
+  }
+  // thermometer: the 5s response clock after a flip; the grab freezes it where it stood
+  const fill=$('thermFill'), th=$('therm');
+  if (S && S.paused && deadline) deadline = performance.now() + (S.left||0);   // hold the bar still
+  if (S && ['hold','review','override','result'].includes(S.phase) && S.frozen!=null){
+    fill.style.height = (S.frozen*100)+'%'; th.classList.add('air');          // the grab froze it
+  } else if (S && (S.phase==='race' || S.phase==='turn') && deadline){
+    fill.style.height = Math.max(0, (deadline-performance.now())/RESPONSE_MS*100)+'%'; th.classList.remove('air');
+  } else if (S && S.phase==='flip'){ fill.style.height='100%'; th.classList.remove('air'); }
+  else fill.style.height='0%';
+  // the veto / override window counts down in the status line instead
+  const cd=$('cd');
+  if (cd) cd.textContent = deadline && (S.phase==='review' || S.phase==='override') ? Math.max(0, Math.ceil((deadline-performance.now())/1000)) : '';
+  requestAnimationFrame(draw);
+})();
+
+//// ===== wiring =====
+const mic=$('mic');
+mic.addEventListener('pointerdown', micDown);
+mic.addEventListener('pointerup', micUp);
+mic.addEventListener('pointercancel', micUp);
+mic.addEventListener('contextmenu', e => e.preventDefault());
+$('wcard').addEventListener('click', () => { if (canFlip()) emit({ t:'flip' }); });
+const tb=$('tuneBtn');
+tb.addEventListener('pointerdown', tuneDown);
+tb.addEventListener('pointerup', tuneUp);
+tb.addEventListener('pointercancel', tuneUp);
+tb.addEventListener('contextmenu', e => e.preventDefault());
+
+renderTokGrid();
+
+function ready(){
+  const p = Shell.player(); if (!p) return false;
+  ME.name = p.name; saveMe(); $('homeErr').textContent=''; return true;
+}
+async function host(){
+  if (!ready()) return;
+  try { await connect(); } catch(e){ $('homeErr').textContent='Could not reach the game server.'; return; }
+  wsSend({ t:'create' });
+}
+async function join(code){
+  if (!ready()) return;
+  if (!/^\d{4}$/.test(code)){ $('homeErr').textContent='Enter the 4-digit room code.'; return; }
+  try { await connect(); } catch(e){ $('homeErr').textContent='Could not reach the game server.'; return; }
+  wsSend({ t:'join', room:code });
+}
+$('introGo').onclick = () => Shell.requirePlayer().then(p => { ME.name=p.name; show('scHome'); });
+$('hostBtn').onclick = host;
+$('joinOpen').onclick = () => { $('homeChoose').style.display='none'; $('homeJoin').style.display=''; $('joinCode').focus(); };
+$('joinBtn').onclick = () => join($('joinCode').value.trim());
+$('joinCode').addEventListener('keydown', e => { if (e.key==='Enter') $('joinBtn').click(); });
+
+$('inviteBtn').onclick = async () => {
+  const link = `${location.origin}${location.pathname}#/join/${ROOM}`;
+  if (navigator.share && matchMedia('(pointer:coarse)').matches){
+    try { await navigator.share({ title:'Sing It', text:'Come sing with us!', url:link }); return; } catch(e){ if (e.name==='AbortError') return; }
+  }
+  try { await navigator.clipboard.writeText(link); flash('Link copied'); } catch(e){ prompt('Copy this invite link:', link); }
+};
+document.querySelectorAll('#modeSeg button').forEach(b => b.onclick = () => hostSet(() => { S.mode=b.dataset.m; }));
+$('startBtn').onclick = () => { if (amHost()) hostStart(); };
+$('pauseBtn').onclick = () => { if (!amHost()) return; if (S && S.paused) hostResume(); else hostPause(); };
+const leave = () => { ROOM=null; S=null; if (ws) ws.close(); Shell.hide(); show('scHome'); };
+
+//// ===== the shared frame =====
+Shell.init({
+  brand:'<span class="s">Sing</span>&nbsp;<span class="i">It</span>',
+  theme:{ key:'singit-theme', darkDefault:true },
+  topExtra:['pauseBtn'],
+  beforeLeave:()=>!ROOM || confirm('Leave this room?'),
+  playground:{
+    swatches:['#0b0b10','#150a24','#07121f','#1f0716','#061a17','#1c1c1c'].map(c=>({ bg:c })),
+    extras:[
+      { html:'<label>Neon glow <span class="v" id="glowVal">1.0×</span></label><input type="range" class="sh-range" id="glowR" min="0" max="2.5" step="0.1" value="1" />',
+        init:(el,set)=>{ el.querySelector('#glowR').oninput=e=>{ set('--glow', e.target.value); el.querySelector('#glowVal').textContent=(+e.target.value).toFixed(1)+'×'; }; },
+        reset:el=>{ el.querySelector('#glowR').value=1; el.querySelector('#glowVal').textContent='1.0×'; } },
+      { html:'<label>Mic</label><button class="sh-pg-toggle" id="pgReadout" type="button">Show mic readout</button>',
+        init:el=>{ el.querySelector('#pgReadout').onclick=()=>{ READOUT=!READOUT; el.querySelector('#pgReadout').classList.toggle('on',READOUT); $('readout').classList.toggle('on',READOUT); renderReadout(performance.now()); }; } },
+    ],
+  },
+});
+
+// back arrows (top-left of each card)
+Shell.addBack('#scIntro .card', () => Shell.nav('games'));
+Shell.addBack('#scHome .card',  () => { if ($('homeJoin').style.display!=='none'){ $('homeChoose').style.display=''; $('homeJoin').style.display='none'; $('homeErr').textContent=''; } else show('scIntro'); });
+Shell.addBack('#scLobby .card', leave);
+// invite links: #/join/1234
+(function checkJoin(){
+  const m = location.hash.match(/^#\/join\/(\d{4})/);
+  if (!m) return;
+  history.replaceState(null, '', location.pathname);
+  show('scHome'); $('homeChoose').style.display='none'; $('homeJoin').style.display=''; $('joinCode').value=m[1];
+  Shell.requirePlayer().then(p => { ME.name=p.name; join(m[1]); });
+})();
+</script>
+</body>
+</html>

@@ -31,7 +31,7 @@ async function advanceSeries(client, m, s, boardWinner, scoreHost, scoreGuest, w
       [m.id, winner, seriesHost, seriesGuest, pointsHost, pointsGuest]
     );
     await client.query(
-      `UPDATE match_state SET tiles_json=$2, score_host=$3, score_guest=$4,
+      `UPDATE match_state SET tiles_json=$2::jsonb, score_host=$3, score_guest=$4,
          wrong_host=$5, wrong_guest=$6, board_status='done', tb_question=NULL, tb_answer=NULL,
          tb_tried_host=FALSE, tb_tried_guest=FALSE, version=version+1, updated_at=now()
        WHERE match_id=$1`,
@@ -46,7 +46,7 @@ async function advanceSeries(client, m, s, boardWinner, scoreHost, scoreGuest, w
       [m.id, seriesHost, seriesGuest, nextIdx, pointsHost, pointsGuest]
     );
     await client.query(
-      `UPDATE match_state SET tiles_json=$2, turn=$3, score_host=0, score_guest=0,
+      `UPDATE match_state SET tiles_json=$2::jsonb, turn=$3, score_host=0, score_guest=0,
          wrong_host=0, wrong_guest=0, board_status='playing', tb_question=NULL, tb_answer=NULL,
          tb_tried_host=FALSE, tb_tried_guest=FALSE, version=version+1, updated_at=now()
        WHERE match_id=$1`,
@@ -161,7 +161,7 @@ module.exports = async (req, res) => {
         // tied board → sudden death: generated math question, first correct answer wins
         const q = genTiebreak();
         await client.query(
-          `UPDATE match_state SET tiles_json=$2, score_host=$3, score_guest=$4,
+          `UPDATE match_state SET tiles_json=$2::jsonb, score_host=$3, score_guest=$4,
              wrong_host=$5, wrong_guest=$6, board_status='tiebreak',
              tb_question=$7, tb_answer=$8, tb_tried_host=FALSE, tb_tried_guest=FALSE,
              version=version+1, updated_at=now()
@@ -174,7 +174,7 @@ module.exports = async (req, res) => {
       }
     } else {
       await client.query(
-        `UPDATE match_state SET tiles_json=$2, turn=$3, score_host=$4, score_guest=$5,
+        `UPDATE match_state SET tiles_json=$2::jsonb, turn=$3, score_host=$4, score_guest=$5,
            wrong_host=$6, wrong_guest=$7, version=version+1, updated_at=now()
          WHERE match_id=$1`,
         [id, JSON.stringify(tiles), turn, scoreHost, scoreGuest, wrongHost, wrongGuest]

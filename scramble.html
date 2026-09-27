@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Scramble</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Nunito:wght@700;800;900&family=Fredoka:wght@600;700&display=swap" rel="stylesheet" />
+<script>(function(){ try{ if(localStorage.getItem('nysgpt-theme-f3')==='dark') document.documentElement.setAttribute('data-theme','dark'); }catch(e){} })();</script>
+<link rel="stylesheet" href="shell.css" />
+<style>
+  /* Scramble's own stage */
+  :root{
+    --bg:#a64ca6; --panel:#fffaf2; --panel-2:#f6e8f6; --ink:#2a1a3e; --ink-dim:#7a6385; --ink-faint:#b6a6c0; --shadow:#6d2a6d;
+    --teal:#1fc7b6; --teal-sh:#13978a; --pink:#ff4d8d; --yellow:#ffd23f; --purple:#8b5cf6; --purple-sh:#6d3fd6;
+    --p0:#ff4d8d; --p0-sh:#cc2f6e; --p1:#1fc7b6; --p1-sh:#13978a;
+    --font-display:"Luckiest Guy",system-ui,sans-serif; --font-body:"Nunito",system-ui,sans-serif; --pop:1;
+    --sh-a:var(--p0); --sh-a-sh:var(--p0-sh); --sh-b:var(--p1); --sh-b-sh:var(--p1-sh);
+  }
+  :root[data-theme="dark"]{ --bg:#260d26; --panel:#3a173a; --panel-2:#4d214d; --ink:#f6f1ff; --ink-dim:#bcaee3; --ink-faint:#7a6aa8; --shadow:#08051a; }
+  :root{color-scheme:light} :root[data-theme="dark"]{color-scheme:dark}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{min-height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-weight:800;-webkit-font-smoothing:antialiased;transition:background .4s,color .4s;background-attachment:fixed;
+    background-image:radial-gradient(circle at 18% 16%, rgba(255,255,255,.10), transparent 42%),radial-gradient(circle at 84% 82%, rgba(255,255,255,.07), transparent 46%)}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  .bgfloat{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+  .bgfloat .b{position:absolute;border-radius:50%;opacity:.16;background:#fff;animation:bob 7s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-26px) rotate(6deg)}}
+  .stage{position:relative;z-index:2;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:92px 18px 40px}
+  .screen{display:none;width:100%;max-width:520px}
+  .screen.on{display:block}
+  .card{background:var(--panel);border-radius:28px;box-shadow:0 calc(11px * var(--pop)) 0 var(--shadow);padding:34px 36px;width:100%;animation:pop .42s cubic-bezier(.2,1.4,.4,1) both}
+  @keyframes pop{from{opacity:0;transform:scale(.9) translateY(14px)}to{opacity:1;transform:none}}
+  @media(max-width:560px){.card{padding:28px 22px}}
+  h1{font-family:var(--font-display);font-size:clamp(34px,7vw,50px);text-align:center;line-height:.98;margin-bottom:10px;font-weight:400}
+  h1 .x{color:var(--p0)} h1 .o{color:var(--p1);display:inline-block;transform:rotate(-4deg)}
+  .sub{text-align:center;color:var(--ink-dim);font-size:15px;margin-bottom:22px;line-height:1.5}
+  .rules{background:var(--panel-2);border-radius:18px;padding:18px 20px;margin-bottom:22px;display:flex;flex-direction:column;gap:11px}
+  .rule{display:flex;align-items:center;gap:13px;font-size:14.5px}
+  .rule .n{width:30px;height:30px;flex-shrink:0;border-radius:9px;background:var(--teal);color:#053d38;display:grid;place-items:center;font-family:var(--font-display);font-size:15px;box-shadow:0 3px 0 var(--teal-sh)}
+  .rule:nth-child(2) .n{background:var(--pink);box-shadow:0 3px 0 #cc2f6e;color:#fff}
+  .rule:nth-child(3) .n{background:var(--yellow);box-shadow:0 3px 0 #d9a800;color:#5a4500}
+  .btn{display:flex;align-items:center;justify-content:center;width:100%;font-family:var(--font-display);font-size:22px;letter-spacing:.02em;color:#fff;background:var(--p0);
+    padding:15px 26px;border-radius:16px;position:relative;top:0;box-shadow:0 calc(6px * var(--pop)) 0 var(--p0-sh);transition:top .08s,box-shadow .08s}
+  .btn:active{top:5px;box-shadow:0 1px 0 var(--p0-sh)}
+
+  .play{max-width:560px}
+  .score{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+  .score.three{grid-template-columns:1fr auto 1fr}
+  .pill{background:var(--panel);border-radius:16px;box-shadow:0 calc(5px * var(--pop)) 0 var(--shadow);padding:10px 12px;text-align:center;transition:transform .15s,box-shadow .15s;min-width:0}
+  .pill .k{font-family:var(--font-display);font-size:15px;letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pill .v{font-family:var(--font-display);font-size:30px;line-height:1.1}
+  .pill.p0 .k{color:var(--p0)} .pill.p1 .k{color:var(--p1)} .pill.pd .k{color:var(--ink-faint)}
+  .pill.turn{transform:scale(1.07);box-shadow:0 5px 0 var(--shadow),0 0 0 4px var(--yellow)}
+  .status{font-family:var(--font-display);font-size:24px;text-align:center;color:#fff;text-shadow:0 3px 0 var(--shadow);min-height:34px;margin-bottom:14px}
+  .boardcard{background:var(--panel);border-radius:26px;padding:16px;box-shadow:0 calc(11px * var(--pop)) 0 var(--shadow);animation:pop .42s cubic-bezier(.2,1.4,.4,1) both}
+  .clock{height:10px;border-radius:10px;background:var(--panel-2);overflow:hidden;margin:0 4px 18px}
+  .clock i{display:block;height:100%;background:var(--p1);border-radius:10px;transition:width .25s linear}
+  .clock i.low{background:#e0303b}
+  .slots,.tiles{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+  .slots{min-height:64px;margin-bottom:22px}
+  .slot,.tile{width:54px;height:60px;border-radius:14px;display:grid;place-items:center;font-family:var(--font-display);font-size:30px;text-transform:uppercase}
+  .slot{background:var(--panel-2);box-shadow:inset 0 3px 0 rgba(0,0,0,.08)}
+  .slot.f{background:#fff;box-shadow:0 4px 0 rgba(0,0,0,.14),0 0 0 2px var(--p1);cursor:pointer}
+  :root[data-theme="dark"] .slot.f{background:var(--panel)}
+  .tile{background:var(--yellow);color:#5a4500;box-shadow:0 5px 0 #d9a800;position:relative;top:0;transition:top .08s,box-shadow .08s,opacity .12s}
+  .tile:active{top:4px;box-shadow:0 1px 0 #d9a800}
+  .tile.used{opacity:.2;pointer-events:none}
+  .slots.good .slot.f{box-shadow:0 4px 0 rgba(0,0,0,.14),0 0 0 3px #22c55e;background:#dcfce7;color:#14532d}
+  .slots.bad{animation:shake .35s}
+  @keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+  .tools{display:flex;justify-content:center;gap:10px;margin-top:22px}
+  .tools button{font-size:13px;font-weight:900;color:var(--ink-dim);background:var(--panel-2);border-radius:11px;padding:10px 16px}
+  .tools button:hover{color:var(--ink)}
+  .reveal{text-align:center;min-height:22px;margin-top:14px;color:var(--ink-dim);font-size:15px}
+  @media(max-width:560px){.slot,.tile{width:40px;height:48px;font-size:24px}}
+</style>
+</head>
+<body>
+<div class="bgfloat" id="bgfloat"></div>
+<div class="stage">
+  <section class="screen on" id="scIntro">
+    <div class="card">
+      <h1><span class="x">Scram</span><span class="o">ble</span></h1>
+      <div class="sub">Unjumble the letters before the clock — or your friend — does.<br>Go solo or race a friend.</div>
+      <div class="rules">
+        <div class="rule"><span class="n">1</span><span>Tap the letters (or type) to spell the hidden word.</span></div>
+        <div class="rule"><span class="n">2</span><span>Solo: as many words as you can in 60 seconds. Longer words score more.</span></div>
+        <div class="rule"><span class="n">3</span><span>With a friend: same word on both screens — first to solve five wins.</span></div>
+      </div>
+      <button class="btn" id="introGo">Let's play!</button>
+    </div>
+  </section>
+
+  <section class="screen play" id="scGame">
+    <div class="score" id="score">
+      <div class="pill p0" id="pA"><div class="k" id="kA"></div><div class="v" id="sA">0</div></div>
+      <div class="pill p1" id="pB"><div class="k" id="kB"></div><div class="v" id="sB">0</div></div>
+    </div>
+    <div class="status" id="status"></div>
+    <div class="boardcard">
+      <div class="clock"><i id="clock"></i></div>
+      <div class="slots" id="slots"></div>
+      <div class="tiles" id="tiles"></div>
+      <div class="tools"><button id="mix" type="button">Shuffle</button><button id="clear" type="button">Clear</button><button id="skip" type="button">Skip</button></div>
+      <div class="reveal" id="reveal"></div>
+    </div>
+  </section>
+</div>
+
+<script src="shell.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const esc = Shell.esc;
+function show(id){ document.querySelectorAll('.screen').forEach(s => s.classList.remove('on')); $(id).classList.add('on'); }
+(function bg(){ const w=$('bgfloat'); for (let i=0;i<9;i++){ const b=document.createElement('div'); b.className='b'; const s=40+Math.random()*80;
+  Object.assign(b.style,{ width:s+'px', height:s+'px', left:Math.random()*100+'%', top:Math.random()*100+'%', animationDelay:(-Math.random()*7)+'s' }); w.appendChild(b); } })();
+
+//// ===== sounds =====
+let AC=null;
+function tone(f, dur, type='triangle', vol=.16, delay=0){
+  if (!Shell.soundOn()) return;
+  try{ AC ||= new (window.AudioContext||window.webkitAudioContext)();
+    const t=AC.currentTime+delay, o=AC.createOscillator(), g=AC.createGain();
+    o.type=type; o.frequency.setValueAtTime(f,t); g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.001,t+dur);
+    o.connect(g).connect(AC.destination); o.start(t); o.stop(t+dur); }catch(e){}
+}
+const sndWin = () => [523,659,784,1047].forEach((f,i) => tone(f, i===3 ? .5 : .14, 'triangle', .18, i*.09));
+const sndLose = () => [392,330,262].forEach((f,i) => tone(f, .22, 'sine', .15, i*.14));
+const sndDraw = () => [392,330].forEach((f,i) => tone(f, .22, 'sine', .15, i*.14));
+const plural = (n, w, ws=w+'s') => `${n} ${n===1 ? w : ws}`;
+
+const sndTap = () => tone(620, .05, 'triangle', .1);
+const sndGood = () => [659,880,1175].forEach((f,i) => tone(f, .13, 'triangle', .16, i*.06));
+const sndBad = () => tone(150, .25, 'sawtooth', .08);
+
+//// ===== the words: a shared pool of 500 (api/scramble.js); the AI adds more once you've seen them all =====
+let POOL = ('apple,beach,bread,brick,cabin,candy,chair,cheese,cloud,clock,coast,crown,dance,dream,eagle,earth,feast,field,flame,flute,fruit,ghost,giant,glass,grape,heart,horse,house,igloo,jelly,juice,knife,lemon,light,magic,maple,melon,money,mouse,music,night,ocean,olive,onion,otter,paint,party,pearl,piano,pilot,pizza,plant,queen,quilt,radio,river,robot,salad,shark,sheep,shell,smile,snake,space,spoon,storm,sugar,table,tiger,toast,torch,tower,train,water,whale,wheel,world,zebra,animal,banana,basket,button,camera,candle,carrot,castle,circus,cookie,dragon,flower,forest,garden,guitar,hammer,island,jacket,jungle,kitten,ladder,lizard,market,marble,mirror,monkey,muffin,orange,parrot,pencil,pepper,pickle,planet,pretzel,puzzle,rabbit,rocket,saddle,school,silver,spider,summer,tomato,turtle,violin,wallet,window,winter,wizard').split(',');   // offline fallback
+const sortKey = w => [...w].sort().join('');
+let ANAGRAMS = {};
+const index = () => { ANAGRAMS={}; POOL.forEach(w => (ANAGRAMS[sortKey(w)] ||= new Set()).add(w)); };
+index();
+const SEEN = new Set((() => { try{ return JSON.parse(localStorage.getItem('scramble-seen')||'[]'); }catch(e){ return []; } })());
+const markSeen = w => { SEEN.add(w); localStorage.setItem('scramble-seen', JSON.stringify([...SEEN])); };
+function mix(w){ let a; do { a=[...w].sort(() => Math.random()-.5); } while (a.join('')===w || ANAGRAMS[sortKey(w)].has(a.join(''))); return a; }
+// a deck is ready before anyone asks (startData must answer at once); refilled after each deal
+const DECK_N = 60;
+let DECK = null;
+async function refill(){
+  let fresh = POOL.filter(w => !SEEN.has(w));
+  if (fresh.length < DECK_N){
+    try{ const r=await fetch('/api/scramble', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ by:(Shell.player()||{}).name||null }) });
+      const d=await r.json(); if (d.words && d.words.length){ POOL=[...new Set([...POOL, ...d.words])]; index(); } }catch(e){}
+    fresh = POOL.filter(w => !SEEN.has(w));
+    if (fresh.length < 10){ SEEN.clear(); localStorage.removeItem('scramble-seen'); fresh=POOL.slice(); }   // seen it all: start over
+  }
+  DECK = fresh.sort(() => Math.random()-.5).slice(0, DECK_N).map(w => ({ w, s:mix(w) }));
+}
+function deal(){
+  const d = DECK || POOL.slice().sort(() => Math.random()-.5).slice(0, DECK_N).map(w => ({ w, s:mix(w) }));
+  DECK=null; refill(); return d;
+}
+fetch('/api/scramble').then(r => r.json()).then(d => { if (d.words && d.words.length){ POOL=d.words; index(); } }).catch(() => {}).finally(refill);
+
+//// ===== the game =====
+const SOLO_MS = 60000, ROUND_MS = 30000, TO = 5;
+// mode: 'solo' or 'online' (the host referees who solved first)
+const G = { early:{}, mode:'solo', list:[], k:0, picks:[], order:[], pts:0, solved:0, wins:[0,0], over:false, lock:false, room:null, t0:0, tick:0, claimed:-1 };
+const cur = () => G.list[G.k];
+function render(){
+  const it=cur(); if (!it) return;
+  $('slots').className='slots';
+  $('slots').innerHTML = it.s.map((_,i) => G.picks[i]!=null ? `<button class="slot f" data-s="${i}">${it.s[G.picks[i]]}</button>` : `<div class="slot"></div>`).join('');
+  $('tiles').innerHTML = G.order.map(j => `<button class="tile${G.picks.includes(j)?' used':''}" data-t="${j}">${it.s[j]}</button>`).join('');
+  $('skip').style.display = G.mode==='solo' ? '' : 'none';
+  const me=Shell.player()||{};
+  if (G.mode==='solo'){ $('kA').textContent='Points'; $('sA').textContent=G.pts; $('kB').textContent='Words'; $('sB').textContent=G.solved; }
+  else { const o=G.room.other; $('kA').textContent=`${me.avatar||''} ${me.name||'You'}`; $('sA').textContent=G.wins[0];
+    $('kB').textContent = o ? `${o.avatar} ${o.name}` : 'Your friend'; $('sB').textContent=G.wins[1]; }
+  $('status').innerHTML = G.over ? '' : G.lock ? '' : G.mode==='solo' ? `${it.w.length} letters` : `Word ${G.k+1} · ${it.w.length} letters`;
+}
+function newWord(){
+  const it=cur(); if (!it) return end();          // ran out of words
+  markSeen(it.w);
+  G.picks=[]; G.order=it.s.map((_,i) => i); G.lock=false; $('reveal').textContent='';
+  if (G.mode==='online') G.t0=Date.now();
+  render();
+  if (G.mode==='online' && G.early[G.k]) applyPoint(G.early[G.k]);
+}
+function pickTile(j){
+  if (G.over || G.lock || G.picks.includes(j)) return;
+  G.picks.push(j); sndTap(); render();
+  if (G.picks.length===cur().s.length) check();
+}
+function check(){
+  const it=cur(), guess=G.picks.map(j => it.s[j]).join('');
+  if (!ANAGRAMS[sortKey(it.w)].has(guess)){ sndBad(); const s=$('slots'); s.classList.add('bad'); setTimeout(() => { G.picks=[]; render(); }, 380); return; }
+  $('slots').classList.add('good'); sndGood(); G.lock=true;
+  if (G.mode==='solo'){ G.pts+=it.w.length; G.solved++; setTimeout(() => { G.k++; newWord(); }, 450); render(); $('slots').classList.add('good'); return; }
+  if (G.room.isHost) award(0, G.k); else G.room.send({ t:'claim', k:G.k });
+  $('status').textContent='Checking…';
+}
+// host only: the first solve of a word takes it
+function award(who, k){
+  if (k!==G.k || G.claimed===k) return;
+  G.claimed=k; G.room.send({ t:'point', k, who: who===0 ? 'host' : 'guest' }); point(who===0 ? 0 : 1, k);
+}
+function point(hostSide, k){                 // hostSide: 0 = the host solved it, 1 = the guest, -1 = nobody
+  const mine = hostSide<0 ? null : (hostSide===0) === G.room.isHost;
+  if (mine!=null) G.wins[mine ? 0 : 1]++;
+  G.lock=true; const it=cur();
+  $('reveal').innerHTML = mine==null ? `Time's up — it was <b>${it.w.toUpperCase()}</b>` : mine ? 'You got it!' : `${esc(G.room.other ? G.room.other.name : 'Your friend')} got it — <b>${it.w.toUpperCase()}</b>`;
+  if (mine===false) sndBad();
+  render();
+  if (G.wins[0]>=TO || G.wins[1]>=TO) return setTimeout(() => end(), 900);
+  setTimeout(() => { if (G.k===k && !G.over){ G.k++; newWord(); } }, 1600);
+}
+const applyPoint = m => point(m.who==='host' ? 0 : m.who==='guest' ? 1 : -1, m.k);
+function clockLoop(){
+  clearInterval(G.tick);
+  G.tick=setInterval(() => {
+    if (G.over) return clearInterval(G.tick);
+    const total = G.mode==='solo' ? SOLO_MS : ROUND_MS, left=Math.max(0, total-(Date.now()-G.t0));
+    $('clock').style.width=(left/total*100)+'%'; $('clock').classList.toggle('low', left<total*.2);
+    if (left>0) return;
+    if (G.mode==='solo') return end();
+    if (G.room.isHost && !G.lock && G.claimed!==G.k){ G.claimed=G.k; G.room.send({ t:'point', k:G.k, who:'none' }); point(-1, G.k); }
+  }, 100);
+}
+function newGame(list){
+  list.forEach(it => { if (!ANAGRAMS[sortKey(it.w)]){ POOL.push(it.w); index(); } else ANAGRAMS[sortKey(it.w)].add(it.w); });
+  Object.assign(G, { early:{}, list, k:0, pts:0, solved:0, wins:[0,0], over:false, claimed:-1, t0:Date.now() });
+  show('scGame'); newWord(); clockLoop();
+}
+function end(){
+  if (G.over) return; G.over=true; clearInterval(G.tick); render();
+  let em, title, sub, pts;
+  if (G.mode==='solo'){ pts=G.pts; em = G.solved>=8 ? '🧠' : '🔤'; title=plural(G.pts,'point'); sub=`${plural(G.solved,'word')} in a minute.`; sndWin(); }
+  else { const won=G.wins[0]>G.wins[1]; pts = G.wins[0] + (won ? 5 : 0);
+    em = won ? '🏆' : '😬'; title = won ? 'You win!' : `${esc(G.room.other ? G.room.other.name : 'Your friend')} wins`;
+    sub = `${plural(G.wins[0],'word')} to ${G.wins[1]}.`; won ? sndWin() : sndLose(); }
+  if (pts) Shell.postScore('scramble', pts);
+  setTimeout(() => Shell.results({ em, title, sub,
+    again:{ label:'Play again', onClick:()=>{
+      if (G.mode==='solo') return newGame(deal());
+      if (G.room.isHost){ const d=deal(); G.room.send({ t:'again', list:d }); newGame(d); }
+      else { G.room.send({ t:'again-req' }); $('status').textContent='Waiting for the host…'; }
+    } },
+    change:{ label:'Change mode', onClick:()=>{ leaveRoom(); openMode(); } } }), 800);
+}
+
+//// ===== the standard start sequence =====
+function openMode(){
+  Shell.mode({ options:[
+      { label:'Play solo', onClick:()=>{ Shell.hide(); leaveRoom(); G.mode='solo'; newGame(deal()); } },
+      { label:'Play a friend', kind:'b', onClick:()=>Shell.friend(FRIEND) } ],
+    onBack:()=>show('scIntro') });
+}
+const FRIEND = {
+  game:'scramble',
+  onBack: openMode,
+  startData: () => ({ list: deal() }),                 // the host deals; both screens get the same scrambles
+  onStart: (R, data) => { Object.assign(G, { mode:'online', room:R }); newGame(data.list); },
+  onMessage: m => {
+    if (m.t==='claim'){ if (G.room.isHost) award(1, m.k); }
+    else if (m.t==='point' && !G.room.isHost){ if (m.k===G.k) applyPoint(m); else if (m.k>G.k) G.early[m.k]=m; }   // early: we haven't reached that word yet
+    else if (m.t==='again' && G.over){ Shell.hide(); newGame(m.list); }
+    else if (m.t==='again-req' && G.over && G.room.isHost){ Shell.hide(); const d=deal(); G.room.send({ t:'again', list:d }); newGame(d); }
+  },
+  onLeft: () => { if (!G.over) $('status').textContent='Your friend left'; },
+};
+function leaveRoom(){ if (G.room){ Shell.leaveRoom(); G.room=null; } }
+
+$('tiles').addEventListener('click', e => { const t=e.target.closest('[data-t]'); if (t) pickTile(+t.dataset.t); });
+$('slots').addEventListener('click', e => { const s=e.target.closest('[data-s]'); if (!s || G.lock) return; G.picks.splice(+s.dataset.s); render(); });
+$('mix').onclick = () => { G.order.sort(() => Math.random()-.5); render(); };
+$('clear').onclick = () => { if (!G.lock){ G.picks=[]; render(); } };
+$('skip').onclick = () => { if (G.mode==='solo' && !G.lock && !G.over){ $('reveal').innerHTML=`It was <b>${cur().w.toUpperCase()}</b>`; G.k++; const r=$('reveal').innerHTML; newWord(); $('reveal').innerHTML=r; } };
+addEventListener('keydown', e => {
+  if (!$('scGame').classList.contains('on') || G.over || G.lock || e.metaKey || e.ctrlKey) return;
+  const it=cur(); if (!it) return;
+  if (e.key==='Backspace'){ G.picks.pop(); render(); return; }
+  const ch=e.key.toLowerCase(); if (!/^[a-z]$/.test(ch)) return;
+  const j=G.order.find(j => it.s[j]===ch && !G.picks.includes(j)); if (j!=null) pickTile(j);
+});
+$('introGo').onclick = () => Shell.requirePlayer().then(openMode);
+Shell.addBack('#scIntro .card', () => Shell.nav('games'));
+Shell.init({
+  brand:'Scramble',
+  theme:{ key:'nysgpt-theme-f3', darkDefault:false },
+  beforeLeave:()=>!G.room || confirm('Leave this game?'),
+  onJoinLink: code => Shell.joinCode(FRIEND, code),
+  playground:{ swatches:['#a64ca6','#8b5cf6','#1fc7b6','#37c871','#2d6fd6','#ff4d8d'].map(c=>({ bg:c, vars:{ '--bg':c } })) },
+});
+</script>
+</body>
+</html>

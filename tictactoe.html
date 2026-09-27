@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Tic Tac Toe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Nunito:wght@700;800;900&family=Fredoka:wght@600;700&display=swap" rel="stylesheet" />
+<script>(function(){ try{ if(localStorage.getItem('nysgpt-theme-f3')==='dark') document.documentElement.setAttribute('data-theme','dark'); }catch(e){} })();</script>
+<link rel="stylesheet" href="shell.css" />
+<style>
+  /* Tic Tac Toe's own stage: grape */
+  :root{
+    --bg:#7c4dff; --panel:#fffaf2; --panel-2:#f1eafe; --ink:#2a1a3e; --ink-dim:#7a6385; --ink-faint:#b6a6c0; --shadow:#4a24a8;
+    --teal:#1fc7b6; --teal-sh:#13978a; --pink:#ff4d8d; --yellow:#ffd23f; --purple:#8b5cf6; --purple-sh:#6d3fd6;
+    --x:var(--purple); --x-sh:var(--purple-sh); --o:var(--teal); --o-sh:var(--teal-sh);
+    --font-display:"Luckiest Guy",system-ui,sans-serif; --font-body:"Nunito",system-ui,sans-serif; --pop:1;
+    --sh-a:var(--purple); --sh-a-sh:var(--purple-sh); --sh-b:var(--teal); --sh-b-sh:var(--teal-sh);
+  }
+  :root[data-theme="dark"]{ --bg:#1b1140; --panel:#2a1d57; --panel-2:#372770; --ink:#f6f1ff; --ink-dim:#bcaee3; --ink-faint:#7a6aa8; --shadow:#08051a; }
+  :root{color-scheme:light} :root[data-theme="dark"]{color-scheme:dark}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{min-height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-weight:800;-webkit-font-smoothing:antialiased;transition:background .4s,color .4s;background-attachment:fixed;
+    background-image:radial-gradient(circle at 18% 16%, rgba(255,255,255,.10), transparent 42%),radial-gradient(circle at 84% 82%, rgba(255,255,255,.07), transparent 46%)}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  .bgfloat{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+  .bgfloat .b{position:absolute;border-radius:50%;opacity:.16;background:#fff;animation:bob 7s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-26px) rotate(6deg)}}
+  .stage{position:relative;z-index:2;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:92px 18px 40px}
+  .screen{display:none;width:100%;max-width:520px}
+  .screen.on{display:block}
+  .card{background:var(--panel);border-radius:28px;box-shadow:0 calc(11px * var(--pop)) 0 var(--shadow);padding:34px 36px;width:100%;animation:pop .42s cubic-bezier(.2,1.4,.4,1) both}
+  @keyframes pop{from{opacity:0;transform:scale(.9) translateY(14px)}to{opacity:1;transform:none}}
+  @media(max-width:560px){.card{padding:28px 22px}}
+  h1{font-family:var(--font-display);font-size:clamp(34px,7vw,50px);text-align:center;line-height:.98;margin-bottom:10px;font-weight:400}
+  h1 .x{color:var(--x)} h1 .o{color:var(--o);display:inline-block;transform:rotate(-4deg)}
+  .sub{text-align:center;color:var(--ink-dim);font-size:15px;margin-bottom:22px;line-height:1.5}
+  .rules{background:var(--panel-2);border-radius:18px;padding:18px 20px;margin-bottom:22px;display:flex;flex-direction:column;gap:11px}
+  .rule{display:flex;align-items:center;gap:13px;font-size:14.5px}
+  .rule .n{width:30px;height:30px;flex-shrink:0;border-radius:9px;background:var(--teal);color:#053d38;display:grid;place-items:center;font-family:var(--font-display);font-size:15px;box-shadow:0 3px 0 var(--teal-sh)}
+  .rule:nth-child(2) .n{background:var(--pink);box-shadow:0 3px 0 #cc2f6e;color:#fff}
+  .rule:nth-child(3) .n{background:var(--yellow);box-shadow:0 3px 0 #d9a800;color:#5a4500}
+  .btn{display:flex;align-items:center;justify-content:center;width:100%;font-family:var(--font-display);font-size:22px;letter-spacing:.02em;color:#fff;background:var(--purple);
+    padding:15px 26px;border-radius:16px;position:relative;top:0;box-shadow:0 calc(6px * var(--pop)) 0 var(--purple-sh);transition:top .08s,box-shadow .08s}
+  .btn:active{top:5px;box-shadow:0 1px 0 var(--purple-sh)}
+
+  .play{max-width:460px}
+  .score{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:18px}
+  .pill{background:var(--panel);border-radius:16px;box-shadow:0 calc(5px * var(--pop)) 0 var(--shadow);padding:10px 8px;text-align:center;transition:transform .15s,box-shadow .15s;min-width:0}
+  .pill .k{font-family:var(--font-display);font-size:15px;letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pill .v{font-family:var(--font-display);font-size:30px;line-height:1.1}
+  .pill.px .k{color:var(--x)} .pill.po .k{color:var(--o)} .pill.pd .k{color:var(--ink-faint)}
+  .pill.turn{transform:scale(1.07);box-shadow:0 5px 0 var(--shadow),0 0 0 4px var(--yellow)}
+  .status{font-family:var(--font-display);font-size:24px;text-align:center;color:#fff;text-shadow:0 3px 0 var(--shadow);min-height:34px;margin-bottom:14px}
+  .board{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;background:var(--panel);border-radius:26px;padding:14px;box-shadow:0 calc(11px * var(--pop)) 0 var(--shadow);animation:pop .42s cubic-bezier(.2,1.4,.4,1) both}
+  .cell{aspect-ratio:1;border-radius:18px;background:var(--panel-2);display:grid;place-items:center;font-family:var(--font-display);font-size:clamp(54px,15vw,86px);line-height:1;position:relative;top:0;transition:top .08s,filter .12s}
+  .cell:not(.taken):hover{filter:brightness(.97);top:-2px}
+  .cell.taken{cursor:default}
+  .cell .mk{display:block;padding-top:.12em;animation:drop .32s cubic-bezier(.2,1.5,.4,1) both}
+  @keyframes drop{from{transform:scale(.3) rotate(-18deg);opacity:0}to{transform:none;opacity:1}}
+  .cell.x .mk{color:var(--x);text-shadow:0 5px 0 var(--x-sh)}
+  .cell.o .mk{color:var(--o);text-shadow:0 5px 0 var(--o-sh)}
+  .cell.win{background:var(--yellow);animation:winpulse .9s ease-in-out infinite}
+  @keyframes winpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+  .board.over .cell:not(.win){opacity:.55}
+</style>
+</head>
+<body>
+<div class="bgfloat" id="bgfloat"></div>
+<div class="stage">
+  <section class="screen on" id="scIntro">
+    <div class="card">
+      <h1><span class="x">Tic Tac</span> <span class="o">Toe</span></h1>
+      <div class="sub">Three in a row takes the game.<br>Play the computer or a friend.</div>
+      <div class="rules">
+        <div class="rule"><span class="n">1</span><span>X opens game one; then the first move alternates.</span></div>
+        <div class="rule"><span class="n">2</span><span>Take turns placing your mark.</span></div>
+        <div class="rule"><span class="n">3</span><span>Three in a row — across, down or diagonal — wins.</span></div>
+      </div>
+      <button class="btn" id="introGo">Let's play!</button>
+    </div>
+  </section>
+
+  <section class="screen play" id="scGame">
+    <div class="score">
+      <div class="pill px" id="pX"><div class="k" id="kX">X</div><div class="v" id="sX">0</div></div>
+      <div class="pill pd"><div class="k">Draws</div><div class="v" id="sD">0</div></div>
+      <div class="pill po" id="pO"><div class="k" id="kO">O</div><div class="v" id="sO">0</div></div>
+    </div>
+    <div class="status" id="status"></div>
+    <div class="board" id="board"></div>
+  </section>
+</div>
+
+<script src="shell.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const esc = Shell.esc;
+function show(id){ document.querySelectorAll('.screen').forEach(s => s.classList.remove('on')); $(id).classList.add('on'); }
+(function bg(){ const w=$('bgfloat'); for (let i=0;i<9;i++){ const b=document.createElement('div'); b.className='b'; const s=40+Math.random()*80;
+  Object.assign(b.style,{ width:s+'px', height:s+'px', left:Math.random()*100+'%', top:Math.random()*100+'%', animationDelay:(-Math.random()*7)+'s' }); w.appendChild(b); } })();
+
+//// ===== sounds =====
+let AC=null;
+function tone(f, dur, type='triangle', vol=.16, delay=0){
+  if (!Shell.soundOn()) return;
+  try{ AC ||= new (window.AudioContext||window.webkitAudioContext)();
+    const t=AC.currentTime+delay, o=AC.createOscillator(), g=AC.createGain();
+    o.type=type; o.frequency.setValueAtTime(f,t); g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.001,t+dur);
+    o.connect(g).connect(AC.destination); o.start(t); o.stop(t+dur); }catch(e){}
+}
+const sndPlace = m => tone(m==='X' ? 523 : 659, .12);
+const sndWin = () => [523,659,784,1047].forEach((f,i) => tone(f, i===3 ? .5 : .14, 'triangle', .18, i*.09));
+const sndDraw = () => [392,330].forEach((f,i) => tone(f, .22, 'sine', .15, i*.14));
+
+//// ===== the game =====
+const LINES = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+// mode: 'cpu' (you are X) or 'online' (host is X, guest is O)
+const G = { mode:'cpu', level:'hard', board:Array(9).fill(''), turn:'X', starter:'X', over:false, busy:false, score:{X:0,O:0,D:0}, room:null, me:'X' };
+function winner(b){
+  for (const L of LINES){ const [a,c,d]=L; if (b[a] && b[a]===b[c] && b[a]===b[d]) return { m:b[a], line:L }; }
+  return b.every(Boolean) ? { m:'D', line:[] } : null;
+}
+// perfect play: minimax (depth-weighted so it wins fast and loses slow)
+function minimax(b, me, turn, depth){
+  const w = winner(b);
+  if (w) return { s: w.m==='D' ? 0 : w.m===me ? 10-depth : depth-10 };
+  let best = { s: turn===me ? -99 : 99, i:-1 };
+  for (let i=0;i<9;i++){ if (b[i]) continue; b[i]=turn; const r=minimax(b, me, turn==='X'?'O':'X', depth+1); b[i]='';
+    if (turn===me ? r.s>best.s : r.s<best.s) best={ s:r.s, i }; }
+  return best;
+}
+function cpuMove(){
+  const open = G.board.map((v,i) => v ? -1 : i).filter(i => i>=0);
+  if (G.level==='easy' && Math.random() < .65) return open[Math.floor(Math.random()*open.length)];
+  return minimax(G.board.slice(), 'O', 'O', 0).i;
+}
+const nameOf = m => {
+  if (G.mode==='cpu') return m==='X' ? 'You' : 'Computer';
+  const R=G.room; const p = m===G.me ? R.me : R.other;
+  return p ? `${p.avatar} ${p.name}` : m;
+};
+function render(res){
+  const el=$('board'); el.innerHTML=''; el.classList.toggle('over', !!res);
+  G.board.forEach((m,i) => {
+    const c=document.createElement('button');
+    c.className='cell'+(m?' taken '+m.toLowerCase():'')+(res && res.line.includes(i)?' win':'');
+    c.setAttribute('aria-label', m || 'empty square '+(i+1));
+    if (m) c.innerHTML=`<span class="mk">${m}</span>`;
+    c.onclick=()=>humanMove(i);
+    el.appendChild(c);
+  });
+  $('kX').textContent = nameOf('X'); $('kO').textContent = nameOf('O');
+  $('sX').textContent=G.score.X; $('sO').textContent=G.score.O; $('sD').textContent=G.score.D;
+  $('pX').classList.toggle('turn', !res && G.turn==='X'); $('pO').classList.toggle('turn', !res && G.turn==='O');
+  let st;
+  if (res) st = res.m==='D' ? "It's a draw" : (res.m===G.me ? 'You win!' : (G.mode==='cpu' ? 'The computer wins' : `${esc(nameOf(res.m))} wins`));
+  else st = G.turn===G.me ? 'Your move' : (G.mode==='cpu' ? 'Thinking…' : `${esc(nameOf(G.turn))}'s move`);
+  $('status').innerHTML = st;
+}
+function place(i){
+  if (G.over || G.board[i]) return false;
+  G.board[i]=G.turn; sndPlace(G.turn);
+  const res = winner(G.board);
+  if (res){ G.over=true; G.score[res.m==='D'?'D':res.m]++; render(res); finish(res); return true; }
+  G.turn = G.turn==='X' ? 'O' : 'X';
+  render(null);
+  return true;
+}
+function humanMove(i){
+  if (G.busy || G.over || G.turn!==G.me || G.board[i]) return;
+  if (G.mode==='online' && G.room) G.room.send({ t:'move', i });
+  if (place(i) && !G.over && G.mode==='cpu') cpuTurn();
+}
+function cpuTurn(){ G.busy=true; setTimeout(() => { G.busy=false; if (!G.over) place(cpuMove()); }, 450); }
+function newGame(){
+  G.board=Array(9).fill(''); G.over=false; G.busy=false;
+  G.turn=G.starter; G.starter = G.starter==='X' ? 'O' : 'X';   // alternate who opens
+  show('scGame'); render(null);
+  if (G.mode==='cpu' && G.turn==='O') cpuTurn();
+}
+// the standard results card
+function finish(res){
+  const won = res.m===G.me;
+  if (res.m==='D') sndDraw(); else sndWin();
+  if (won) Shell.postScore('ttt', 1);
+  setTimeout(() => Shell.results({
+    em: res.m==='D' ? '🤝' : won ? '🏆' : (G.mode==='cpu' ? '🤖' : '😬'),
+    title: res.m==='D' ? "It's a draw" : won ? 'You win!' : (G.mode==='cpu' ? 'The computer wins' : `${esc(nameOf(res.m))} wins`),
+    sub: `X ${G.score.X} · Draws ${G.score.D} · O ${G.score.O}`,
+    again: { label:'Play again', onClick:()=>{ if (G.mode==='online' && G.room) G.room.send({ t:'again' }); newGame(); } },
+    change: { label:'Change mode', onClick:()=>{ leaveRoom(); openMode(); } },
+  }), 900);
+}
+
+//// ===== the standard start sequence: intro → mode → (friend: host/join → lobby) =====
+function openMode(){
+  Shell.mode({ options:[
+      { label:'Play the computer', onClick:pickLevel },
+      { label:'Play a friend', kind:'b', onClick:playFriend } ],
+    onBack:()=>show('scIntro') });
+}
+function pickLevel(){
+  Shell.mode({ title:'How tough?', options:[
+      { label:'Easy', onClick:()=>startCpu('easy') },
+      { label:'Unbeatable', kind:'b', onClick:()=>startCpu('hard') } ],
+    onBack:openMode });
+}
+function startCpu(level){
+  Shell.hide(); leaveRoom();
+  Object.assign(G, { mode:'cpu', level, me:'X', score:{X:0,O:0,D:0}, starter:'X' }); newGame();
+}
+const FRIEND = {
+  game:'ttt',
+  onBack: openMode,
+  onStart: R => { Object.assign(G, { mode:'online', room:R, me: R.isHost ? 'X' : 'O', score:{X:0,O:0,D:0}, starter:'X' }); newGame(); },
+  onMessage: m => {
+    if (m.t==='move'){ if (!G.over && G.turn!==G.me) place(m.i); }
+    else if (m.t==='again' && G.over){ Shell.hide(); newGame(); }   // both pressing at once still resets once
+  },
+  onLeft: () => { if (!G.over) $('status').textContent = 'Your friend left'; },
+};
+function playFriend(){ Shell.friend(FRIEND); }
+function leaveRoom(){ if (G.room){ Shell.leaveRoom(); G.room=null; } }
+
+$('introGo').onclick = () => Shell.requirePlayer().then(openMode);
+Shell.addBack('#scIntro .card', () => Shell.nav('games'));
+Shell.init({
+  brand:'Tic&nbsp;Tac&nbsp;Toe',
+  theme:{ key:'nysgpt-theme-f3', darkDefault:false },
+  beforeLeave:()=>!G.room || confirm('Leave this game?'),
+  onJoinLink: code => Shell.joinCode(FRIEND, code),
+  playground:{ swatches:['#7c4dff','#ff7a3c','#1fc7b6','#ff4d8d','#2d6fd6','#37c871'].map(c=>({ bg:c, vars:{ '--bg':c } })) },
+});
+</script>
+</body>
+</html>

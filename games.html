@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Playground</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Nunito:wght@700;800;900&family=Fredoka:wght@600;700&display=swap" rel="stylesheet" />
+<script>(function(){ try{ if(localStorage.getItem('nysgpt-theme-f3')==='dark') document.documentElement.setAttribute('data-theme','dark'); }catch(e){} })();</script>
+<link rel="stylesheet" href="shell.css" />
+<style>
+  /* the platform: Bank It's tangerine stage */
+  :root{
+    --bg:#ff7a3c; --panel:#fffaf2; --panel-2:#fff0dd; --ink:#2a1a3e; --ink-dim:#7a6385; --ink-faint:#b6a6c0; --shadow:#a8320a;
+    --teal:#1fc7b6; --teal-sh:#13978a; --pink:#ff4d8d; --yellow:#ffd23f; --purple:#8b5cf6; --purple-sh:#6d3fd6; --green:#37c871;
+    --font-display:"Luckiest Guy",system-ui,sans-serif; --font-body:"Nunito",system-ui,sans-serif; --radius:1; --pop:1;
+  }
+  :root[data-theme="dark"]{ --bg:#241133; --panel:#2e1a44; --panel-2:#3a2356; --ink:#fdf3ff; --ink-dim:#c4a9d8; --ink-faint:#7c6190; --shadow:#0c0418; }
+  :root{color-scheme:light} :root[data-theme="dark"]{color-scheme:dark}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{min-height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-weight:800;-webkit-font-smoothing:antialiased;transition:background .4s,color .4s;background-attachment:fixed;
+    background-image:radial-gradient(circle at 18% 16%, rgba(255,255,255,.10), transparent 42%),radial-gradient(circle at 84% 82%, rgba(255,255,255,.07), transparent 46%)}
+  button,input,textarea{font-family:inherit}
+  button{cursor:pointer;border:none;background:none;color:inherit}
+  .bgfloat{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+  .bgfloat .b{position:absolute;border-radius:50%;opacity:.16;animation:bob 7s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-26px) rotate(6deg)}}
+  .stage{position:relative;z-index:2;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:92px 18px 40px}
+  .screen{display:none;width:100%;max-width:560px}
+  .screen.on{display:block}
+  .screen.wide{max-width:1040px}
+  .card{background:var(--panel);border-radius:calc(28px * var(--radius));box-shadow:0 calc(11px * var(--pop)) 0 var(--shadow);padding:36px 38px;width:100%;animation:pop .42s cubic-bezier(.2,1.4,.4,1) both}
+  @keyframes pop{from{opacity:0;transform:scale(.9) translateY(14px)}to{opacity:1;transform:none}}
+  @media(max-width:560px){.card{padding:28px 22px}}
+  h2{font-family:var(--font-display);font-size:30px;text-align:center;margin-bottom:24px;font-weight:400}
+  .btn{display:flex;align-items:center;justify-content:center;width:100%;font-family:var(--font-display);font-size:21px;letter-spacing:.02em;color:#fff;background:var(--purple);
+    padding:15px 26px;border-radius:calc(16px * var(--radius));position:relative;top:0;box-shadow:0 calc(6px * var(--pop)) 0 var(--purple-sh);transition:top .08s,box-shadow .08s}
+  .btn:active{top:5px;box-shadow:0 1px 0 var(--purple-sh)}
+  .lbl{display:block;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin:0 2px 8px}
+  .field{margin-bottom:16px}
+  .inp,.area{width:100%;font-weight:800;font-size:15px;color:var(--ink);background:var(--panel-2);border:2.5px solid transparent;border-radius:14px;padding:12px 14px;outline:none}
+  .inp{font-family:var(--font-display);font-size:21px}
+  .area{resize:vertical;line-height:1.45}
+  .inp:focus,.area:focus{border-color:var(--teal);box-shadow:0 0 0 4px rgba(31,199,182,.22)}
+  .err{color:#e0245e;font-weight:800;font-size:13.5px;text-align:center;min-height:18px;margin-top:12px}
+  .sub{text-align:center;color:var(--ink-dim);font-size:15px;line-height:1.5;margin-bottom:22px}
+  .linkbtn{display:block;margin:18px auto 0;color:var(--ink-dim);font-weight:800;font-size:13.5px;text-decoration:underline}
+
+  /* games grid (the Categories layout) */
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+  @media(min-width:680px){.grid{grid-template-columns:repeat(3,1fr)}}
+  @media(min-width:980px){.grid{grid-template-columns:repeat(4,1fr)}}
+  .tile{text-decoration:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;border-radius:calc(22px * var(--radius));padding:26px 14px;min-height:190px;
+    color:#fff;text-align:center;position:relative;top:0;box-shadow:0 calc(8px * var(--pop)) 0 var(--csh);transition:top .1s,box-shadow .1s}
+  .tile:hover{top:-4px;box-shadow:0 calc(12px * var(--pop)) 0 var(--csh)}
+  .tile:active{top:4px;box-shadow:0 2px 0 var(--csh)}
+  .tile .ic{font-size:54px;line-height:1;filter:drop-shadow(0 4px 0 rgba(0,0,0,.16))}
+  .tile .nm{font-family:var(--font-display);font-size:19px;line-height:1.08}
+  .t-new{background:linear-gradient(145deg,#ff4d8d,#8b5cf6 55%,#4d9fff);--csh:#5a34b8}
+  .t-bank{background:#ff7a3c;--csh:#a8320a}
+  .t-vault{background:#141d36;--csh:#070b18;color:#ffd23f}
+  .t-sing{background:#0b0b10;--csh:#000;color:#ff4f9a}
+  .t-ttt{background:#7c4dff;--csh:#4a24a8}
+  .t-mix{background:#1fb3a3;--csh:#0c6f65}
+  .t-four{background:#2f6fe0;--csh:#1b449a}
+  .t-memory{background:#ffc93d;--csh:#c99200;color:#5a3d00}
+  .t-dots{background:#37c871;--csh:#1f8a4a}
+  .t-mancala{background:#c9713c;--csh:#8a4418}
+  .t-rps{background:#ff4d8d;--csh:#b0245c}
+  .t-battle{background:#0e6fa8;--csh:#084469}
+  .t-checkers{background:#d64545;--csh:#8f2323}
+  .t-reversi{background:#1f7a5a;--csh:#0f4a36}
+  .t-scramble{background:#a64ca6;--csh:#6d2a6d}
+  .t-echo{background:#475569;--csh:#1e293b}
+
+  /* high scores: one slide per game */
+  .hs-top{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+  .hs-arrow{width:46px;height:46px;flex-shrink:0;border-radius:14px;background:var(--panel-2);display:grid;place-items:center;color:var(--ink);box-shadow:0 4px 0 rgba(0,0,0,.12);position:relative;top:0}
+  .hs-arrow:active{top:3px;box-shadow:0 1px 0 rgba(0,0,0,.12)}
+  .hs-arrow svg{width:20px;height:20px}
+  .hs-game{flex:1;display:flex;align-items:center;justify-content:center;gap:12px;border-radius:18px;padding:14px;color:#fff;box-shadow:0 calc(6px * var(--pop)) 0 var(--csh)}
+  .hs-game .ic{font-size:30px}
+  .hs-game .nm{font-family:var(--font-display);font-size:24px}
+  .hs-dots{display:flex;justify-content:center;gap:7px;margin:16px 0 18px}
+  .hs-dots i{width:9px;height:9px;border-radius:50%;background:var(--panel-2);cursor:pointer}
+  .hs-dots i.on{background:var(--ink-dim)}
+  .hs-unit{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);display:flex;justify-content:space-between;margin:0 6px 8px}
+  .hs-list{display:flex;flex-direction:column;gap:8px;min-height:120px}
+  .hs-list.slide{animation:slidein .28s ease}
+  @keyframes slidein{from{opacity:0;transform:translateX(var(--from,24px))}to{opacity:1;transform:none}}
+  .row{display:flex;align-items:center;gap:12px;background:var(--panel-2);border-radius:14px;padding:11px 16px}
+  .row .rk{width:26px;text-align:center;font-size:20px}
+  .row .av{font-size:22px}
+  .row .nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:16px}
+  .row .v{font-family:var(--font-display);font-size:22px}
+  .row.me{box-shadow:inset 0 0 0 3px var(--yellow)}
+  .empty{color:var(--ink-faint);text-align:center;padding:30px 10px}
+
+  /* settings */
+  .me-card{display:flex;align-items:center;gap:16px;background:var(--panel-2);border-radius:20px;padding:18px 20px;margin-bottom:14px}
+  .me-card .big{font-size:52px;line-height:1}
+  .me-card .who{flex:1;min-width:0}
+  .me-card .nm{font-family:var(--font-display);font-size:28px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .me-card .sw{font-size:13px;color:var(--ink-dim);text-decoration:underline}
+  .avs{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:22px}
+  .avs button{aspect-ratio:1;border-radius:13px;background:var(--panel-2);font-size:24px;border:3px solid transparent}
+  .avs button.on{border-color:var(--teal)}
+  .sec{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin:6px 4px 10px}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:22px}
+  .stat{border-radius:16px;padding:12px 8px;text-align:center;color:#fff;box-shadow:0 calc(5px * var(--pop)) 0 var(--csh)}
+  .stat .ic{font-size:20px}
+  .stat .n{font-family:var(--font-display);font-size:26px;line-height:1.1}
+  .stat .l{font-size:10.5px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;opacity:.9}
+  @media(max-width:560px){.stats{grid-template-columns:repeat(2,1fr)}}
+  .opt{display:flex;align-items:center;justify-content:space-between;background:var(--panel-2);border-radius:14px;padding:13px 16px;margin-bottom:9px;font-size:15px}
+  .switch{width:52px;height:30px;border-radius:100px;background:var(--ink-faint);position:relative;transition:background .2s;flex-shrink:0}
+  .switch::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 2px 3px rgba(0,0,0,.2)}
+  .switch.on{background:var(--teal)}
+  .switch.on::after{transform:translateX(22px)}
+</style>
+</head>
+<body>
+<div class="bgfloat" id="bgfloat"></div>
+<div class="stage">
+
+  <!-- ===== GAMES (home) ===== -->
+  <section class="screen wide on" id="scGames">
+    <div class="card">
+      <h2>Games</h2>
+      <div class="grid">
+        <button class="tile t-new" data-go="request"><span class="ic">💡</span><span class="nm">Request new</span></button>
+        <a class="tile t-bank" href="bankit.html"><span class="ic">🎯</span><span class="nm">Bank It</span></a>
+        <a class="tile t-vault" href="vault.html"><span class="ic">🔐</span><span class="nm">Vault</span></a>
+        <a class="tile t-sing" href="singit.html"><span class="ic">🎤</span><span class="nm">Sing It</span></a>
+        <a class="tile t-ttt" href="tictactoe.html"><span class="ic">❌</span><span class="nm">Tic Tac Toe</span></a>
+        <a class="tile t-mix" href="mix.html"><span class="ic">🧪</span><span class="nm">Mix It</span></a>
+        <a class="tile t-four" href="four.html"><span class="ic">🔴</span><span class="nm">Four in a Row</span></a>
+        <a class="tile t-memory" href="memory.html"><span class="ic">🃏</span><span class="nm">Memory</span></a>
+        <a class="tile t-dots" href="dots.html"><span class="ic">🔲</span><span class="nm">Dots &amp; Boxes</span></a>
+        <a class="tile t-mancala" href="mancala.html"><span class="ic">🪨</span><span class="nm">Mancala</span></a>
+        <a class="tile t-rps" href="rps.html"><span class="ic">✊</span><span class="nm">Rock Paper Scissors</span></a>
+        <a class="tile t-battle" href="battle.html"><span class="ic">🚢</span><span class="nm">Sea Battle</span></a>
+        <a class="tile t-checkers" href="checkers.html"><span class="ic">👑</span><span class="nm">Checkers</span></a>
+        <a class="tile t-reversi" href="reversi.html"><span class="ic">⚫</span><span class="nm">Reversi</span></a>
+        <a class="tile t-scramble" href="scramble.html"><span class="ic">🔤</span><span class="nm">Scramble</span></a>
+        <a class="tile t-echo" href="echo.html"><span class="ic">🎵</span><span class="nm">Echo</span></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== REQUEST A GAME (not wired to a destination yet) ===== -->
+  <section class="screen" id="scRequest">
+    <div class="card">
+      <div id="reqForm">
+        <h2>Request a game</h2>
+        <div class="field"><label class="lbl" for="reqName">Name</label><input class="inp" id="reqName" maxlength="60" autocomplete="off" placeholder="e.g. Charades" /></div>
+        <div class="field"><label class="lbl" for="reqDesc">Describe the game</label><textarea class="area" id="reqDesc" rows="5" maxlength="2000" placeholder="How does it play? Who plays? What makes it fun?"></textarea></div>
+        <div class="field"><label class="lbl" for="reqLinks">Example links for similar games</label><textarea class="area" id="reqLinks" rows="3" maxlength="1000" placeholder="One link per line"></textarea></div>
+        <button class="btn" id="reqSubmit">Submit</button>
+        <div class="err" id="reqErr"></div>
+      </div>
+      <div id="reqDone" style="display:none">
+        <h2>Thanks!</h2>
+        <div class="sub">Your game request is in.</div>
+        <button class="btn" id="reqAnother">Request another</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== HIGH SCORES: one slide per game ===== -->
+  <section class="screen" id="scHigh">
+    <div class="card">
+      <h2>High Scores</h2>
+      <div class="hs-top">
+        <button class="hs-arrow" id="hsPrev" aria-label="Previous game"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <div class="hs-game" id="hsGame"></div>
+        <button class="hs-arrow" id="hsNext" aria-label="Next game"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
+      </div>
+      <div class="hs-dots" id="hsDots"></div>
+      <div class="hs-unit"><span>Player</span><span id="hsUnit"></span></div>
+      <div class="hs-list" id="hsList"></div>
+    </div>
+  </section>
+
+  <!-- ===== SETTINGS ===== -->
+  <section class="screen" id="scSettings">
+    <div class="card">
+      <h2>Settings</h2>
+      <div id="setBox"></div>
+    </div>
+  </section>
+</div>
+
+<script src="shell.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const esc = Shell.esc;
+function show(id){ document.querySelectorAll('.screen').forEach(s => s.classList.remove('on')); $(id).classList.add('on'); window.scrollTo(0,0); }
+
+(function bg(){
+  const w=$('bgfloat'), cols=['#fff','#ffd23f','#ff4d8d','#1fc7b6'];
+  for (let i=0;i<10;i++){ const b=document.createElement('div'); b.className='b'; const s=18+Math.random()*50;
+    Object.assign(b.style,{ width:s+'px', height:s+'px', left:Math.random()*100+'%', top:Math.random()*100+'%', background:cols[i%cols.length], animationDelay:(-Math.random()*7)+'s' }); w.appendChild(b); }
+})();
+
+//// ===== every game on the leaderboard, each with its own measure =====
+const GAMES = [
+  { k:'bankit', nm:'Bank It',       ic:'🎯', bg:'#ff7a3c', sh:'#a8320a', ink:'#fff',    unit:'Points' },
+  { k:'singit', nm:'Sing It',       ic:'🎤', bg:'#0b0b10', sh:'#000',    ink:'#ff4f9a', unit:'Wins' },
+  { k:'ttt',    nm:'Tic Tac Toe',   ic:'❌', bg:'#7c4dff', sh:'#4a24a8', ink:'#fff',    unit:'Wins' },
+  { k:'mix',    nm:'Mix It',        ic:'🧪', bg:'#1fb3a3', sh:'#0c6f65', ink:'#fff',    unit:'First discoveries' },
+  { k:'four',   nm:'Four in a Row', ic:'🔴', bg:'#2f6fe0', sh:'#1b449a', ink:'#fff',    unit:'Wins' },
+  { k:'memory', nm:'Memory',        ic:'🃏', bg:'#ffc93d', sh:'#c99200', ink:'#5a3d00', unit:'Points' },
+  { k:'vault',  nm:'Vault',         ic:'🔐', bg:'#141d36', sh:'#070b18', ink:'#ffd23f', unit:'Coins' },
+  { k:'dots',   nm:'Dots & Boxes',  ic:'🔲', bg:'#37c871', sh:'#1f8a4a', ink:'#fff',    unit:'Wins' },
+  { k:'mancala',nm:'Mancala',       ic:'🪨', bg:'#c9713c', sh:'#8a4418', ink:'#fff',    unit:'Wins' },
+  { k:'rps',    nm:'Rock Paper Scissors', ic:'✊', bg:'#ff4d8d', sh:'#b0245c', ink:'#fff', unit:'Wins' },
+  { k:'battle', nm:'Sea Battle',    ic:'🚢', bg:'#0e6fa8', sh:'#084469', ink:'#fff',    unit:'Wins' },
+  { k:'checkers',nm:'Checkers',     ic:'👑', bg:'#d64545', sh:'#8f2323', ink:'#fff',    unit:'Wins' },
+  { k:'reversi',nm:'Reversi',       ic:'⚫', bg:'#1f7a5a', sh:'#0f4a36', ink:'#fff',    unit:'Wins' },
+  { k:'scramble',nm:'Scramble',     ic:'🔤', bg:'#a64ca6', sh:'#6d2a6d', ink:'#fff',    unit:'Points' },
+  { k:'echo',   nm:'Echo',          ic:'🎵', bg:'#475569', sh:'#1e293b', ink:'#fff',    unit:'Points' },
+];
+let HS = +(localStorage.getItem('bankit-hs-slide')||0) % GAMES.length;
+async function renderHigh(dir){
+  const g = GAMES[HS];
+  localStorage.setItem('bankit-hs-slide', HS);
+  const head=$('hsGame'); head.style.background=g.bg; head.style.color=g.ink; head.style.setProperty('--csh', g.sh);
+  head.innerHTML=`<span class="ic">${g.ic}</span><span class="nm">${g.nm}</span>`;
+  $('hsDots').innerHTML = GAMES.map((x,i)=>`<i class="${i===HS?'on':''}" data-i="${i}" title="${x.nm}"></i>`).join('');
+  $('hsDots').querySelectorAll('i').forEach(d => d.onclick=()=>{ const n=+d.dataset.i; const dir=n>HS?1:-1; HS=n; renderHigh(dir); });
+  $('hsUnit').textContent = g.unit;
+  const list=$('hsList'); list.innerHTML='<div class="empty">Loading…</div>';
+  list.classList.remove('slide'); void list.offsetWidth; list.style.setProperty('--from', (dir||1)*24+'px'); list.classList.add('slide');
+  let rows=[];
+  try{ const r=await fetch('/api/leaderboard?game='+g.k); if (r.ok) rows=(await r.json()).rows||[]; }catch(e){}
+  if (GAMES[HS]!==g) return;
+  const me = (Shell.player()||{}).name?.toLowerCase();
+  list.innerHTML = rows.length ? rows.map((p,i)=>`<div class="row${p.name && p.name.toLowerCase()===me?' me':''}">
+      <span class="rk">${['🥇','🥈','🥉'][i]||i+1}</span><span class="av">${esc(p.avatar||'🎯')}</span><span class="nm">${esc(p.name||'Player')}</span><span class="v">${p.value}</span></div>`).join('')
+    : `<div class="empty">No scores yet — be the first.</div>`;
+}
+$('hsPrev').onclick=()=>{ HS=(HS-1+GAMES.length)%GAMES.length; renderHigh(-1); };
+$('hsNext').onclick=()=>{ HS=(HS+1)%GAMES.length; renderHigh(1); };
+document.addEventListener('keydown', e=>{ if(!$('scHigh').classList.contains('on')) return; if(e.key==='ArrowLeft') $('hsPrev').click(); if(e.key==='ArrowRight') $('hsNext').click(); });
+
+//// ===== settings: who you are, your stats across games, preferences =====
+async function renderSettings(){
+  const p = Shell.player();
+  if (!p){
+    $('setBox').innerHTML = `<div class="sub">Sign in to keep your name, avatar and scores across every game.</div><button class="btn" id="setSignIn">Sign in</button>`;
+    $('setSignIn').onclick=()=>Shell.requirePlayer().then(renderSettings);
+    return;
+  }
+  $('setBox').innerHTML = `
+    <div class="me-card"><span class="big" id="setAv">${esc(p.avatar)}</span><div class="who"><div class="nm">${esc(p.name)}</div><button class="sw" id="setSwitch" type="button">Switch player</button></div></div>
+    <div class="avs" id="setAvs">${Shell.AVATARS.map(a=>`<button type="button" class="${a===p.avatar?'on':''}">${a}</button>`).join('')}</div>
+    <div class="sec">Your stats</div>
+    <div class="stats" id="setStats"><div class="empty" style="grid-column:1/-1;padding:14px">Loading…</div></div>
+    <div class="sec">Preferences</div>
+    <div class="opt"><span>Dark mode</span><button class="switch${Shell.isDark()?' on':''}" id="setDark" aria-label="Dark mode"></button></div>
+    <div class="opt"><span>Sound</span><button class="switch${Shell.soundOn()?' on':''}" id="setSound" aria-label="Sound"></button></div>`;
+  $('setAvs').querySelectorAll('button').forEach(b => b.onclick=()=>{
+    $('setAvs').querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on');
+    Shell.setPlayer({ name:p.name, avatar:b.textContent }); $('setAv').textContent=b.textContent;
+  });
+  $('setSwitch').onclick=()=>{ Shell.signOut(); Shell.requirePlayer().then(renderSettings); };
+  $('setDark').onclick=()=>{ Shell.setDark(!Shell.isDark()); $('setDark').classList.toggle('on', Shell.isDark()); };
+  $('setSound').onclick=()=>{ Shell.setSound(!Shell.soundOn()); $('setSound').classList.toggle('on', Shell.soundOn()); };
+  let s=null;
+  try{ const r=await fetch('/api/leaderboard?name='+encodeURIComponent(p.name)); if (r.ok) s=(await r.json()).stats; }catch(e){}
+  if (!$('setStats')) return;
+  const b = (s && s.bankit) || { total_points:0, sweeps:0, best:0, runs:0 };
+  const tiles = [
+    ['bankit', b.total_points, 'Bank It points'], ['bankit', b.sweeps, 'Clean sweeps'], ['bankit', b.best, 'Best run'],
+    ['singit', s?s.singit:0, 'Sing It wins'], ['ttt', s?s.ttt:0, 'Tic Tac Toe wins'], ['mix', s?s.mix:0, 'First discoveries'],
+    ['four', s?s.four:0, 'Four in a Row wins'], ['memory', s?s.memory:0, 'Memory points'], ['vault', s?s.vault:0, 'Vault coins'],
+    ['dots', s?s.dots:0, 'Dots & Boxes wins'], ['mancala', s?s.mancala:0, 'Mancala wins'], ['rps', s?s.rps:0, 'Rock Paper Scissors wins'],
+    ['battle', s?s.battle:0, 'Sea Battle wins'], ['checkers', s?s.checkers:0, 'Checkers wins'], ['reversi', s?s.reversi:0, 'Reversi wins'],
+    ['scramble', s?s.scramble:0, 'Scramble points'], ['echo', s?s.echo:0, 'Echo points'],
+  ];
+  $('setStats').innerHTML = tiles.map(([k,n,l]) => { const g=GAMES.find(x=>x.k===k);
+    return `<div class="stat" style="background:${g.bg};color:${g.ink};--csh:${g.sh}"><div class="ic">${g.ic}</div><div class="n">${n||0}</div><div class="l">${l}</div></div>`; }).join('');
+}
+
+//// ===== request a game (validates; not sent anywhere yet) =====
+$('reqSubmit').onclick=()=>{
+  if ($('reqName').value.trim().length<2){ $('reqErr').textContent='Give the game a name.'; $('reqName').focus(); return; }
+  if ($('reqDesc').value.trim().length<10){ $('reqErr').textContent='Tell us a bit about how it plays.'; $('reqDesc').focus(); return; }
+  $('reqErr').textContent=''; $('reqForm').style.display='none'; $('reqDone').style.display='';
+};
+$('reqAnother').onclick=()=>{ ['reqName','reqDesc','reqLinks'].forEach(id=>$(id).value=''); $('reqForm').style.display=''; $('reqDone').style.display='none'; };
+
+//// ===== routing: #/games (home) · #/highscores · #/settings · #/request =====
+const ROUTES = {
+  games:      ()=>show('scGames'),
+  highscores: ()=>{ show('scHigh'); renderHigh(); },
+  settings:   ()=>{ show('scSettings'); renderSettings(); },
+  request:    ()=>{ $('reqForm').style.display=''; $('reqDone').style.display='none'; show('scRequest'); },
+};
+function go(r){ (ROUTES[r]||ROUTES.games)(); }
+document.querySelectorAll('[data-go]').forEach(b => b.onclick=()=>go(b.dataset.go));
+function route(){ const r=(location.hash.match(/^#\/(\w+)/)||[])[1]; if (r){ history.replaceState(null,'',location.pathname); go(r); } }
+window.addEventListener('hashchange', route);
+
+Shell.init({
+  brand: 'Playground',
+  theme: { key:'nysgpt-theme-f3', darkDefault:false },
+  onNav: t => { go(t); return true; },
+  playground: { swatches:[{bg:'#ff7a3c'},{bg:'#8b5cf6'},{bg:'#1fc7b6'},{bg:'#ff4d8d'},{bg:'#2d6fd6'},{bg:'#37c871'}],
+    extras:[{ html:'<label>Chunkiness <span class="v" id="pgRadV">1.0×</span></label><input type="range" class="sh-range" id="pgRad" min="0.4" max="1.8" step="0.1" value="1" />',
+      init:(el,set)=>{ el.querySelector('#pgRad').oninput=e=>{ set('--radius', e.target.value); el.querySelector('#pgRadV').textContent=(+e.target.value).toFixed(1)+'×'; }; },
+      reset:el=>{ el.querySelector('#pgRad').value=1; el.querySelector('#pgRadV').textContent='1.0×'; } }] },
+});
+['#scRequest .card','#scHigh .card','#scSettings .card'].forEach(sel => Shell.addBack(sel, () => go('games')));
+route();
+</script>
+</body>
+</html>

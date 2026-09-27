@@ -13,11 +13,21 @@ is the living project picture; each thread is a `NNN Topic/` folder (screenshots
 
 ## Stack & layout
 
-- **Frontend:** ONE self-contained `index.html` — plain HTML/CSS/JS, **no build step**, no
-  framework. All screens, styles, and game logic live in this single file. Light/dark toggle
-  (persisted) + a desktop-only design playground.
-- **Backend:** serverless functions in `api/` over Postgres (Neon) via `pg`.
-  - `api/_db.js` — shared pooled connection (`getPool()`); `DATABASE_URL` from env.
+- **Frontend:** plain HTML/CSS/JS pages, **no build step**, no framework. **`index.html` is the
+  app frame**: every page runs inside its `<iframe id="view">`, and the frame owns the **chat
+  panel** — so moving between games never reloads the panel or loses its state. `games.html` is
+  the hub (Games · High Scores · Settings); each game is its own page: `bankit.html`,
+  `singit.html`, `tictactoe.html`, `mix.html`, `four.html`, `memory.html`, `vault.html`,
+  `dots.html`, `mancala.html`, `rps.html`, `battle.html`, `checkers.html`, `reversi.html`, `scramble.html`, `echo.html`.
+  Every page loads **`shell.css` + `shell.js`** (see "The platform shell"); opened on its own (a
+  bookmark, an invite link) `shell.js` redirects into the frame as `/?p=page.html#hash`.
+- **Chat:** `index.html` panel (💬 tab on the right edge; pushes the page over; unread badge;
+  who's online). Server: `scripts/chat-server.mjs` on `/chat` (dev server), one room, signed-in
+  players only (the shared `bankit-user-v1` identity), ≤500 chars, ~1 msg / 0.7s, last 100 sent on
+  connect (or on `{t:'hist'}`), saved to `chat_messages` (`scripts/migrate-chat.mjs`). In prod the
+  same messages run through `aws/ws-handler.js` (see Deploy).
+- **Backend:** serverless functions in `api/` over Aurora Postgres (RDS Data API).
+  - `api/_db.js` — pg-compatible facade (`getPool()`) over the Data API; `BANKIT_DB_*` env.
   - `api/boards.js` — `GET /api/boards` → all active boards + their answers/decoys.
   - `api/scores.js` — `GET` leaderboard rows; `POST` records a finished run **and** upserts
     the player's running totals (see Players below).
@@ -29,16 +39,19 @@ is the living project picture; each thread is a `NNN Topic/` folder (screenshots
   - `scripts/add-boards-batch.mjs` — add several boards at once (idempotent on slug).
   - `scripts/migrate-players.mjs` — idempotent: creates the `players` table + backfills from
     existing `scores`. Already applied to the live DB.
-- **Deploy:** static + serverless on **Vercel** (prod alias `bankit-pearl.vercel.app`).
-  `DATABASE_URL` lives in `.env.local` (gitignored) locally and in Vercel env in prod.
-  No Vercel deployment-count limit — retry on failure.
-  - ⚠️ **Git auto-deploys are DISCONNECTED for this project** (2026-06-10). Vercel's
-    git-triggered builds repeatedly produced deployments missing newly-added `api/*.js`
-    lambdas (the route 404s in prod), and even raced a good build with a stale function-less
-    copy that stole the prod alias. `vercel.json` now pins explicit function detection
-    (`"functions": {"api/*.js": ...}`), but don't reconnect git. **Deploying = a manual step
-    after every push:** `vercel build --prod && vercel deploy --prebuilt --prod`, then verify
-    with `vercel inspect <url>` that every λ is listed (and curl any new route).
+- **Deploy (AWS, us-east-1, account 638175140432):** `scripts/deploy-aws.sh` (all · `lambdas` · `site`).
+  Live: **https://main.d1ecw91uspa0an.amplifyapp.com** (custom domain later).
+  - **Amplify** app `playground` (id in `aws/amplify-app-id`), branch `main`, manual zip deploys of the
+    static pages (not git-connected). A custom rule proxies `/api/<*>` to the API Lambda.
+  - **Lambda `bankit-api`** (`aws/api-handler.js`): one function for every `api/*.js` route via a
+    Function URL (shims the event into Vercel-style req/res). New route → add it to `ROUTES` there.
+  - **Lambda `bankit-ws` + API Gateway WebSocket `bankit-ws`** (`aws/ws-handler.js`, stage `prod`):
+    the game relay (`?ch=relay&cid=`) and chat (`?ch=chat`) with state in DynamoDB `bankit-ws`
+    (TTL on `ttl`). Pages pick the socket with `Shell.wsUrl()` (localhost → dev server). Clients
+    ping every 4 min (API Gateway drops idle sockets at 10 min; hard cap 2 h).
+  - IAM role `bankit-lambda`: Data API, the DB secret, Bedrock, the table, ManageConnections.
+  - Any `.env.local` change to `BANKIT_DB_*` → rerun `scripts/deploy-aws.sh lambdas`.
+  - `vercel.json` is left over from the old host and unused.
 
 ## ⚠️ The one rule that bites: boards live in TWO places
 
@@ -85,7 +98,7 @@ auto-generate for them.
   `startBoard`/retry/score-submit work on them unchanged; cleared on player switch
   (`clearMySets()`). User-typed text is escaped with `esc()` wherever it hits `innerHTML`.
 - Editor layout: desktop ≥861px is a wide (1080px) card capped at
-  `min(744px, 100dvh − 120px)` — meta column (title / 4×4 icon grid / colors / save) on the
+  `min(744px, 100dvh − 120px)` — meta column (the card itself, title typed on it — rotating suggestions, Tab accepts / colors / icon grid / save) on the
   left, the two answer lists side-by-side on the right with their own scroll, so Save never
   leaves the screen. Mobile keeps the stacked flow. Icon + color choices style the set's
   **category card** everywhere it appears (Pick, All categories, Your sets, trophies).
@@ -93,16 +106,13 @@ auto-generate for them.
   title + 10 answers (+ already-typed decoys) → Claude **Haiku** (`claude-haiku-4-5`,
   official SDK, structured `json_schema` output, ~$0.001/call) returns near-miss decoys at
   the 7–9 difficulty rule; only EMPTY decoy slots are filled, user-typed decoys are never
-  overwritten. Needs `ANTHROPIC_API_KEY_BANKIT` in the **Vercel env** (it's marked
-  sensitive, so it cannot be pulled/exported — and `vercel dev` ignores `.env.local`, so
-  local dev needs it added to the Vercel *Development* environment by hand). Without it
-  the route returns 503 "Decoy magic is not set up yet." For user-created sets the user
+  overwritten. Runs on Bedrock through the Lambda's IAM role (no API key). For user-created sets the user
   MAY still hand-write decoys — never auto-generate without the button press.
 
 ## Multiplayer duel (Play a friend)
 
 - **Mode-aware from the start:** `matches.mode='duel'` today; race/party are future
-  siblings (the lobby's mode picker shows them greyed). Stay **static + Neon + ~1.2s
+  siblings (no mode picker in the UI until they exist). Stay **static + Neon + ~1.2s
   polling** — the duel is turn-based, no realtime service, no sockets.
 - **Match shape: 3 boards, best 2 of 3** (first to 2 board wins ends it; the 3rd board
   decides a 1–1 split). **No −1**: a wrong tap scores 0 and passes the turn (wrong-tap
@@ -137,8 +147,8 @@ auto-generate for them.
     The server is the referee: turn check, shot clock, tile lock, +1/0, flip turn; board
     ends when all 10 answers found; `advanceSeries()` banks points + deals the next board
     (opening turn alternates) or ends the match. All in a transaction with FOR UPDATE.
-- **Client** (`index.html`): `M` state + `mApi()`; screens `scVersus` (host / join-by-code),
-  `scLobby` (code, copy-invite-link, players, mode picker, host-only start), `scDuel`,
+- **Client** (`index.html`): `M` state + `mApi()`; screens `scVersus` (Host / Join → full-width code entry),
+  `scLobby` ("Invite a friend": code, invite link — share sheet on phones, players, host-only start), `scDuel`,
   `scMatch` (series winner + final points). **scDuel anatomy:** badges + "vs." header —
   whose TURN = whose badge GROWS (`.duel-p.turn`, scale 1.16 + gold ring), no turn text;
   category-only qcard (no board-strip); segmented `dprog` "X of 10 found" tracker; the
@@ -151,7 +161,146 @@ auto-generate for them.
   abandoned games are swept after 24h by the next lobby creation; duel results still
   don't feed the players/leaderboard tables.
 
-## Players, points & the Profile screen
+## Sing It (second game — `singit.html`)
+
+Karaoke party game, **Zoom/Meet-first**: friends are on a video call; each opens Sing It in
+a browser and joins a room. The call carries the singing; Sing It runs the card, the mic,
+the timers, the track and the rules. Linked from Bank It's Games screen (`#modeSingIt`).
+
+- **Rules:** every turn starts **face down**; the player whose turn it is taps the card to
+  flip it, which starts the 5s **response clock** (the thermometer). Grabbing the mic
+  (press and hold) freezes the thermometer. Sing while holding; **release to finish**. A
+  hold where no singing was detected, or no grab within 5s = mic dropped + the **Mute
+  Button** (skip your next turn). Any failed turn passes the same word to the next player,
+  face down again. Success moves the token the card's value; START → 9 → WINNER! (10).
+  Every game opens on the card **FREE**.
+- **Modes:** Basic (turn order) is the focus. Race (rotating flipper, everyone grabs,
+  fastest reaction time wins) exists but is parked — leave it alone unless asked.
+- **Group moderation:** one veto + one override per player per game; 5s veto window after
+  the mic comes down, 5s override window after a veto; singer can't override; no veto =
+  the performance counts.
+- **Mic:** opened ONLY while tuning or holding the mic, stopped on release. Lobby "Hold to
+  tune your mic" = hold 3s in a quiet room → median level = room level. Singing =
+  smoothed level (150ms) ≥ room + 8 dB for 250ms total within any 600ms window. Untuned
+  players: holding counts as singing. Only a 0–1 level (+ the singing line) is sent, for
+  everyone's wave; the wave draws the singing line as a mint dashed baseline. Playground
+  has a "Show mic readout" toggle (live numbers for tuning the constants).
+- **Live words:** the browser's Web Speech API runs on the singer's device while they hold
+  the mic; text is broadcast and the prompt word lights up when heard. Display only —
+  never scores. In Chrome the browser sends that audio to Google's speech service.
+- **Architecture:** the **host's browser is the referee** (state machine in `hostIntent`
+  and friends; broadcasts full state each change). `scripts/singit-relay.mjs` is a dumb
+  WebSocket room fan-out on `/ws` (mounted by the dev server) — no game logic, nothing
+  stored. In prod the same protocol runs on API Gateway WebSockets (`aws/ws-handler.js`). Host reload/leave closes the room.
+- Tunables (timers, thresholds) are consts at the top of the script. The deck (`WORDS`)
+  is ~250 words in three value tiers. Tokens are inline SVG neon stickers.
+- Parked for later: a "Finish these lyrics" variant.
+
+## Vault (`vault.html`)
+
+Push-your-luck heist on the shell (navy + gold). Standard intro → mode. Five vaults a night,
+drawn from the live official boards (`/api/boards`; its built-in 8 as fallback). Top row is two
+columns: the vault (tap it to bank — there is no Bank button) · odds meter over the pot ladder.
+Night's end = `Shell.results`; the take posts to `game_scores` as `vault` (Coins).
+**Play a friend = a race:** the host deals two DIFFERENT nights (`startData`), each screen
+shuffles its own tiles, both play at their own pace. A rival mirror (left column; a strip on
+narrow screens) shows their vault #, pot, take and a word-less 20-tile grid (gold hit / red
+trap), fed by `beacon()` messages. Higher take wins; leaving forfeits.
+**Play the computer:** the same race against a local robot (`startCpu` / `robotVault`): ~90%
+correct picks, taps every ~1–2.5s, banks at a random 3–7 hits (sometimes goes for the sweep).
+The rival panel reads "vs. Name 🤖" / vault-or-status / pot · take / grid.
+
+## Tic Tac Toe, Four in a Row, Memory
+
+Small games on the shell, each with its own stage color, posting to `game_scores`:
+- **Tic Tac Toe** (`tictactoe.html`, grape): vs computer (Easy = mostly random, Unbeatable =
+  minimax — 0 losses across all 642 games) or Play a friend (host X, guest O). Posts `ttt` wins.
+- **Four in a Row** (`four.html`, arcade blue): 7×6, vs computer (Easy / Hard = alpha-beta
+  depth 5) or Play a friend (host red). Posts `four` wins.
+- **Memory** (`memory.html`, sunshine): 16 cards / 8 pairs. Solo: points = max(5, 40 − 2 ×
+  (tries − 8)). Play a friend: turns, a match goes again; the host deals (`startData`) so both
+  screens share the deck; points = pairs + 5 for the win. Posts `memory` points.
+- Online moves are small messages applied identically on both screens; the first move
+  alternates each game; "Play again" resets once even if both press it.
+
+## Dots & Boxes, Mancala, Rock Paper Scissors, Sea Battle, Checkers, Reversi, Scramble, Echo
+
+Same pattern as the small games above (intro → vs computer Easy/Hard · Play a friend → results),
+each posting wins to `game_scores`:
+- **Dots & Boxes** (`dots.html`, green, `dots`): 4×4 boxes; closing a box goes again. Hard takes free
+  boxes, never hands one over while a safe line exists, else gives away the fewest (chain sim).
+- **Mancala** (`mancala.html`, terracotta, `mancala`): Kalah rules, 4 stones a pit; stone-by-stone
+  animation through a move queue (keeps both screens in step). Hard = alpha-beta depth 7.
+- **Rock Paper Scissors** (`rps.html`, pink, `rps`): first to 3. Tricky learns what you play after
+  each move. Online picks are keyed by game + round so an early pick isn't lost.
+- **Sea Battle** (`battle.html`, sea blue, `battle`): 8×8, ships 4·3·3·2 that never touch, Shuffle →
+  Ready. Each screen keeps its own fleet secret: `shot` → the target answers `res` {hit, sunk, all}.
+  Hard AI hunts on a checkerboard, then works along hits.
+- **Checkers** (`checkers.html`, red, `checkers`): American rules — forced jumps, multi-jumps,
+  crowning ends the move; 40 moves each without a capture = draw. Guest sees the board flipped.
+  Hard = alpha-beta depth 6. Pieces use `--pc0/--pc1`, separate from the UI accents.
+- **Reversi** (`reversi.html`, felt green, `reversi`): no move = skipped; Hard = alpha-beta depth 5
+  on a corner-weighted table + mobility.
+- **Scramble** (`scramble.html`, plum, `scramble` points): unjumble a word (tap or type; any listed
+  anagram counts). Words come from the shared `scramble_words` pool (500 seeds,
+  `scripts/migrate-scramble.mjs`; `GET /api/scramble`). Each browser remembers what it has seen
+  (`scramble-seen`); once it has seen the whole pool, `POST /api/scramble` has Haiku invent ~40 new
+  words, saved for everyone (Mix It's trick). Solo = 60s sprint, points = letters. Play a friend = the host deals one list and
+  referees: a guest solve is a `claim`, the host awards the first one; 30s per word; first to 5 (+5).
+- **Echo** (`echo.html`, slate, `echo` points): Simon. Solo = rounds echoed; Play a friend = the
+  host deals one sequence, both play each round at once, last one standing wins (+5).
+- These pages share one head/CSS/sound block (copied into each file, no build step).
+- ⚠️ The relay stamps every message with `from` (the sender id) — never use `from` as a field in
+  game messages (Checkers sends `f`).
+
+## Mix It (`mix.html`)
+
+Infinite-Craft-style combining game in Bank It's look. Start with Water / Fire / Wind /
+Earth; drag items from the list onto the board and drop one onto another.
+- **`api/mix.js`** (`POST {a,b,by}` → `{name, emoji, first}`): the pair (sorted, lowercase)
+  is looked up in `mix_recipes`; a hit returns instantly. A never-tried pair goes to Claude
+  Haiku on Bedrock (same setup as `api/decoys.js`), then the item (`mix_items`, `first_by` =
+  the first discoverer) and the recipe are saved forever — same answer for everyone after.
+  Both inputs must already exist in `mix_items`, so the route can't be used to generate
+  arbitrary text. Tables: `scripts/migrate-mix.mjs` (idempotent; seeds the four starters).
+- **Your collection** lives in the browser (`mixit-inv`); ★ marks your First Discoveries.
+- **Play a friend:** the shell's lobby. Split screen — your friend's board on the left (live
+  mirror, normalized 0–1 positions ~14×/s), yours beside the item list; discoveries toast.
+- Leaderboard: First Discoveries (`mix_items.first_by`).
+- **Board extras (neal.fun-style):** a light "ting" + a faint ray of light behind anything new to you;
+  light-blue hover on items. Bottom-left 🏆 = **Categories** (fixed lists in `CATS`, x / N progress, a
+  date-seeded Daily Challenge from `DAILY_POOL`; a category shows found items, the rest faded).
+  Bottom-right = **Recipes** (search your items → every pair that makes it: your own `mixit-recipes`
+  history + `GET /api/mix?item=` filtered to pairs whose inputs you own).
+
+## The platform shell (`shell.css` / `shell.js`) and the hub (`games.html`)
+
+- **`Shell.init({brand, theme, gameMenu, playground, topExtra, beforeLeave, onJoinLink})`** adds
+  the top bar (menu · wordmark · theme toggle), the **context menu** (this game's items on top —
+  Bank It: Categories, Create — then Games / High Scores / Settings, + theme on mobile) and the
+  **playground** (stage color, display font, depth, + per-game extras: Bank It chunkiness,
+  Sing It neon glow + mic readout). Global items go to `games.html#/games|highscores|settings`.
+- **One identity** everywhere: `bankit-user-v1` `{name, avatar}` (Bank It's key). `Shell.player()`,
+  `Shell.requirePlayer()` (the "Who's playing?" card). Sing It keeps its token per game.
+- **The standard start sequence:** intro card ("Let's play!") → `Shell.mode` (Play solo / vs
+  computer · Play a friend) → `Shell.friend({game, onStart, onMessage, startData, …})` = Host /
+  Join → lobby (code, invite link, players, host Start) over the relay (`/ws`). The `game` tag
+  stops a code from joining another game's room. Invite links: `page#/join/1234`.
+  Bank It keeps its own duel screens (`renderVersus`) behind the same mode choice; Sing It keeps
+  its own lobby (host referee).
+- **`Shell.results({em, title, big, sub, again, change})`** — the standard end card
+  (Play again · Change mode · Games). `Shell.postScore(game, score)` → `POST /api/game-scores`.
+- **Hub:** Games grid (Request new pinned first — form **not wired to a destination yet**),
+  **High Scores** (one slide per game, ‹ › + dots; `GET /api/leaderboard?game=`), **Settings**
+  (identity + avatar, switch player, stats across games via `?name=`, Dark mode, Sound —
+  `Shell.soundOn()`, which the games' tone functions check).
+- **Scores:** Bank It → `scores`/`players` (lifetime points); Mix It → first discoveries;
+  Sing It / Tic Tac Toe / Four in a Row / Dots & Boxes / Mancala / Rock Paper Scissors / Sea Battle /
+  Checkers / Reversi (wins), Memory, Echo and Scramble (points) and Vault (coins) → `game_scores`
+  (`scripts/migrate-game-scores.mjs`).
+- No arrows on buttons ("Play", not "Play →").
+
+## Players & points
 
 - **Points persist in the DB, keyed by username** — not in localStorage. localStorage
   (`bankit-user-v1`) holds **identity only**: `{name, avatar}`.
@@ -160,11 +309,8 @@ auto-generate for them.
   every finished round** inside the `/api/scores` POST (same request that logs the score row).
 - The frontend's `STATS` object is fetched from `GET /api/players?name=` so stats follow the
   player across devices.
-- **Profile screen** (`scProfile`, rendered by `renderProfile()`, menu item 👤 "Profile"): avatar,
-  name, lifetime points, a stat row (boards swept / best run / runs played), and a trophy list of
-  swept boards. Markup uses `.profile-*` classes and `profile*` element IDs (`profileAv`,
-  `profileName`, `profilePts`, `profileSweeps`, …). This is the permanent home for a perfect 10/10
-  sweep. The **High Scores** screen is the separate global/leaderboard view.
+- There is no Profile screen any more: identity + stats across games live in the hub's
+  **Settings**; leaderboards in the hub's **High Scores**.
 - **No password** — username-only auth means whoever types a name owns that profile. Acceptable
   for a party game; a PIN could be added later for true ownership.
 - **SQL gotcha:** in the players upsert, a single param used as both `int` (`total_points`) and
@@ -173,8 +319,10 @@ auto-generate for them.
 
 ## Screen flow
 
-`Start → scAuth (sign in/up) → Pick → Board → Results`, plus `scProfile` (profile), `scHighScores`,
-`scHowTo`, `scCategories` (all boards). "Let's play" runs `playEntry()` → `renderAuth()`.
+Bank It (`bankit.html`): `Start (intro) → scAuth (first time only) → mode (Shell.mode: Play solo →
+Pick → Board → Results · Play a friend → scVersus)`, plus `scCategories`, the editor, My sets.
+"Let's play" runs `playEntry()`; `afterAuth()` opens the mode choice. Results: Play again ·
+New category · Games.
 
 - **Pick a Category is randomized:** `renderPick` shuffles board indices and shows `PICK_COUNT`
   (=5) at random each visit. "All categories" (`renderCategories`) still shows every board.
@@ -188,14 +336,11 @@ auto-generate for them.
   random Pick). The deterministic `shuffle(arr, seed)` is only for the per-board tile order.
 - Match the existing house style: Title-Case tile labels, chunky display font, the card/button
   CSS vocabulary (`.btn`, `.btn.teal/.ghost`, `.card`, `.stat`, color slots `c0..c3`).
-- Run locally with any static server for UI work: `python3 -m http.server 8000`. The `/api/*`
-  routes won't run under that (you'll get the fallback boards + 404s on scores) — use `vercel dev`
-  if you need the live API, or test API handlers directly against the DB.
+- Run locally with the Node dev server (`scripts/dev-server.mjs`, port 3000): static pages, the
+  `api/*.js` handlers against Aurora, and the `/ws` relay for Play a friend.
 
 ## Run it
 
 ```bash
-python3 -m http.server 8000   # static UI only; open http://localhost:8000
-# or, with the serverless API:
-vercel dev
+node scripts/dev-server.mjs   # → http://localhost:3000 (hub + games + api/*.js + the /ws relay)
 ```

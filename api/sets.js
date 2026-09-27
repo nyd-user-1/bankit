@@ -26,7 +26,7 @@ module.exports = async (req, res) => {
       if (boards.length) {
         const { rows: answers } = await pool.query(
           `SELECT board_id, text, on_list FROM board_answers
-            WHERE board_id = ANY($1) ORDER BY board_id, sort_order`,
+            WHERE board_id = ANY($1::int[]) ORDER BY board_id, sort_order`,
           [boards.map((b) => b.id)]
         );
         for (const a of answers) (byBoard[a.board_id] ||= []).push(a);

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Echo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Nunito:wght@700;800;900&family=Fredoka:wght@600;700&display=swap" rel="stylesheet" />
+<script>(function(){ try{ if(localStorage.getItem('nysgpt-theme-f3')==='dark') document.documentElement.setAttribute('data-theme','dark'); }catch(e){} })();</script>
+<link rel="stylesheet" href="shell.css" />
+<style>
+  /* Echo's own stage */
+  :root{
+    --bg:#475569; --panel:#fffaf2; --panel-2:#eef1f6; --ink:#2a1a3e; --ink-dim:#7a6385; --ink-faint:#b6a6c0; --shadow:#1e293b;
+    --teal:#1fc7b6; --teal-sh:#13978a; --pink:#ff4d8d; --yellow:#ffd23f; --purple:#8b5cf6; --purple-sh:#6d3fd6;
+    --p0:#8b5cf6; --p0-sh:#6d3fd6; --p1:#ff7a3c; --p1-sh:#c9531c;
+    --font-display:"Luckiest Guy",system-ui,sans-serif; --font-body:"Nunito",system-ui,sans-serif; --pop:1;
+    --sh-a:var(--p0); --sh-a-sh:var(--p0-sh); --sh-b:var(--p1); --sh-b-sh:var(--p1-sh);
+  }
+  :root[data-theme="dark"]{ --bg:#0b1220; --panel:#1a2333; --panel-2:#243047; --ink:#f6f1ff; --ink-dim:#bcaee3; --ink-faint:#7a6aa8; --shadow:#08051a; }
+  :root{color-scheme:light} :root[data-theme="dark"]{color-scheme:dark}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{min-height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-weight:800;-webkit-font-smoothing:antialiased;transition:background .4s,color .4s;background-attachment:fixed;
+    background-image:radial-gradient(circle at 18% 16%, rgba(255,255,255,.10), transparent 42%),radial-gradient(circle at 84% 82%, rgba(255,255,255,.07), transparent 46%)}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  .bgfloat{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+  .bgfloat .b{position:absolute;border-radius:50%;opacity:.16;background:#fff;animation:bob 7s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-26px) rotate(6deg)}}
+  .stage{position:relative;z-index:2;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:92px 18px 40px}
+  .screen{display:none;width:100%;max-width:520px}
+  .screen.on{display:block}
+  .card{background:var(--panel);border-radius:28px;box-shadow:0 calc(11px * var(--pop)) 0 var(--shadow);padding:34px 36px;width:100%;animation:pop .42s cubic-bezier(.2,1.4,.4,1) both}
+  @keyframes pop{from{opacity:0;transform:scale(.9) translateY(14px)}to{opacity:1;transform:none}}
+  @media(max-width:560px){.card{padding:28px 22px}}
+  h1{font-family:var(--font-display);font-size:clamp(34px,7vw,50px);text-align:center;line-height:.98;margin-bottom:10px;font-weight:400}
+  h1 .x{color:var(--p0)} h1 .o{color:var(--p1);display:inline-block;transform:rotate(-4deg)}
+  .sub{text-align:center;color:var(--ink-dim);font-size:15px;margin-bottom:22px;line-height:1.5}
+  .rules{background:var(--panel-2);border-radius:18px;padding:18px 20px;margin-bottom:22px;display:flex;flex-direction:column;gap:11px}
+  .rule{display:flex;align-items:center;gap:13px;font-size:14.5px}
+  .rule .n{width:30px;height:30px;flex-shrink:0;border-radius:9px;background:var(--teal);color:#053d38;display:grid;place-items:center;font-family:var(--font-display);font-size:15px;box-shadow:0 3px 0 var(--teal-sh)}
+  .rule:nth-child(2) .n{background:var(--pink);box-shadow:0 3px 0 #cc2f6e;color:#fff}
+  .rule:nth-child(3) .n{background:var(--yellow);box-shadow:0 3px 0 #d9a800;color:#5a4500}
+  .btn{display:flex;align-items:center;justify-content:center;width:100%;font-family:var(--font-display);font-size:22px;letter-spacing:.02em;color:#fff;background:var(--p0);
+    padding:15px 26px;border-radius:16px;position:relative;top:0;box-shadow:0 calc(6px * var(--pop)) 0 var(--p0-sh);transition:top .08s,box-shadow .08s}
+  .btn:active{top:5px;box-shadow:0 1px 0 var(--p0-sh)}
+
+  .play{max-width:500px}
+  .score{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+  .score.three{grid-template-columns:1fr auto 1fr}
+  .pill{background:var(--panel);border-radius:16px;box-shadow:0 calc(5px * var(--pop)) 0 var(--shadow);padding:10px 12px;text-align:center;transition:transform .15s,box-shadow .15s;min-width:0}
+  .pill .k{font-family:var(--font-display);font-size:15px;letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pill .v{font-family:var(--font-display);font-size:30px;line-height:1.1}
+  .pill.p0 .k{color:var(--p0)} .pill.p1 .k{color:var(--p1)} .pill.pd .k{color:var(--ink-faint)}
+  .pill.turn{transform:scale(1.07);box-shadow:0 5px 0 var(--shadow),0 0 0 4px var(--yellow)}
+  .status{font-family:var(--font-display);font-size:24px;text-align:center;color:#fff;text-shadow:0 3px 0 var(--shadow);min-height:34px;margin-bottom:14px}
+  .boardcard{background:var(--panel);border-radius:26px;padding:16px;box-shadow:0 calc(11px * var(--pop)) 0 var(--shadow);animation:pop .42s cubic-bezier(.2,1.4,.4,1) both}
+  .simon{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:14px;aspect-ratio:1;max-width:420px;margin:6px auto;border-radius:50%;padding:14px;background:#1e293b}
+  :root[data-theme="dark"] .simon{background:#0b1220}
+  .pad{border-radius:14px;opacity:.55;transition:opacity .08s,filter .08s,transform .08s;position:relative;top:0}
+  .pad:nth-child(1){border-top-left-radius:100%;background:#22c55e;box-shadow:0 6px 0 #15803d}
+  .pad:nth-child(2){border-top-right-radius:100%;background:#ef4444;box-shadow:0 6px 0 #b91c1c}
+  .pad:nth-child(3){border-bottom-left-radius:100%;background:#facc15;box-shadow:0 6px 0 #ca8a04}
+  .pad:nth-child(4){border-bottom-right-radius:100%;background:#3b82f6;box-shadow:0 6px 0 #1d4ed8}
+  .simon.go .pad{cursor:pointer}
+  .simon.go .pad:hover{opacity:.72}
+  .pad.lit{opacity:1;filter:brightness(1.25) drop-shadow(0 0 18px rgba(255,255,255,.7));transform:scale(1.02)}
+  .hub{position:absolute;left:50%;top:50%;width:34%;height:34%;transform:translate(-50%,-50%);border-radius:50%;background:var(--panel);display:grid;place-items:center;text-align:center;box-shadow:0 0 0 10px #1e293b}
+  :root[data-theme="dark"] .hub{box-shadow:0 0 0 10px #0b1220}
+  .hub b{display:block;font-family:var(--font-display);font-size:clamp(30px,8vw,46px);font-weight:400;line-height:1}
+  .hub small{font-size:12px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.08em}
+  .pill .v.small{font-size:18px;padding:6px 0}
+</style>
+</head>
+<body>
+<div class="bgfloat" id="bgfloat"></div>
+<div class="stage">
+  <section class="screen on" id="scIntro">
+    <div class="card">
+      <h1><span class="x">Ec</span><span class="o">ho</span></h1>
+      <div class="sub">Watch the lights, play them back.<br>Go solo or race a friend.</div>
+      <div class="rules">
+        <div class="rule"><span class="n">1</span><span>Watch the pads light up, then tap them in the same order.</span></div>
+        <div class="rule"><span class="n">2</span><span>Every round adds one more — and it gets faster.</span></div>
+        <div class="rule"><span class="n">3</span><span>One wrong tap ends it. With a friend, the last one standing wins.</span></div>
+      </div>
+      <button class="btn" id="introGo">Let's play!</button>
+    </div>
+  </section>
+
+  <section class="screen play" id="scGame">
+    <div class="score" id="score">
+      <div class="pill p0" id="pA"><div class="k" id="kA"></div><div class="v" id="sA">0</div></div>
+      <div class="pill p1" id="pB"><div class="k" id="kB"></div><div class="v small" id="sB"></div></div>
+    </div>
+    <div class="status" id="status"></div>
+    <div class="boardcard">
+      <div class="simon" id="simon">
+        <button class="pad" data-p="0" aria-label="green"></button><button class="pad" data-p="1" aria-label="red"></button>
+        <button class="pad" data-p="2" aria-label="yellow"></button><button class="pad" data-p="3" aria-label="blue"></button>
+        <div class="hub"><div><b id="round">1</b><small>round</small></div></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script src="shell.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const esc = Shell.esc;
+function show(id){ document.querySelectorAll('.screen').forEach(s => s.classList.remove('on')); $(id).classList.add('on'); }
+(function bg(){ const w=$('bgfloat'); for (let i=0;i<9;i++){ const b=document.createElement('div'); b.className='b'; const s=40+Math.random()*80;
+  Object.assign(b.style,{ width:s+'px', height:s+'px', left:Math.random()*100+'%', top:Math.random()*100+'%', animationDelay:(-Math.random()*7)+'s' }); w.appendChild(b); } })();
+
+//// ===== sounds =====
+let AC=null;
+function tone(f, dur, type='triangle', vol=.16, delay=0){
+  if (!Shell.soundOn()) return;
+  try{ AC ||= new (window.AudioContext||window.webkitAudioContext)();
+    const t=AC.currentTime+delay, o=AC.createOscillator(), g=AC.createGain();
+    o.type=type; o.frequency.setValueAtTime(f,t); g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.001,t+dur);
+    o.connect(g).connect(AC.destination); o.start(t); o.stop(t+dur); }catch(e){}
+}
+const sndWin = () => [523,659,784,1047].forEach((f,i) => tone(f, i===3 ? .5 : .14, 'triangle', .18, i*.09));
+const sndLose = () => [392,330,262].forEach((f,i) => tone(f, .22, 'sine', .15, i*.14));
+const sndDraw = () => [392,330].forEach((f,i) => tone(f, .22, 'sine', .15, i*.14));
+const plural = (n, w, ws=w+'s') => `${n} ${n===1 ? w : ws}`;
+
+const NOTES = [329.63, 261.63, 220, 164.81];
+const sndPad = (p, d=.3) => tone(NOTES[p], d, 'triangle', .2);
+const sndWrong = () => tone(98, .6, 'sawtooth', .12);
+
+//// ===== the game =====
+const deal = () => Array.from({ length:200 }, () => Math.floor(Math.random()*4));
+// mode: 'solo' or 'online'. n = this round's length; pos = where you are in playing it back
+const G = { mode:'solo', seq:[], n:1, pos:0, phase:'show', over:false, room:null, res:{}, best:0, timers:[] };
+const later = (f, ms) => G.timers.push(setTimeout(f, ms));
+const other = () => G.room && G.room.other;
+function render(){
+  $('round').textContent=G.n;
+  $('simon').classList.toggle('go', G.phase==='input' && !G.over);
+  const me=Shell.player()||{};
+  $('kA').textContent = G.mode==='solo' ? 'Best round' : `${me.avatar||''} ${me.name||'You'}`;
+  $('sA').textContent = G.mode==='solo' ? G.best : G.n-1;
+  $('pB').style.display = G.mode==='solo' ? 'none' : '';
+  $('score').style.gridTemplateColumns = G.mode==='solo' ? '1fr' : '';
+  if (G.mode==='online'){ const o=other(), r=G.res[G.n]||{};
+    $('kB').textContent = o ? `${o.avatar} ${o.name}` : 'Your friend';
+    $('sB').textContent = !o ? 'Left' : r.them===true ? 'Done ✓' : r.them===false ? 'Missed' : 'Playing…'; }
+  const r=G.res[G.n]||{};
+  $('status').innerHTML = G.over ? '' : G.phase==='show' ? 'Watch…' : G.phase==='input' ? 'Your turn' : r.me===false ? 'Missed!' : `Waiting for ${esc((other()||{}).name||'your friend')}…`;
+}
+function light(p, ms){
+  const el=$('simon').children[p]; el.classList.add('lit'); sndPad(p, ms/1000);
+  later(() => el.classList.remove('lit'), ms*.8);
+}
+function showRound(){
+  G.phase='show'; G.pos=0; render();
+  const step = Math.max(260, 620 - G.n*28);
+  for (let k=0;k<G.n;k++) later(() => light(G.seq[k], step), 700 + k*step);
+  later(() => { G.phase='input'; render(); }, 700 + G.n*step);
+}
+function tap(p){
+  if (G.over || G.phase!=='input') return;
+  light(p, 260);
+  if (p!==G.seq[G.pos]){ sndWrong(); return roundDone(false); }
+  if (++G.pos===G.n) roundDone(true);
+}
+function roundDone(ok){
+  G.phase='wait';
+  if (G.mode==='solo'){
+    if (!ok) return end();
+    G.best=Math.max(G.best, G.n); G.n++; render(); return later(showRound, 600);
+  }
+  (G.res[G.n] ||= {}).me=ok; G.room.send({ t:'done', r:G.n, ok }); render(); settle();
+}
+// online: once both have played this round back, go on or call it
+function settle(){
+  const r=G.res[G.n]; if (!r || r.me===undefined || r.them===undefined) return;
+  if (r.me && r.them){ G.n++; render(); return later(showRound, 700); }
+  end(r.me && !r.them ? 'me' : !r.me && r.them ? 'them' : 'tie');
+}
+function newGame(seq){
+  G.timers.forEach(clearTimeout);
+  Object.assign(G, { seq, n:1, pos:0, over:false, res:{}, timers:[] });
+  show('scGame'); render(); showRound();
+}
+function end(who){
+  G.over=true; G.phase='over'; render();
+  const done=G.n-1;
+  let em, title, sub, pts;
+  if (G.mode==='solo'){ pts=done; em = done>=10 ? '🧠' : '🎵'; title=`${plural(done,'round')}`; sub = done ? `You echoed ${done} in a row.` : 'Missed the first one.'; }
+  else { const won = who==='me'; pts = done + (won ? 5 : 0);
+    em = won ? '🏆' : who==='tie' ? '🤝' : '😬';
+    title = won ? 'You win!' : who==='tie' ? "It's a tie" : `${esc((other()||{}).name||'Your friend')} wins`;
+    sub = `Out on round ${G.n}.`; }
+  if (pts) Shell.postScore('echo', pts);
+  if (who!=='me' && G.mode==='online' || G.mode==='solo') sndLose(); else sndWin();
+  later(() => Shell.results({ em, title, sub,
+    again:{ label:'Play again', onClick:()=>{
+      if (G.mode==='solo') return newGame(deal());
+      if (G.room.isHost){ const s=deal(); G.room.send({ t:'again', seq:s }); newGame(s); }
+      else { G.room.send({ t:'again-req' }); $('status').textContent='Waiting for the host…'; }
+    } },
+    change:{ label:'Change mode', onClick:()=>{ leaveRoom(); openMode(); } } }), 1000);
+}
+
+//// ===== the standard start sequence =====
+function openMode(){
+  Shell.mode({ options:[
+      { label:'Play solo', onClick:()=>{ Shell.hide(); leaveRoom(); G.mode='solo'; newGame(deal()); } },
+      { label:'Play a friend', kind:'b', onClick:()=>Shell.friend(FRIEND) } ],
+    onBack:()=>show('scIntro') });
+}
+const FRIEND = {
+  game:'echo',
+  onBack: openMode,
+  startData: () => ({ seq: deal() }),                  // the host deals; both play the same lights
+  onStart: (R, data) => { Object.assign(G, { mode:'online', room:R }); newGame(data.seq); },
+  onMessage: m => {
+    if (m.t==='done'){ (G.res[m.r] ||= {}).them=m.ok; if (m.r===G.n) { render(); settle(); } }
+    else if (m.t==='again' && G.over){ Shell.hide(); newGame(m.seq); }
+    else if (m.t==='again-req' && G.over && G.room.isHost){ Shell.hide(); const s=deal(); G.room.send({ t:'again', seq:s }); newGame(s); }
+  },
+  onLeft: () => { if (!G.over){ render(); if (G.phase==='wait') end('me'); } },
+};
+function leaveRoom(){ if (G.room){ Shell.leaveRoom(); G.room=null; } }
+
+$('simon').addEventListener('pointerdown', e => { const p=e.target.closest('.pad'); if (p) tap(+p.dataset.p); });
+$('introGo').onclick = () => Shell.requirePlayer().then(openMode);
+Shell.addBack('#scIntro .card', () => Shell.nav('games'));
+Shell.init({
+  brand:'Echo',
+  theme:{ key:'nysgpt-theme-f3', darkDefault:false },
+  beforeLeave:()=>!G.room || confirm('Leave this game?'),
+  onJoinLink: code => Shell.joinCode(FRIEND, code),
+  playground:{ swatches:['#475569','#8b5cf6','#1fc7b6','#37c871','#2d6fd6','#ff4d8d'].map(c=>({ bg:c, vars:{ '--bg':c } })) },
+});
+</script>
+</body>
+</html>

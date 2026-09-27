@@ -1,0 +1,1803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Bank It — a party game</title>
+<meta name="description" content="Bank It — a quick party game. Pick a category, see 20 answers, and tap the ten you think are on the hidden list. Push your luck: every hit scores, one wrong tap ends the round — so bank it before you bust." />
+<!-- PWA: launches fullscreen (no Safari chrome) when added to the home screen -->
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content="#ff7a3c" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Bank It" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Nunito:ital,wght@0,600;0,700;0,800;0,900;1,800&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="shell.css" />
+<script>
+  // light is the default for this sunny game-show UI; dark opts in.
+  (function(){ try{ if(localStorage.getItem('nysgpt-theme-f3')==='dark') document.documentElement.setAttribute('data-theme','dark'); }catch(e){} })();
+</script>
+<style>
+  :root{
+    /* ---- LIGHT (default): sunny game-show palette ---- */
+    --bg:#ff7a3c;              /* the warm tangerine stage */
+    --bg-2:#ff5a2c;
+    --panel:#fffaf2;
+    --panel-2:#fff0dd;
+    --ink:#2a1a3e;
+    --ink-dim:#7a6385;
+    --ink-faint:#b6a6c0;
+    --shadow:#a8320a;          /* chunky drop-shadow under everything */
+    --teal:#1fc7b6;
+    --teal-sh:#13978a;
+    --pink:#ff4d8d;
+    --yellow:#ffd23f;
+    --purple:#8b5cf6;
+    --green:#37c871;
+    --green-sh:#249a52;
+    --yellow-sh:#d9a800;
+    --orange:#ff8b2d;
+    --orange-sh:#d96a10;
+    --blue:#4d9fff;
+    --blue-sh:#2f6fcc;
+    --red:#ff4d4d;
+    --hit:#37c871;            /* a correct tile */
+    --hit-sh:#249a52;
+    --miss:#ff4d4d;          /* a wrong tap */
+    --miss-sh:#cc2f2f;
+    --reveal:#ffd23f;        /* unrevealed answers shown at the end */
+    --font-display:"Luckiest Guy",system-ui,sans-serif;
+    --font-body:"Nunito",system-ui,sans-serif;
+    --font-round:"Fredoka",system-ui,sans-serif;
+    --radius:1;              /* chunkiness of corners */
+    --pop:1;                 /* drop-shadow depth */
+  }
+  :root[data-theme="dark"]{
+    --bg:#241133;
+    --bg-2:#180a26;
+    --panel:#2e1a44;
+    --panel-2:#3a2356;
+    --ink:#fdf3ff;
+    --ink-dim:#c4a9d8;
+    --ink-faint:#7c6190;
+    --shadow:#0c0418;
+  }
+  :root{color-scheme:light} :root[data-theme="dark"]{color-scheme:dark}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{min-height:100%}
+  /* the PAGE scrolls (not an inner container) so mobile Safari collapses its toolbar on scroll */
+  body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-weight:700;
+    -webkit-font-smoothing:antialiased;transition:background .4s ease,color .4s ease;
+    background-attachment:fixed;
+    background-image:radial-gradient(circle at 18% 16%, rgba(255,255,255,.10), transparent 42%),radial-gradient(circle at 84% 82%, rgba(255,255,255,.07), transparent 46%)}
+  a{color:inherit;text-decoration:none}
+  button{font-family:inherit;cursor:pointer;border:none}
+
+  /* confetti-ish floating dots (decorative) */
+  .bgfloat{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+  .bgfloat .b{position:absolute;border-radius:50%;opacity:.16;animation:bob 7s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-26px) rotate(6deg)}}
+
+  /* the stage grows with the PAGE (min-height, not fixed) so the body scrolls — that lets mobile
+     Safari hide its toolbar. flex column + the .screen's margin:auto centers short content and lets
+     tall content (the board) push the page taller, scrollable, never clipped at the top. */
+  .stage{position:relative;z-index:2;min-height:100dvh;display:flex;flex-direction:column;align-items:center;
+    padding:78px 20px 70px}
+  .stage .screen.on{margin-top:auto;margin-bottom:auto}   /* vertical-center within the leftover space */
+
+  /* ===== chunky button ===== */
+  .btn{font-family:var(--font-display);font-size:21px;letter-spacing:.02em;color:#fff;background:var(--purple);
+    padding:15px 30px;border-radius:calc(16px * var(--radius));position:relative;top:0;
+    box-shadow:0 calc(6px * var(--pop)) 0 var(--btnsh, #6d3fd6);transition:top .08s,box-shadow .08s,filter .15s;
+    display:inline-flex;align-items:center;gap:10px}
+  .btn:active{top:calc(5px * var(--pop));box-shadow:0 calc(1px * var(--pop)) 0 var(--btnsh,#6d3fd6)}
+  .btn:hover{filter:brightness(1.06)}
+  .btn.teal{background:var(--teal);--btnsh:var(--teal-sh);color:#053d38}
+  .btn.green{background:var(--green);--btnsh:var(--green-sh)}
+  .btn.yellow{background:var(--yellow);--btnsh:#d9a800;color:#5a4500}
+  .btn.ghost{background:var(--panel);color:var(--ink);--btnsh:rgba(0,0,0,.18)}
+
+  /* ===== card shell ===== */
+  .card{background:var(--panel);border-radius:calc(28px * var(--radius));box-shadow:0 calc(11px * var(--pop)) 0 var(--shadow);
+    padding:36px 38px;width:100%;animation:pop .42s cubic-bezier(.2,1.4,.4,1) both}
+  @keyframes pop{from{opacity:0;transform:scale(.9) translateY(14px)}to{opacity:1;transform:none}}
+  .screen{display:none;width:100%;max-width:560px}
+  .screen.on{display:block}
+  .screen.wide{max-width:760px}
+
+  /* ===== START screen ===== */
+  .start h1{font-family:var(--font-display);font-size:clamp(34px,7vw,52px);color:var(--ink);text-align:center;line-height:.98;margin-bottom:8px}
+  .start h1 .ten{color:var(--teal);display:inline-block;transform:rotate(-4deg)}
+  .start .sub{text-align:center;color:var(--ink-dim);font-size:15px;margin-bottom:24px;font-weight:800;line-height:1.5}
+  .rules{background:var(--panel-2);border-radius:18px;padding:18px 20px;margin-bottom:22px;display:flex;flex-direction:column;gap:11px}
+  .rule{display:flex;align-items:center;gap:13px;font-size:14.5px;font-weight:800;color:var(--ink)}
+  .rule .n{width:30px;height:30px;flex-shrink:0;border-radius:9px;background:var(--teal);color:#053d38;display:grid;place-items:center;
+    font-family:var(--font-display);font-size:15px;box-shadow:0 3px 0 var(--teal-sh)}
+  .rule:nth-child(2) .n{background:var(--pink);box-shadow:0 3px 0 #cc2f6e;color:#fff}
+  .rule:nth-child(3) .n{background:var(--yellow);box-shadow:0 3px 0 #d9a800;color:#5a4500}
+  .start .go{width:100%;justify-content:center;font-size:23px}
+
+  /* ===== SIGN IN / SIGN UP ===== */
+  .auth h2{font-family:var(--font-display);font-size:30px;text-align:center;margin-bottom:6px;color:var(--ink)}
+  .auth .sub{text-align:center;color:var(--ink-dim);font-size:14px;margin-bottom:22px;font-weight:800;line-height:1.5}
+  .auth .field{margin-bottom:18px}
+  .auth label.lbl{display:block;font-weight:800;font-size:13px;color:var(--ink-dim);margin-bottom:8px;letter-spacing:.02em}
+  .auth input.uname{width:100%;font-family:var(--font-display);font-size:22px;color:var(--ink);background:var(--panel-2);
+    border:3px solid transparent;border-radius:16px;padding:14px 18px;outline:none;transition:border-color .15s,box-shadow .15s}
+  .auth input.uname::placeholder{color:var(--ink-dim);opacity:.5}
+  .auth input.uname:focus{border-color:var(--teal);box-shadow:0 0 0 4px var(--teal-soft,rgba(31,199,182,.22))}
+  .auth .avrow{display:flex;flex-wrap:wrap;gap:9px;justify-content:center}
+  .auth .av{width:46px;height:46px;flex-shrink:0;display:grid;place-items:center;font-size:24px;cursor:pointer;
+    background:var(--panel-2);border-radius:13px;border:3px solid transparent;transition:transform .1s,border-color .1s;position:relative;top:0}
+  .auth .av:hover{transform:translateY(-2px)}
+  .auth .av.on{border-color:var(--purple);background:var(--panel);box-shadow:0 4px 0 var(--shadow)}
+  .auth .go{width:100%;justify-content:center;font-size:22px;margin-top:6px}
+  /* the ▶ play triangle (ported from the nysgpt-landing discover button, house green) */
+  .btn .tri{width:0;height:0;border-left:13px solid currentColor;border-top:8px solid transparent;border-bottom:8px solid transparent}
+  .auth .alt{margin-top:12px}
+  #authForm{display:none;margin-top:20px;padding-top:20px;border-top:2px dashed var(--panel-2)}
+  #authForm.open{display:block}
+  .auth .err{text-align:center;color:var(--pink);font-weight:800;font-size:13px;min-height:18px;margin-top:10px}
+  /* welcome-back card */
+  .auth .wb{display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--panel-2);border-radius:20px;padding:24px 22px;margin-bottom:20px}
+  .auth .wb .wb-av{font-size:46px;line-height:1}
+  .auth .wb .wb-name{font-family:var(--font-display);font-size:28px;color:var(--ink)}
+  .auth .wb .wb-pts{font-weight:800;color:var(--ink-dim);font-size:14px}
+  .auth .wb .wb-pts b{color:var(--teal-ink,var(--ink));font-size:17px}
+  .auth .switch{text-align:center;margin-top:16px}
+  .auth .switch button{background:none;border:none;color:var(--ink-dim);font-weight:800;font-size:13px;cursor:pointer;text-decoration:underline;font-family:inherit}
+  .auth .switch button:hover{color:var(--ink)}
+
+  /* ===== SET EDITOR (create your own board) ===== */
+  /* the screen carries .auth too, so the field/label/input/err vocabulary is shared */
+  /* the two tile sections stack: On the list on top of Decoys; inside each, the 10 inputs
+     run 2 columns × 5 rows (1–5 down the left, 6–10 down the right) */
+  .ed-grid{display:flex;flex-direction:column;gap:14px;margin-top:4px}
+  #edAnswers,#edDecoys{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(5,auto);grid-auto-flow:column;column-gap:10px}
+  .ed-col .colhead{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;margin:0 2px 5px}
+  .ed-col .colhead.yes{color:var(--green)} .ed-col .colhead.no{color:var(--pink)}
+  .ed-in{width:100%;font-family:var(--font-body);font-weight:800;font-size:14px;color:var(--ink);background:var(--panel-2);
+    border:2.5px solid transparent;border-radius:11px;padding:10px 13px;outline:none;margin-bottom:8px;transition:border-color .15s}
+  .ed-in::placeholder{color:var(--ink-faint)}
+  .ed-in:focus{border-color:var(--teal)}
+  /* the ✨ button = a mini chunky Bank It button (yellow, pressy) in the decoy colhead */
+  .ed-fill{font-family:var(--font-display);font-size:12.5px;letter-spacing:.02em;text-transform:none;color:#5a4500;
+    background:var(--yellow);padding:8px 13px;border-radius:10px;position:relative;top:0;flex-shrink:0;
+    box-shadow:0 calc(3px * var(--pop)) 0 #d9a800;transition:top .08s,box-shadow .08s,filter .15s}
+  .ed-fill:hover{filter:brightness(1.06)}
+  .ed-fill:active:not(:disabled){top:2px;box-shadow:0 1px 0 #d9a800}
+  .ed-fill:disabled{opacity:.65;cursor:default}
+  .ed-colors{display:flex;gap:10px}
+  .ed-colors i{width:34px;height:34px;border-radius:11px;cursor:pointer;border:3px solid transparent;display:block;box-shadow:0 3px 0 rgba(0,0,0,.18)}
+  .ed-colors i.on{border-color:var(--ink)}
+  .ed-set{cursor:pointer;border:none;width:100%;text-align:left;font-family:inherit;position:relative;top:0;transition:top .08s,filter .12s}
+  .ed-set:hover{top:-2px;filter:brightness(1.05)}
+  .ed-set:active{top:2px}
+  /* 18 icons in a 6×3 grid; cells shrink a touch on narrow phones so the row never overflows */
+  .editor #edIcons{display:grid;grid-template-columns:repeat(6,minmax(0,46px));gap:9px;justify-content:center}
+  .editor #edIcons .av{width:100%;height:auto;aspect-ratio:1}
+  /* the live preview is a real .cat card that holds still; its title is the input itself */
+  .ed-preview,.ed-preview:hover,.ed-preview:active{top:0;box-shadow:0 6px 0 var(--csh);cursor:text}
+  .ed-preview:focus-within{outline:3px solid rgba(255,255,255,.6);outline-offset:-7px}
+  .ed-title{display:block;width:100%;background:none;border:none;outline:none;padding:0;color:inherit;
+    font-family:var(--font-display);font-size:21px;letter-spacing:.01em;text-overflow:ellipsis}
+  .ed-title::placeholder{color:inherit;opacity:.5}
+  /* ✨ fill in flight: the empty decoy slots shimmer */
+  .ed-in.sk{color:transparent;pointer-events:none;
+    background:linear-gradient(90deg,var(--panel-2) 25%,rgba(255,255,255,.75) 50%,var(--panel-2) 75%) 0 0/300% 100%;
+    animation:sk 1.1s linear infinite}
+  .ed-in.sk::placeholder{color:transparent}
+  @keyframes sk{from{background-position:100% 0}to{background-position:0 0}}
+  /* after a save: small popup — Make another / Play */
+  .ed-done{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:rgba(10,2,4,.35)}
+  .ed-done-card{background:var(--panel);border-radius:22px;padding:22px;display:flex;gap:12px;
+    box-shadow:0 calc(8px * var(--pop)) 0 var(--shadow);animation:pop .25s ease}
+  .ed-done-card .btn{margin-top:0;white-space:nowrap}
+  /* bottom-right action cluster: ✨ Fill for me + 📦 My sets */
+  .ed-actions{display:flex;gap:11px;justify-content:flex-end;align-items:center;margin-top:14px}
+  .ed-fill.sets{background:var(--teal);color:#053d38;box-shadow:0 calc(3px * var(--pop)) 0 var(--teal-sh)}
+  .ed-fill.sets:active:not(:disabled){box-shadow:0 1px 0 var(--teal-sh)}
+  /* DESKTOP: a wide, capped card — meta column on the left, the two answer lists to its
+     right with their own scroll, so "Save my set" never falls off the bottom of the screen */
+  @media(min-width:861px){
+    .editor{max-width:1080px}
+    /* no height cap: the lists show all 10+10 rows (≥582px) with no inner scroll;
+       the page itself scrolls if the window is short */
+    .editor .card{position:relative}
+    .editor h2{margin-bottom:18px}
+    .ed-layout{display:grid;grid-template-columns:330px 1fr;grid-template-rows:minmax(0,1fr) auto;
+      grid-template-areas:"meta lists" "foot lists";column-gap:30px}
+    .ed-meta{grid-area:meta}
+    .ed-foot{grid-area:foot;display:flex;flex-direction:column;justify-content:flex-end}
+    /* ✨ Fill / 📦 My sets pinned to the card's top-right corner */
+    .ed-actions{position:absolute;top:32px;right:38px;margin-top:0}
+    .ed-grid{grid-area:lists;margin-top:0;min-height:582px}
+    .editor #edIcons{justify-content:start}
+  }
+
+  /* ===== VERSUS / LOBBY / DUEL (play a friend) ===== */
+  .vs-or{text-align:center;color:var(--ink-faint);font-weight:900;font-size:12px;letter-spacing:.1em;margin:18px 0;text-transform:uppercase}
+  /* join row: the Join BUTTON leads (big), the code input trails (compact) */
+  .versus .btn{width:100%;justify-content:center}
+  .versus input.vs-code{width:100%;text-align:center;letter-spacing:.3em;font-family:var(--font-display);font-size:34px;margin-bottom:14px}
+  .lb-code{font-family:var(--font-display);font-size:62px;text-align:center;letter-spacing:.16em;color:var(--ink);margin:14px 0 8px}
+  .lb-share{display:block;margin:0 auto 20px}
+  /* once the challenger arrives, the code+share swap for a counting-up digital clock */
+  .lb-clock{display:none;font-family:var(--font-display);font-size:56px;text-align:center;letter-spacing:.1em;color:var(--ink);
+    margin:6px 0 20px;padding-top:8px;line-height:1.15;animation:lbtick 2s ease-in-out infinite}
+  .lobby #lbStart{margin-top:24px}
+  .lobby .sub:empty{display:none}
+  @keyframes lbtick{0%,100%{opacity:1}50%{opacity:.55}}
+  .lobby.full .lb-code,.lobby.full .lb-share{display:none}
+  .lobby.full .lb-clock{display:block}
+  /* host's start button glows green once player 2 is in */
+  #lbStart.ready{animation:lbready 1.4s ease-in-out infinite}
+  @keyframes lbready{0%,100%{box-shadow:0 calc(6px * var(--pop)) 0 var(--green-sh),0 0 0 0 rgba(55,200,113,.55)}
+    50%{box-shadow:0 calc(6px * var(--pop)) 0 var(--green-sh),0 0 26px 7px rgba(55,200,113,.55)}}
+  .lb-players{display:flex;flex-direction:column;gap:9px;margin-bottom:18px}
+  .lb-p{display:flex;align-items:center;gap:12px;background:var(--panel-2);border-radius:14px;padding:12px 16px;font-weight:800;color:var(--ink)}
+  .lb-p .av{font-size:24px;flex-shrink:0}
+  .lb-p .nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lb-p .tag{font-size:10px;font-weight:900;letter-spacing:.06em;background:var(--yellow);color:#5a4500;padding:3px 9px;border-radius:100px;flex-shrink:0}
+  .lb-p.empty .nm{color:var(--ink-faint)}
+  .lb-p.empty .av{animation:lbpulse 1.2s ease-in-out infinite}
+  @keyframes lbpulse{0%,100%{opacity:.4}50%{opacity:1}}
+  /* duel header: you on the left, them on the right, a simple "vs." between.
+     WHOSE TURN = that player's badge GROWS (and gets the gold ring); no text needed. */
+  .duel-p{transition:transform .3s cubic-bezier(.2,1.5,.4,1)}
+  .duel-p .av{font-size:17px}
+  .duel-p .nm{max-width:11ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .duel-p .big{font-size:24px}
+  .duel-p.turn{transform:scale(1.16);box-shadow:0 0 0 3px var(--yellow)}
+  .duel-vs{font-family:var(--font-display);font-size:17px;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.22);opacity:.92;flex-shrink:0}
+  /* the 30-second turn clock — a digital countdown beside the active player's badge
+     (inner side, flanking the "vs."). 3×/2×/1× scoring windows live on the server. */
+  .duel-tclock{font-family:var(--font-display);font-size:23px;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.25);
+    min-width:42px;text-align:center;visibility:hidden;flex-shrink:0}
+  .duel-tclock.on{visibility:visible}
+  .duel-tclock.low{color:var(--yellow);animation:lbtick 1s ease-in-out infinite}
+  /* found-progress: 10 chunky segments + a live count (replaces the faint pips) */
+  .dprog{display:flex;align-items:center;justify-content:center;gap:12px;margin:18px 0}
+  .dprog-bar{display:flex;gap:4px;background:rgba(0,0,0,.18);padding:5px 6px;border-radius:100px}
+  .dprog-bar i{width:20px;height:11px;border-radius:100px;background:rgba(255,255,255,.28)}
+  .dprog-bar i.on{background:var(--yellow);box-shadow:0 0 10px rgba(255,210,63,.8)}
+  .dprog-lbl{color:#fff;font-weight:900;font-size:12.5px;text-shadow:0 1px 0 rgba(0,0,0,.2);white-space:nowrap}
+  /* duel footer: board info flush LEFT, quit flush RIGHT */
+  .duelfoot{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:26px;width:100%}
+  .duelfoot .du-info{margin-right:auto}
+  .duelfoot .btn{margin-left:auto}
+  /* the found-order badge on duel tiles (replaces the tiny ✔) */
+  .duel .tile .chk{font-family:var(--font-display);font-size:16px;opacity:0;top:4px;right:8px}
+  .duel .tile.hit .chk{opacity:1}
+  .du-info{display:flex;align-items:center;gap:13px;background:rgba(255,255,255,.18);backdrop-filter:blur(6px);
+    padding:10px 18px;border-radius:100px;color:#fff;font-weight:900;font-size:12.5px}
+  .du-info .bnum{text-transform:uppercase;letter-spacing:.06em;opacity:.92;white-space:nowrap}
+  .du-info .tot{font-family:var(--font-display);font-size:17px;letter-spacing:.03em;white-space:nowrap}
+  .duel-series{display:flex;gap:6px}
+  .duel-series i{width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,.32);box-shadow:inset 0 -2px 0 rgba(0,0,0,.12)}
+  .duel-series i.w{background:var(--green)} .duel-series i.l{background:var(--miss)} .duel-series i.d{background:var(--yellow)}
+  /* sudden-death tiebreak takeover */
+  .tb-layer{position:fixed;inset:0;z-index:55;display:grid;place-items:center;background:rgba(10,2,4,.6);backdrop-filter:blur(3px)}
+  .tb-card{background:var(--panel);border-radius:24px;box-shadow:0 10px 0 var(--shadow);padding:30px 32px;
+    width:min(420px,calc(100vw - 48px));text-align:center;animation:pop .4s cubic-bezier(.2,1.4,.4,1) both}
+  .tb-card .zap{font-size:44px;line-height:1}
+  .tb-card h3{font-family:var(--font-display);font-size:26px;color:var(--ink);margin:6px 0 2px}
+  .tb-card .tb-sub{color:var(--ink-dim);font-weight:800;font-size:13px;margin-bottom:16px}
+  .tb-q{font-family:var(--font-display);font-size:38px;color:var(--ink);background:var(--panel-2);border-radius:16px;padding:14px;margin-bottom:14px}
+  .tb-row{display:flex;gap:10px}
+  .tb-row input{flex:1;min-width:0;font-family:var(--font-display);font-size:26px;text-align:center;color:var(--ink);
+    background:var(--panel-2);border:3px solid transparent;border-radius:14px;padding:10px;outline:none}
+  .tb-row input:focus{border-color:var(--teal)}
+  .tb-row .btn{flex-shrink:0}
+  .tb-wait{color:var(--ink-dim);font-weight:800;font-size:13px;min-height:18px;margin-top:12px}
+  /* who tapped a tile — the tapper's avatar in the corner */
+  .tile .who{position:absolute;top:5px;left:7px;font-size:13px;filter:drop-shadow(0 1px 0 rgba(0,0,0,.2))}
+  .mx-winner{display:flex;align-items:center;justify-content:center;gap:11px;margin:6px 0 2px}
+  .mx-winner .av{font-size:34px;filter:drop-shadow(0 3px 0 rgba(0,0,0,.15))}
+  .mx-winner .nm{font-family:var(--font-display);font-size:26px;color:var(--ink)}
+
+  /* ===== CATEGORY PICK ===== */
+  .pick h2{font-family:var(--font-display);font-size:30px;text-align:center;margin-bottom:24px;color:var(--ink)}
+  .pick .sub{text-align:center;color:var(--ink-dim);font-weight:800;margin-bottom:22px}
+  .catlist{display:flex;flex-direction:column;gap:13px}
+  .cat{display:flex;align-items:center;gap:16px;border-radius:18px;padding:18px 20px;color:#fff;text-align:left;position:relative;top:0;
+    box-shadow:0 6px 0 var(--csh);transition:top .1s,box-shadow .1s;width:100%}
+  .cat:hover{top:-3px;box-shadow:0 9px 0 var(--csh)}
+  .cat:active{top:3px;box-shadow:0 1px 0 var(--csh)}
+  .cat .ic{font-size:34px;filter:drop-shadow(0 3px 0 rgba(0,0,0,.15));flex-shrink:0}
+  .cat .ct{flex:1}
+  /* titles cap at 2 lines, no ellipsis — a title that won't fit in 2 rows is a signal to shorten it */
+  .cat .cname{font-family:var(--font-display);font-size:21px;letter-spacing:.01em;
+    display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;text-overflow:clip}
+  .cat.c0{background:var(--purple);--csh:#6d3fd6}
+  .cat.c1{background:var(--teal);--csh:var(--teal-sh);color:#053d38}
+  .cat.c2{background:var(--pink);--csh:#cc2f6e}
+  .cat.c3{background:var(--green);--csh:var(--green-sh)}
+  .cat.c4{background:var(--yellow);--csh:var(--yellow-sh);color:#5a4500}
+  .cat.c5{background:var(--orange);--csh:var(--orange-sh)}
+  .cat.c6{background:var(--blue);--csh:var(--blue-sh)}
+  .cat.played{filter:saturate(.6)}
+
+  /* ===== BOARD (the round) ===== */
+  .board{max-width:760px;margin:0 auto}
+  .bhead{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;color:#fff}
+  .bhead .pill{background:rgba(255,255,255,.20);padding:9px 16px;border-radius:100px;font-size:15px;font-weight:900;display:flex;align-items:center;gap:8px;backdrop-filter:blur(6px)}
+  .bhead .pill .big{font-family:var(--font-display);font-size:19px}
+  .qcard{background:var(--panel);border-radius:24px;box-shadow:0 10px 0 var(--shadow);padding:20px 26px;text-align:center;margin-bottom:8px}
+  .qcard .qcat{font-size:11.5px;font-weight:900;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:5px}
+  .qcard .qtitle{font-family:var(--font-display);font-size:clamp(22px,4vw,34px);color:var(--ink);line-height:1.04}
+  /* the 10 progress lights */
+  .pips{display:flex;justify-content:center;gap:7px;margin:14px 0 16px;flex-wrap:wrap}
+  .pip{width:26px;height:11px;border-radius:100px;background:rgba(255,255,255,.28);transition:background .25s,transform .25s;box-shadow:inset 0 -2px 0 rgba(0,0,0,.12)}
+  .pip.lit{background:var(--yellow);transform:translateY(-2px);box-shadow:0 0 12px rgba(255,210,63,.8)}
+
+  /* the 20-tile spread */
+  .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:11px}
+  @media(max-width:680px){.tiles{grid-template-columns:repeat(3,1fr)}}
+  @media(max-width:460px){.tiles{grid-template-columns:repeat(2,1fr)}}
+  .tile{background:var(--panel);border-radius:15px;padding:15px 10px;min-height:66px;color:var(--ink);font-family:var(--font-round);font-weight:700;
+    font-size:14.5px;text-align:center;display:flex;align-items:center;justify-content:center;position:relative;top:0;line-height:1.12;
+    box-shadow:0 5px 0 var(--shadow);transition:top .08s,box-shadow .08s,background .2s,color .2s,opacity .25s,transform .25s}
+  /* hover: lift + a green ring so you see exactly which tile you're on */
+  .tile:hover:not(.locked){top:-2px;box-shadow:0 7px 0 var(--shadow),inset 0 0 0 3px var(--hit)}
+  .tile:active:not(.locked){top:4px;box-shadow:0 1px 0 var(--shadow),inset 0 0 0 3px var(--hit)}
+  .tile.hit{background:var(--hit);color:#fff;box-shadow:0 5px 0 var(--hit-sh);animation:hitpop .4s}
+  .tile.miss{background:var(--miss);color:#fff;box-shadow:0 5px 0 var(--miss-sh);animation:misshake .4s}
+  .tile.missed{background:var(--reveal);color:#5a4500;box-shadow:0 5px 0 #d9a800;opacity:.96}  /* on-list, never tapped (revealed at end) */
+  .tile.dud{opacity:.4}                                                                          /* off-list, never tapped */
+  .tile.locked{cursor:default}
+  .tile .chk{position:absolute;top:6px;right:8px;font-size:12px;opacity:0;transition:opacity .2s}
+  .tile.hit .chk,.tile.missed .chk{opacity:1}
+  @keyframes hitpop{0%,100%{transform:scale(1)}45%{transform:scale(1.09)}}
+  @keyframes misshake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+
+  .bfoot{display:flex;justify-content:center;margin-top:18px}
+  .bfoot .btn{font-size:19px}
+  .bfoot .hide{visibility:hidden}
+
+  /* tiny floating +pt / miss feedback */
+  .flash{position:fixed;inset:0;z-index:30;pointer-events:none;display:grid;place-items:center;opacity:0}
+  .flash.show{animation:flashin .8s ease}
+  @keyframes flashin{0%{opacity:0;transform:scale(.6)}18%{opacity:1;transform:scale(1)}78%{opacity:1}100%{opacity:0;transform:scale(1.12)}}
+  .flash .msg{font-family:var(--font-display);font-size:clamp(36px,8vw,74px);color:#fff;text-shadow:0 5px 0 rgba(0,0,0,.25)}
+  /* a correct hit reads GREEN (white-on-white was hard to see) */
+  .flash.hit .msg{color:var(--hit);text-shadow:0 4px 0 var(--hit-sh),0 0 24px rgba(55,200,113,.55)}
+
+  /* flying coins (bank it) — CSS-drawn GOLD discs */
+  #coinLayer{position:fixed;inset:0;z-index:60;pointer-events:none;overflow:hidden}
+  .coin{position:fixed;left:0;top:0;width:30px;height:30px;border-radius:50%;will-change:transform,opacity;
+    background:radial-gradient(circle at 35% 30%, #fff3b0 0%, #ffd23f 38%, #f5a623 78%, #c77f12 100%);
+    box-shadow:inset 0 0 0 3px #e6a91e, inset 0 -3px 4px rgba(140,80,0,.4), 0 2px 5px rgba(0,0,0,.25);
+    display:grid;place-items:center;color:#9a6310;font-family:var(--font-display);font-size:16px;
+    animation:coinfly var(--dur,.8s) cubic-bezier(.4,.05,.25,1) forwards;animation-delay:var(--delay,0s);opacity:0}
+  .coin::before{content:"$"}
+  @keyframes coinfly{
+    0%{opacity:0;transform:translate(var(--x0),var(--y0)) scale(.4) rotate(0)}
+    12%{opacity:1;transform:translate(var(--x0),calc(var(--y0) - 26px)) scale(1.15) rotate(40deg)}
+    100%{opacity:1;transform:translate(var(--x1),var(--y1)) scale(.3) rotate(320deg)}
+  }
+  /* the score pill pops when coins land */
+  #scorePill.bankpop{animation:bankpop .5s cubic-bezier(.2,1.6,.4,1)}
+  @keyframes bankpop{0%,100%{transform:scale(1)}40%{transform:scale(1.28)}}
+
+  /* confetti (perfect sweep) — burst from center, then rain down */
+  #confettiLayer{position:fixed;inset:0;z-index:62;pointer-events:none;overflow:hidden}
+  .confetti{position:fixed;left:50%;top:48%;width:11px;height:14px;will-change:transform,opacity;
+    animation:confetti var(--dur,2.4s) cubic-bezier(.15,.6,.5,1) forwards;animation-delay:var(--delay,0s);opacity:0}
+  @keyframes confetti{
+    0%{opacity:1;transform:translate(0,0) rotate(0) scale(.6)}
+    18%{opacity:1;transform:translate(var(--bx),var(--by)) rotate(var(--r0)) scale(1)}      /* burst out */
+    100%{opacity:0;transform:translate(var(--fx),var(--fy)) rotate(var(--r1)) scale(.9)}     /* rain down */
+  }
+
+  /* ===== SCREEN OF DEATH (wrong tap) — skull + glitchy "WRONG" ===== */
+  .flash.death{background:rgba(10,2,4,.62)}
+  .flash.death .msg{font-family:ui-monospace,"Courier New",monospace;color:#fff;letter-spacing:.04em;
+    text-shadow:3px 0 #ff2d6f,-3px 0 #28e0ff,0 0 26px rgba(255,45,111,.65);animation:glitchtext .4s steps(2) 2}
+  @keyframes glitchtext{0%{transform:translate(0,0)}25%{transform:translate(-4px,2px)}50%{transform:translate(3px,-2px)}75%{transform:translate(-2px,-1px)}100%{transform:translate(0,0)}}
+  /* shake the whole stage on death */
+  .stage.glitch{animation:shake .5s cubic-bezier(.36,.07,.19,.97)}
+  @keyframes shake{10%{transform:translate(-3px,2px)}20%{transform:translate(4px,-3px)}30%{transform:translate(-5px,1px)}40%{transform:translate(3px,2px)}50%{transform:translate(-2px,-2px)}60%{transform:translate(4px,1px)}70%{transform:translate(-3px,-1px)}80%{transform:translate(2px,2px)}100%{transform:translate(0,0)}}
+
+  /* ===== RESULTS ===== */
+  .gameslink{display:block;margin:16px auto 0;color:var(--ink-dim);font-weight:800;font-size:13.5px;text-decoration:underline}
+  .results{text-align:center;max-width:560px}
+  .results .crown{font-size:60px;margin-bottom:2px}
+  .results h2{font-family:var(--font-display);font-size:30px;margin-bottom:2px;color:var(--ink)}
+  .results .score{font-family:var(--font-display);font-size:62px;color:var(--ink);line-height:1;margin:8px 0}
+  .results .score small{font-size:26px;color:var(--ink-faint)}
+  .results .rmsg{color:var(--ink-dim);font-weight:800;margin-bottom:20px;font-size:15px}
+  .results .statrow{display:flex;justify-content:center;gap:13px;margin-bottom:22px;flex-wrap:wrap}
+  .results .stat{background:var(--panel-2);border-radius:16px;padding:13px 18px;min-width:92px}
+  .results .stat .n{font-family:var(--font-display);font-size:24px;color:var(--ink)}
+  .results .stat .l{font-size:10.5px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);margin-top:2px}
+  .results .actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .results .realnote{margin-top:24px;padding-top:20px;border-top:2px dashed var(--panel-2);color:var(--ink-dim);font-size:14px;font-weight:800;line-height:1.6}
+  .results .realnote a{color:var(--purple);text-decoration:underline;text-underline-offset:3px}
+  :root[data-theme="dark"] .results .realnote a{color:#c4a0ff}
+
+  /* ===== CATEGORIES (full catalog — big portrait cards) ===== */
+  .cats{max-width:1040px}
+  /* the card stays centered on screen; the category grid scrolls inside it */
+  .cats .card{max-height:calc(100dvh - 150px);display:flex;flex-direction:column}
+  .cats .catgrid{overflow-y:auto;min-height:0;flex:1;padding:4px 6px 14px;margin:0 -6px}
+  .cats h2{font-family:var(--font-display);font-size:30px;text-align:center;margin-bottom:24px;color:var(--ink)}
+  .cats .sub{text-align:center;color:var(--ink-dim);font-weight:800;margin-bottom:22px}
+  .catgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+  @media(min-width:680px){.catgrid{grid-template-columns:repeat(3,1fr)}}
+  @media(min-width:980px){.catgrid{grid-template-columns:repeat(4,1fr)}}
+  /* the portrait card = a tall version of the .cat bar */
+  .pcat{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+    border-radius:22px;padding:28px 18px 24px;color:#fff;text-align:center;position:relative;top:0;min-height:200px;
+    box-shadow:0 8px 0 var(--csh);transition:top .1s,box-shadow .1s}
+  .pcat:hover{top:-4px;box-shadow:0 12px 0 var(--csh)}
+  .pcat:active{top:4px;box-shadow:0 2px 0 var(--csh)}
+  .pcat .ic{font-size:54px;line-height:1;filter:drop-shadow(0 4px 0 rgba(0,0,0,.16));margin-top:6px}
+  /* Categories cards show the FULL title (the 2-line rule is for the Pick buttons, not these) */
+  .pcat .cname{font-family:var(--font-display);font-size:19px;line-height:1.08;letter-spacing:.01em}
+  .pcat.c0{background:var(--purple);--csh:#6d3fd6}
+  .pcat.c1{background:var(--teal);--csh:var(--teal-sh);color:#053d38}
+  .pcat.c2{background:var(--pink);--csh:#cc2f6e}
+  .pcat.c3{background:var(--green);--csh:var(--green-sh)}
+  .pcat.c4{background:var(--yellow);--csh:var(--yellow-sh);color:#5a4500}
+  .pcat.c5{background:var(--orange);--csh:var(--orange-sh)}
+  .pcat.c6{background:var(--blue);--csh:var(--blue-sh)}
+  /* "Create new" — pinned first; its own color, outside the 7-slot board palette */
+  .pcat.g-bank{background:#ff7a3c;--csh:#a8320a}
+  .pcat.g-vault{background:#141d36;--csh:#070b18;color:#ffd23f}
+  .pcat.g-sing{background:#0b0b10;--csh:#000;color:#ff4f9a}
+  .pcat.g-ttt{background:#7c4dff;--csh:#4a24a8}
+  .pcat.g-mix{background:#1fb3a3;--csh:#0c6f65}
+  .req-area{width:100%;font-family:var(--font-body);font-weight:800;font-size:15px;color:var(--ink);background:var(--panel-2);border:2.5px solid transparent;
+    border-radius:14px;padding:12px 14px;outline:none;resize:vertical;line-height:1.45}
+  .req-area:focus{border-color:var(--teal);box-shadow:0 0 0 4px var(--teal-soft,rgba(31,199,182,.22))}
+  .request .field{margin-bottom:16px}
+  .pcat.cnew{background:linear-gradient(145deg,#ff4d8d,#8b5cf6 55%,#4d9fff);--csh:#5a34b8}
+  .pcat.played{filter:saturate(.6)}   /* played boards desaturate (same cue as .cat.played) */
+
+  /* ===== HOW TO PLAY / ABOUT (simple content screens) ===== */
+  .doc{max-width:560px}
+  .doc h2{font-family:var(--font-display);font-size:30px;text-align:center;margin-bottom:4px;color:var(--ink)}
+  .doc .sub{text-align:center;color:var(--ink-dim);font-weight:800;font-size:14px;margin-bottom:22px}
+  .doc-step{display:flex;align-items:center;gap:15px;background:var(--panel-2);border-radius:16px;padding:16px 18px;margin-bottom:13px}
+  .doc-step:last-of-type{margin-bottom:0}
+  .doc-step .n{width:38px;height:38px;flex-shrink:0;border-radius:11px;display:grid;place-items:center;color:#fff;
+    font-family:var(--font-display);font-size:18px;box-shadow:0 4px 0 var(--nsh)}
+  .doc-step:nth-child(odd) .n{background:var(--purple);--nsh:#6d3fd6}
+  .doc-step:nth-child(even) .n{background:var(--pink);--nsh:#cc2f6e}
+  .doc-step .t{font-weight:800;font-size:14.5px;color:var(--ink);line-height:1.4}
+  .doc-step .t b{color:var(--purple)}
+  :root[data-theme="dark"] .doc-step .t b{color:#c4a0ff}
+  .doc-p{color:var(--ink-dim);font-weight:700;font-size:15px;line-height:1.65;text-align:center;margin-bottom:14px}
+  .doc-p:last-child{margin-bottom:0}
+  .doc .actions{display:flex;justify-content:center;margin-top:24px}
+
+  @media(max-width:560px){.card{padding:28px 22px}.stage{padding-bottom:28px}}
+  @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms !important}}
+</style>
+</head>
+<body>
+
+<div class="bgfloat" id="bgfloat"></div>
+
+
+<div class="stage">
+
+  <!-- ===== START ===== -->
+  <section class="screen start on" id="scStart">
+    <div class="card">
+      <h1>Bank <span class="ten">It</span></h1>
+      <div class="sub">Every category has ten answers.<br>Tap correct answers &amp; avoid decoys.</div>
+      <div class="rules">
+        <div class="rule"><span class="n">1</span><span>Pick a category.</span></div>
+        <div class="rule"><span class="n">2</span><span>Only <b>10</b> are really on the list.</span></div>
+        <div class="rule"><span class="n">3</span><span>+1 for correct taps. Too many wrong <b>ends a round</b>.</span></div>
+      </div>
+      <button class="btn go" id="startGo">Let's play!</button>
+    </div>
+  </section>
+
+  <!-- ===== SIGN IN / SIGN UP ===== -->
+  <section class="screen auth" id="scAuth">
+    <div class="card">
+      <!-- welcome-back block (returning player) -->
+      <div id="authWelcome" style="display:none">
+        <h2>Welcome back!</h2>
+        <div class="sub">Pick up right where you left off.</div>
+        <div class="wb">
+          <div class="wb-av" id="wbAv">🎯</div>
+          <div class="wb-name" id="wbName">Player</div>
+          <div class="wb-pts"><b id="wbPts">0</b> points banked</div>
+        </div>
+        <button class="btn go teal" id="authContinue">Keep banking</button>
+        <div class="switch"><button id="authSwitch" type="button">Not you? Switch player</button></div>
+      </div>
+      <!-- sign-up block (new player / switching) -->
+      <div id="authSignup">
+        <h2>Who's playing?</h2>
+        <div class="sub">Jump right in — or sign in so your points stick around.</div>
+        <button class="btn go green" id="authQuick"><span class="tri"></span> Quick play</button>
+        <button class="btn go ghost alt" id="authShowForm">Sign in / sign up</button>
+        <div id="authForm">
+          <div class="field">
+            <label class="lbl" for="unameInput">Username</label>
+            <input class="uname" id="unameInput" type="text" maxlength="20" autocomplete="off"
+                   autocapitalize="words" spellcheck="false" placeholder="e.g. FoxBanker" />
+          </div>
+          <div class="field">
+            <label class="lbl">Pick an avatar</label>
+            <div class="avrow" id="avRow"></div>
+          </div>
+          <button class="btn go green" id="authStart"><span class="tri"></span> Play</button>
+        </div>
+        <div class="err" id="authErr"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== CATEGORY PICK ===== -->
+  <section class="screen pick" id="scPick">
+    <div class="card">
+      <h2>Pick a category</h2>
+      <div class="catlist" id="catlist"></div>
+    </div>
+  </section>
+
+  <!-- ===== BOARD ===== -->
+  <section class="screen board wide" id="scBoard">
+    <div class="bhead">
+      <span class="pill"><span id="bFound" class="big">0</span>&nbsp;/ 10 found</span>
+      <span class="pill" id="scorePill">⭐ <span id="bScore" class="big">0</span></span>
+    </div>
+    <div class="qcard">
+      <div class="qtitle" id="bTitle">Loading…</div>
+    </div>
+    <div class="pips" id="pips"></div>
+    <div class="tiles" id="tiles"></div>
+    <div class="bfoot">
+      <button class="btn yellow" id="bStop">Bank it &amp; stop ✋</button>
+    </div>
+  </section>
+
+  <!-- ===== RESULTS ===== -->
+  <section class="screen results" id="scResults">
+    <div class="card">
+      <div class="crown" id="rCrown">🎉</div>
+      <h2 id="rHead">Round over!</h2>
+      <div class="score"><span id="rScore">0</span><small> / 10</small></div>
+      <div class="rmsg" id="rMsg">Nice run.</div>
+      <div class="statrow">
+        <div class="stat"><div class="n" id="rHits">0</div><div class="l">on the list</div></div>
+        <div class="stat"><div class="n" id="rEnd">Banked</div><div class="l">how it ended</div></div>
+        <div class="stat"><div class="n" id="rCat">—</div><div class="l">category</div></div>
+      </div>
+      <div class="actions">
+        <button class="btn teal" id="rRetry">Play again</button>
+        <button class="btn ghost" id="rAgain">New category</button>
+      </div>
+      <button class="gameslink" id="rGames" type="button">Games</button>
+      <div class="realnote">
+        The trick isn't knowing the answers — it's knowing when to <b>stop</b>.<br>
+        Think you can sweep all four boards clean?
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== CATEGORIES (full catalog) ===== -->
+  <section class="screen cats wide" id="scCategories">
+    <div class="card">
+      <h2>Categories</h2>
+      <div class="catgrid" id="catgrid"></div>
+    </div>
+  </section>
+
+  <!-- ===== MODE (pick your game) ===== -->
+  <!-- ===== SET EDITOR (create your own board) ===== -->
+  <section class="screen auth editor" id="scEditor">
+    <div class="card">
+      <!-- signed-in editor -->
+      <div id="edBox">
+        <h2>Create a set</h2>
+        <div class="ed-layout">
+          <!-- the set's "card identity": icon + color style its category card everywhere -->
+          <div class="ed-meta">
+            <!-- the set's real category card, exactly as players will see it — its title is
+                 typed right on the card; the placeholder rotates suggestions (Tab takes one) -->
+            <div class="field">
+              <label class="lbl" for="edTitle">Your card</label>
+              <div class="cat ed-preview c0" id="edPreview"><span class="ic" id="edPrevIcon">🍕</span><div class="ct"><input class="cname ed-title" id="edTitle" type="text" maxlength="60" autocomplete="off" spellcheck="false" placeholder="Pizza Toppings" /></div></div>
+            </div>
+            <div class="field">
+              <label class="lbl">Pick a color</label>
+              <div class="ed-colors" id="edColors"></div>
+            </div>
+            <div class="field">
+              <label class="lbl">Pick an icon</label>
+              <div class="avrow" id="edIcons"></div>
+            </div>
+          </div>
+          <div class="ed-grid">
+            <div class="ed-col"><div class="colhead yes">✔ On the list (10)</div><div id="edAnswers"></div></div>
+            <div class="ed-col">
+              <div class="colhead no">✕ Decoys (10)</div>
+              <div id="edDecoys"></div>
+            </div>
+          </div>
+          <div class="ed-actions">
+            <button type="button" class="ed-fill" id="edFill">✨ Fill for me</button>
+            <button type="button" class="ed-fill sets" id="edMySets">📦 My sets</button>
+          </div>
+          <div class="ed-foot">
+            <button class="btn go green" id="edSubmit" style="margin-top:16px">Save my set ✔</button>
+            <div class="err" id="edErr"></div>
+          </div>
+        </div>
+      </div>
+      <!-- signed-out fallback: invite to sign in -->
+      <div id="edSignedOut" style="display:none">
+        <h2>Create a set</h2>
+        <div class="sub">Sign in first so your sets are saved to your name.</div>
+        <div class="actions" style="display:flex;justify-content:center"><button class="btn go" id="edSignIn">Sign in</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- after a save: where next? -->
+  <div class="ed-done" id="edDone" style="display:none">
+    <div class="ed-done-card">
+      <button class="btn go" id="edAnother">Make another</button>
+      <button class="btn go green" id="edPlay">Play ▶</button>
+    </div>
+  </div>
+
+  <!-- ===== MY SETS (your saved boards, reachable from the editor) ===== -->
+  <section class="screen auth mysets" id="scMySets">
+    <div class="card">
+      <h2>📦 My sets</h2>
+      <div class="sub">Boards you've made — tap one to play it.</div>
+      <div class="profile-swept" id="edMine"></div>
+    </div>
+  </section>
+
+  <!-- ===== VERSUS (multiplayer home: host or join) ===== -->
+  <section class="screen auth versus" id="scVersus">
+    <div class="card">
+      <h2>⚔️ Play a friend</h2>
+      <div id="vsChoose">
+        <button class="btn go teal" id="vsHost">Host</button>
+        <div class="vs-or">or</div>
+        <button class="btn go" id="vsJoinOpen">Join</button>
+      </div>
+      <div id="vsEnter" style="display:none">
+        <input class="uname vs-code" id="vsCode" type="text" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="0000" aria-label="Room code" />
+        <button class="btn go" id="vsJoin">Join now</button>
+      </div>
+      <div class="err" id="vsErr"></div>
+    </div>
+  </section>
+
+  <!-- ===== LOBBY (room code + waiting for the challenger) ===== -->
+  <section class="screen auth lobby" id="scLobby">
+    <div class="card">
+      <h2 id="lbHead">Invite a friend</h2>
+      <div class="sub" id="lbSub"></div>
+      <div class="lb-code" id="lbCode">0000</div>
+      <button class="btn ghost lb-share" id="lbShare">Invite link 🔗</button>
+      <div class="lb-clock" id="lbClock">0:00</div>
+      <div class="lb-players">
+        <div class="lb-p"><span class="av" id="lbAv1">🎯</span><span class="nm" id="lbNm1">Host</span><span class="tag">HOST</span></div>
+        <div class="lb-p empty" id="lbP2"><span class="av" id="lbAv2">⏳</span><span class="nm" id="lbNm2">Waiting for a friend…</span></div>
+      </div>
+      <button class="btn go green" id="lbStart" disabled>Start ⚔️</button>
+      <div class="err" id="lbErr"></div>
+    </div>
+  </section>
+
+  <!-- ===== DUEL (the shared board) ===== -->
+  <section class="screen board wide duel" id="scDuel">
+    <div class="bhead">
+      <span class="pill duel-p" id="duMe"><span class="av" id="duMeAv">🎯</span><span class="nm" id="duMeNm">You</span><span class="big" id="duMeSc">0</span></span>
+      <span class="duel-tclock" id="duClockMe">30</span>
+      <span class="duel-vs">vs.</span>
+      <span class="duel-tclock" id="duClockThem">30</span>
+      <span class="pill duel-p" id="duThem"><span class="av" id="duThemAv">🎯</span><span class="nm" id="duThemNm">Them</span><span class="big" id="duThemSc">0</span></span>
+    </div>
+    <div class="qcard">
+      <div class="qtitle" id="duTitle">Loading…</div>
+    </div>
+    <div class="dprog"><div class="dprog-bar" id="duProgBar"></div><span class="dprog-lbl" id="duProgLbl">0 of 10 found</span></div>
+    <div class="tiles" id="duTiles"></div>
+    <div class="bfoot duelfoot">
+      <span class="du-info">
+        <span class="bnum" id="duBnum">Board 1 of 3</span>
+        <span class="duel-series" id="duSeries"></span>
+        <span class="tot" id="duTotals">0–0</span>
+      </span>
+      <button class="btn ghost" id="duQuit">Quit match</button>
+    </div>
+  </section>
+
+  <!-- ===== MATCH RESULTS (series winner) ===== -->
+  <section class="screen results" id="scMatch">
+    <div class="card">
+      <div class="crown" id="mxCrown">🏆</div>
+      <h2 id="mxHead">Winner!</h2>
+      <div class="mx-winner"><span class="av" id="mxAv">🎯</span><span class="nm" id="mxName">Player</span></div>
+      <div class="score"><span id="mxSeries">3–0</span><small> boards</small></div>
+      <div class="rmsg" id="mxMsg">What a duel.</div>
+      <div class="actions">
+        <button class="btn teal" id="mxAgain">Play again</button>
+        <button class="btn ghost" id="mxHome">Games</button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- sudden-death tiebreak (duel: tied board → first correct answer wins it) -->
+<div class="tb-layer" id="tbLayer" style="display:none">
+  <div class="tb-card">
+    <div class="zap">⚡</div>
+    <h3>Tie-breaker!</h3>
+    <div class="tb-sub">Dead even. First correct answer takes the board.</div>
+    <div class="tb-q" id="tbQ">12 + 34 − 5 = ?</div>
+    <div class="tb-row">
+      <input id="tbIn" type="text" inputmode="numeric" autocomplete="off" maxlength="4" placeholder="=" />
+      <button class="btn yellow" id="tbGo">Lock it in</button>
+    </div>
+    <div class="tb-wait" id="tbWait"></div>
+  </div>
+</div>
+
+<!-- feedback flash -->
+<div class="flash" id="flash"><div class="msg" id="flashMsg"></div></div>
+
+<!-- flying coins (bank it) -->
+<div id="coinLayer"></div>
+
+<!-- confetti (perfect sweep) -->
+<div id="confettiLayer"></div>
+
+<script src="shell.js"></script>
+<script>
+//// ===== boards (loaded from /api/boards; falls back to these if the API is unreachable) =====
+// Each: 10 "answers" (really on the list) + 10 "decoys" (plausible, not on the list).
+const FALLBACK_BOARDS = [
+  { id:null, icon:'🥛', colorSlot:0, title:'Things That Go Well With Milk',
+    answers:['Cookies','Cake','Cereal','Graham crackers','Brownies','Doughnuts','Sandwich','Pie','Bananas','Chocolate syrup'],
+    decoys:['Toast','Crackers','Muffins','Oatmeal','Popcorn','Pretzels','Waffles','Candy bar','Marshmallows','Peanut butter'] },
+  { id:null, icon:'🥤', colorSlot:1, title:'Vending Machine Food',
+    answers:['Candy bars','Gum','Ice cream','Potato chips','Sandwich','Cookies','Doughnuts','Fruit','Yogurt','Peanuts'],
+    decoys:['Pretzels','Crackers','Soda','Bottled water','Granola bar','Trail mix','Popcorn','Beef jerky','Mints','Hot coffee'] },
+  { id:null, icon:'🧃', colorSlot:2, title:'Kool-Aid Flavors',
+    answers:['Cherry','Orange','Grape','Strawberry','Tropical punch','Raspberry','Lemonade','Lemon-lime','Black cherry','Berry blue'],
+    decoys:['Watermelon','Pink lemonade','Blue raspberry','Mango','Peach','Green apple','Kiwi','Pineapple','Fruit punch','Sour apple'] },
+  { id:null, icon:'🎄', colorSlot:3, title:'Christmas Things',
+    answers:['Santa Claus','Christmas tree','Christmas lights','Christmas cards','Manger scene','Gifts','Carolers','Christmas cookies','Christmas play','Wreaths'],
+    decoys:['Snowman','Stockings','Mistletoe','Reindeer','Candy canes','Sleigh','Ornaments','Elves','Nutcracker','Snowflakes'] },
+  { id:null, icon:'🫘', colorSlot:0, title:'Jelly Bean Colors',
+    answers:['Red','Black','Orange','Yellow','Green','Purple','Pink','White','Brown','Aqua'],
+    decoys:['Teal','Magenta','Lime','Gold','Silver','Tan','Maroon','Navy','Gray','Coral'] },
+  { id:null, icon:'👧', colorSlot:1, title:'Girls’ Names With 4 Letters',
+    answers:['Mary','Kris','Jill','Lynn','Jean','Beth','Tina','Lisa','Cary','Jody'],
+    decoys:['Anna','Erin','Gail','Joan','Kara','Nina','Ruth','Sara','Toni','Dawn'] },
+  { id:null, icon:'🍔', colorSlot:2, title:'Fast-Food Places',
+    answers:['McDonald’s','Burger King','Taco Bell','Arby’s','Kentucky Fried Chicken','Wendy’s','Pizza Hut','Dairy Queen','Popeye’s','Jack-in-the-Box'],
+    decoys:['Subway','Chick-fil-A','Hardee’s','Sonic','Carl’s Jr.','White Castle','Long John Silver’s','Five Guys','Domino’s','Chipotle'] },
+  { id:null, icon:'🤢', colorSlot:3, title:'Sour Things',
+    answers:['Lemon','Lime','Dill pickle','Vinegar','Lemonade','Grapefruit','Spoiled milk','Sour cream','Bad grapes','Sour ball candy'],
+    decoys:['Green apple','Tamarind','Sauerkraut','Buttermilk','Cranberries','Kombucha','Sourdough bread','Yogurt','Rhubarb','Kimchi'] },
+  { id:null, icon:'🥣', colorSlot:0, title:'Cereals Adults Like',
+    answers:['Cheerios','Wheaties','Corn Flakes','Rice Krispies','Raisin Bran','Total','Shredded Wheat','Special K','Bran Flakes','Product 19'],
+    decoys:['Grape-Nuts','All-Bran','Cracklin’ Oat Bran','Müeslix','Life','Kix','Chex','Oatmeal Squares','Fiber One','Grape-Nuts Flakes'] },
+  { id:null, icon:'🛁', colorSlot:1, title:'Things Little Kids Use at Bathtime',
+    answers:['Soap','Shampoo','Washcloth','Bubble bath','Towel','Water','Boat','Toys','Sponge','Rubber duckie'],
+    decoys:['Conditioner','Loofah','Bath crayons','Squirt gun','Bath robe','Cup','Foam letters','Shower cap','Tub mat','Bath book'] },
+  { id:null, icon:'🍭', colorSlot:2, title:'Sweet Cereals (Brands)',
+    answers:['Froot Loops','Frosted Flakes','Corn Pops','Lucky Charms','Cap’n Crunch','Apple Jacks','Honeycombs','Cocoa Puffs','Super Golden Crisp','Croonchy Stars'],
+    decoys:['Trix','Cocoa Pebbles','Fruity Pebbles','Cinnamon Toast Crunch','Cookie Crisp','Frosted Mini-Wheats','Honey Smacks','Reese’s Puffs','Count Chocula','Cinnamon Grahams'] },
+];
+let BOARDS = FALLBACK_BOARDS;
+
+// pull the live boards from the DB; on any failure we keep the fallback set
+let boardsLoaded = null;  // a promise so the pick screen can await it
+function loadBoards(){
+  boardsLoaded = fetch('/api/boards')
+    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    .then(d => { if (Array.isArray(d.boards) && d.boards.length) BOARDS = d.boards; })
+    .catch(() => { /* keep FALLBACK_BOARDS */ });
+  return boardsLoaded;
+}
+loadBoards();
+
+//// ===== state =====
+const S = { bi:0, board:null, tiles:[], found:0, score:0, ended:false, played:{} };
+const $ = id=>document.getElementById(id);
+function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); $(id).classList.add('on'); }
+
+//// ===== user / sign-in (username only) =====
+// localStorage holds IDENTITY ONLY (name + avatar). All points/stats live in the DB,
+// keyed by username, so they follow the player across devices.
+const USER_KEY = 'bankit-user-v1';
+const AVATARS = ['🎯','🦊','🐙','🐝','🐸','🐼','🦄','🐲','🦅','🐯','👾','🤖'];
+let USER = null;          // { name, avatar }  — identity only
+let STATS = null;         // { total_points, runs, sweeps, best, sweptBoards:[] } — from the DB
+let pendingAvatar = AVATARS[0];
+
+function loadUser(){
+  try{ const raw=localStorage.getItem(USER_KEY); if(raw){ const u=JSON.parse(raw);
+    if(u && u.name){ USER = { name:String(u.name), avatar:u.avatar||'🎯' }; } }
+  }catch(e){ USER=null; }
+  return USER;
+}
+function saveUser(){ try{ localStorage.setItem(USER_KEY, JSON.stringify(USER)); }catch(e){} }
+
+// pull this player's lifetime stats from the DB (best-effort; null on failure)
+async function fetchStats(){
+  if(!(USER && USER.name)){ STATS=null; return null; }
+  try{
+    const r=await fetch('/api/players?name='+encodeURIComponent(USER.name));
+    if(r.ok){ const d=await r.json();
+      STATS = { ...(d.player||{}), sweptBoards: d.sweptBoards||[] };
+      return STATS; }
+  }catch(e){}
+  STATS=null; return null;
+}
+
+// build the avatar picker (once)
+function buildAvatars(){
+  const row=$('avRow'); if(!row || row.childElementCount) return;
+  AVATARS.forEach((a,i)=>{
+    const b=document.createElement('button'); b.type='button'; b.className='av'+(i===0?' on':''); b.textContent=a;
+    b.onclick=()=>{ row.querySelectorAll('.av').forEach(x=>x.classList.remove('on')); b.classList.add('on'); pendingAvatar=a; };
+    row.appendChild(b);
+  });
+}
+
+// show the auth screen in the right state (welcome-back vs fresh sign-up)
+function renderAuth(){
+  buildAvatars();
+  const known = !!(USER && USER.name);
+  $('authWelcome').style.display = known ? '' : 'none';
+  $('authSignup').style.display  = known ? 'none' : '';
+  if(known){
+    $('wbAv').textContent   = USER.avatar||'🎯';
+    $('wbName').textContent = USER.name;
+    $('wbPts').textContent  = (STATS && STATS.total_points!=null) ? STATS.total_points : '…';
+    // refresh from the DB, then fill in the real total
+    fetchStats().then(()=>{ if($('authWelcome').style.display!=='none')
+      $('wbPts').textContent = (STATS && STATS.total_points!=null) ? STATS.total_points : 0; });
+  } else {
+    $('authErr').textContent='';
+    // fresh sign-up: form closed, the two big buttons showing
+    $('authForm').classList.remove('open');
+    $('authQuick').style.display=''; $('authShowForm').style.display='';
+    // default the picker back to the first avatar for a clean sign-up
+    pendingAvatar = AVATARS[0];
+    const row=$('avRow'); if(row) row.querySelectorAll('.av').forEach((x,i)=>x.classList.toggle('on',i===0));
+  }
+  show('scAuth');
+}
+
+// ▶ Quick play — zero-typing casual identity: a generated name with its matching avatar
+const QP_ADJ = ['Turbo','Lucky','Cosmic','Snazzy','Mega','Wild','Zippy','Golden','Sneaky','Bold','Disco','Rocket'];
+const QP_ANIMALS = [['Fox','🦊'],['Panda','🐼'],['Otter','🐙'],['Tiger','🐯'],['Eagle','🦅'],['Frog','🐸'],
+                    ['Dragon','🐲'],['Bee','🐝'],['Unicorn','🦄'],['Robot','🤖'],['Goblin','👾'],['Ace','🎯']];
+function quickPlay(){
+  const adj = QP_ADJ[Math.floor(Math.random()*QP_ADJ.length)];
+  const [animal, avatar] = QP_ANIMALS[Math.floor(Math.random()*QP_ANIMALS.length)];
+  const num = 10 + Math.floor(Math.random()*90);
+  USER = { name:`${adj}${animal}${num}`, avatar };
+  saveUser();
+  fetchStats();
+  loadMySets();
+  afterAuth();
+}
+
+// commit a new username + avatar, then head to Pick
+function commitSignup(){
+  const name=$('unameInput').value.trim().replace(/\s+/g,' ').slice(0,20);
+  if(name.length<2){ $('authErr').textContent='Pick a name with at least 2 letters.'; $('unameInput').focus(); return; }
+  USER = { name, avatar:pendingAvatar };
+  saveUser();
+  fetchStats();          // warm the profile/stats in the background
+  loadMySets();          // pull this player's custom sets into BOARDS
+  afterAuth();
+}
+function goToPick(){ show('scPick'); renderPick(); }
+// where to land after signing in — Pick by default, or a stashed destination
+// (e.g. a #/join/CODE invite link that needed a username first)
+let AFTER_AUTH = null;
+function afterAuth(){ const f = AFTER_AUTH; AFTER_AUTH = null; if(f) f(); else openMode(); }
+// the standard mode screen (shell.js): solo → Pick a category · friend → host / join
+function openMode(){
+  Shell.mode({ options:[
+      { label:'Play solo', onClick:()=>{ Shell.hide(); goToPick(); } },
+      { label:'Play a friend', kind:'b', onClick:()=>{ Shell.hide(); renderVersus(); } } ],
+    onBack:()=>show('scStart') });
+}
+
+
+
+//// ===== custom sets (create-your-own boards) =====
+// Your sets live in the DB (owner_key = your lowercased username) and are folded into
+// BOARDS once loaded, so startBoard / retry / score submits all just work on them.
+// They stay out of everyone else's catalog until a moderation pass approves them.
+const SET_ICONS=['🍕','🎬','🎵','⚽','🐾','🚗','🌮','🎮','🏖️','📚','🧁','👻','🍔','🎤','🦖','🚀','🌍','🎲'];
+const SLOT_COLORS=['#8b5cf6','#1fc7b6','#ff4d8d','#37c871','#ffd23f','#ff8b2d','#4d9fff'];   // 0 purple · 1 teal · 2 pink · 3 green · 4 yellow · 5 orange · 6 blue
+let MY_SETS=[];                  // this player's custom sets (from GET /api/sets?owner=)
+let edIcon=SET_ICONS[0], edColor=0;
+// title ideas that rotate through the empty card title; Tab takes the one showing
+const SET_IDEAS=['Pizza Toppings','Beach Essentials','Famous Dogs','Ice Cream Flavors','Board Games',
+  'Breakfast Foods','Sticky Things','Road Trip Snacks','Halloween Costumes','Pixar Movies',
+  'Things With Wheels','Movie Snacks','Garage Stuff','Things That Buzz'];
+let edIdea=0, edIdeaTimer=null;
+
+// user-typed text goes through innerHTML in a few places — escape it
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+async function loadMySets(){
+  if(!(USER && USER.name)){ MY_SETS=[]; mergeMySets(); return; }
+  try{
+    const r=await fetch('/api/sets?owner='+encodeURIComponent(USER.name.trim().toLowerCase()));
+    if(r.ok){ MY_SETS=(await r.json()).sets||[]; }
+  }catch(e){}
+  await mergeMySets();
+}
+// fold MY_SETS into BOARDS (after the official list settles); replaces any previous merge
+async function mergeMySets(){
+  await boardsLoaded;
+  BOARDS=BOARDS.filter(b=>!b.mine);
+  const have=new Set(BOARDS.map(b=>b.id).filter(x=>x!=null));
+  MY_SETS.forEach(s=>{ if(s.id!=null && !have.has(s.id)) BOARDS.push({...s, mine:true}); });
+}
+function clearMySets(){ MY_SETS=[]; BOARDS=BOARDS.filter(b=>!b.mine); }
+
+// the live "Your card" preview mirrors title/icon/color as they're chosen
+function updatePreview(){
+  $('edPrevIcon').textContent=edIcon;
+  $('edPreview').className='cat ed-preview c'+(edColor%SLOT_COLORS.length);
+}
+function startIdeas(){
+  $('edTitle').placeholder=SET_IDEAS[edIdea];
+  if(edIdeaTimer) return;
+  edIdeaTimer=setInterval(()=>{
+    if(!$('scEditor').classList.contains('on')){ clearInterval(edIdeaTimer); edIdeaTimer=null; return; }
+    edIdea=(edIdea+1)%SET_IDEAS.length;
+    $('edTitle').placeholder=SET_IDEAS[edIdea];
+  },2600);
+}
+// build the editor's pickers + the 10/10 input rows (once)
+function buildEditorInputs(){
+  if($('edAnswers').childElementCount) return;
+  for(let k=1;k<=10;k++){
+    const a=document.createElement('input'); a.className='ed-in'; a.maxLength=40; a.autocomplete='off'; a.placeholder='Answer '+k; $('edAnswers').appendChild(a);
+    const d=document.createElement('input'); d.className='ed-in'; d.maxLength=40; d.autocomplete='off'; d.placeholder='Decoy '+k; $('edDecoys').appendChild(d);
+  }
+  SET_ICONS.forEach((ic,i)=>{
+    const b=document.createElement('button'); b.type='button'; b.className='av'+(i===0?' on':''); b.textContent=ic;
+    b.onclick=()=>{ $('edIcons').querySelectorAll('.av').forEach(x=>x.classList.remove('on')); b.classList.add('on'); edIcon=ic; updatePreview(); };
+    $('edIcons').appendChild(b);
+  });
+  SLOT_COLORS.forEach((c,i)=>{
+    const s=document.createElement('i'); if(i===0) s.className='on'; s.style.background=c;
+    s.onclick=()=>{ $('edColors').querySelectorAll('i').forEach(x=>x.classList.remove('on')); s.classList.add('on'); edColor=i; updatePreview(); };
+    $('edColors').appendChild(s);
+  });
+  $('edPreview').onclick=()=>$('edTitle').focus();
+  $('edTitle').addEventListener('keydown',e=>{
+    if(e.key==='Tab' && !e.shiftKey && !$('edTitle').value.trim()){
+      e.preventDefault(); $('edTitle').value=$('edTitle').placeholder;
+      $('edAnswers').firstElementChild.focus();
+    }
+  });
+}
+function renderMySets(){
+  const wrap=$('edMine'); wrap.innerHTML='';
+  if(!(USER && USER.name)){
+    wrap.innerHTML='<div class="profile-empty">Sign in first — your saved boards land here. 👤</div>';
+    return;
+  }
+  if(!MY_SETS.length){
+    wrap.innerHTML='<div class="profile-empty">No sets yet — your saved boards land here, ready to play. ✏️</div>';
+    return;
+  }
+  MY_SETS.forEach(s=>{
+    const row=document.createElement('button'); row.type='button';
+    row.className='profile-trophy ed-set c'+((s.colorSlot??0)%SLOT_COLORS.length);
+    row.innerHTML=`<span class="ic">${s.icon||'🎯'}</span><span class="tname">${esc(s.title)}</span><span class="tag">play</span>`;
+    row.onclick=()=>{ const i=BOARDS.findIndex(b=>b.id===s.id); if(i>=0) startBoard(i); };
+    wrap.appendChild(row);
+  });
+}
+function renderEditor(){
+  const known = !!(USER && USER.name);
+  $('edBox').style.display       = known ? '' : 'none';
+  $('edSignedOut').style.display = known ? 'none' : '';
+  if(known){ buildEditorInputs(); updatePreview(); loadMySets(); }
+  show('scEditor');
+  if(known) startIdeas();
+}
+// the My sets screen (📦 button in the editor): your saved boards, tap to play
+function renderMySetsScreen(){
+  renderMySets();
+  if(USER && USER.name) loadMySets().then(renderMySets);
+  show('scMySets');
+}
+let edSaved=null;   // id of the set just saved (the popup's Play target)
+function closeSaved(){ $('edDone').style.display='none'; }
+async function submitSet(){
+  // identity vanished mid-edit (signed out in another tab, cleared storage): show the
+  // sign-in invite right here instead of a dead save button
+  if(!(USER && USER.name)){ $('edBox').style.display='none'; $('edSignedOut').style.display=''; return; }
+  const err=$('edErr'); err.textContent='';
+  const tidy=v=>v.trim().replace(/\s+/g,' ');
+  const title=tidy($('edTitle').value);
+  const answers=[...$('edAnswers').children].map(i=>tidy(i.value));
+  const decoys =[...$('edDecoys').children].map(i=>tidy(i.value));
+  if(title.length<2){ err.textContent='Give your set a title (2+ letters).'; $('edTitle').focus(); return; }
+  if(answers.some(t=>!t) || decoys.some(t=>!t)){ err.textContent='Fill in all 10 answers and all 10 decoys.'; return; }
+  const seen=new Set();
+  for(const t of [...answers,...decoys]){
+    const k=t.toLowerCase();
+    if(seen.has(k)){ err.textContent=`"${t}" appears twice — every tile must be different.`; return; }
+    seen.add(k);
+  }
+  const btn=$('edSubmit'); btn.disabled=true; const old=btn.textContent; btn.textContent='Saving…';
+  try{
+    const r=await fetch('/api/sets',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ owner_name:USER.name, title, icon:edIcon, color_slot:edColor, answers, decoys })
+    });
+    const d=await r.json().catch(()=>null);
+    if(!r.ok || !d || !d.ok){ err.textContent=(d && d.error) || `Could not save (server error ${r.status}) — try again.`; return; }
+    MY_SETS.unshift(d.set); await mergeMySets(); renderMySets();
+    $('edTitle').value=''; [...$('edAnswers').children,...$('edDecoys').children].forEach(i=>i.value='');
+    updatePreview();
+    flash('SET SAVED ✔','hit'); sndPoint(1);
+    edSaved=d.set.id;
+    setTimeout(()=>{ if($('scEditor').classList.contains('on')) $('edDone').style.display=''; },800);
+  }catch(e){ err.textContent='Could not save — check your connection.'; }
+  finally{ btn.disabled=false; btn.textContent=old; }
+}
+
+// ✨ fill the EMPTY decoy slots via /api/decoys (Claude-generated near-misses).
+// Needs the title + all 10 answers first; never overwrites decoys the user typed.
+async function fillDecoys(){
+  const err=$('edErr'); err.textContent='';
+  const tidy=v=>v.trim().replace(/\s+/g,' ');
+  const title=tidy($('edTitle').value);
+  const answers=[...$('edAnswers').children].map(i=>tidy(i.value));
+  if(title.length<2 || answers.some(t=>!t)){
+    err.textContent='Type the title and all 10 answers first — decoys are made to match them.'; return;
+  }
+  const dIns=[...$('edDecoys').children];
+  const existing=dIns.map(i=>tidy(i.value)).filter(Boolean);
+  if(existing.length===10){ err.textContent='All 10 decoy slots are already filled.'; return; }
+  const btn=$('edFill'); btn.disabled=true; const old=btn.textContent; btn.textContent='✨ Conjuring decoys…';
+  // shimmer the empty slots; held at least 1.2s so a fast answer still reads as work done
+  const empties=dIns.filter(i=>!tidy(i.value));
+  empties.forEach(i=>i.classList.add('sk'));
+  try{
+    const [r]=await Promise.all([
+      fetch('/api/decoys',{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ title, answers, existing })
+      }),
+      new Promise(ok=>setTimeout(ok,1200)),
+    ]);
+    const d=await r.json().catch(()=>null);
+    if(!r.ok || !d || !Array.isArray(d.decoys)){ err.textContent=(d && d.error) || 'Could not conjure decoys — try again.'; return; }
+    let k=0;
+    dIns.forEach(inp=>{ if(!tidy(inp.value) && k<d.decoys.length) inp.value=d.decoys[k++]; });
+    sndPoint(3);
+  }catch(e){ err.textContent='Could not conjure decoys — check your connection.'; }
+  finally{ empties.forEach(i=>i.classList.remove('sk')); btn.disabled=false; btn.textContent=old; }
+}
+
+// deterministic shuffle (index-seeded — no Math.random)
+function shuffle(arr, seed){
+  const a=arr.slice();
+  for(let k=a.length-1;k>0;k--){ const j=((k*31+seed*17+7)%(k+1)); [a[k],a[j]]=[a[j],a[k]]; }
+  return a;
+}
+
+// floating bg confetti dots
+(function(){
+  const wrap=$('bgfloat');
+  const cols=['#ffd23f','#1fc7b6','#ff4d8d','#8b5cf6','#37c871','#fff'];
+  const spots=[[8,18],[82,14],[14,72],[88,68],[46,86],[70,40],[30,30],[60,76]];
+  spots.forEach((s,i)=>{ const d=document.createElement('div'); d.className='b';
+    d.style.left=s[0]+'%'; d.style.top=s[1]+'%'; const sz=18+(i%3)*10; d.style.width=sz+'px'; d.style.height=sz+'px';
+    d.style.background=cols[i%cols.length]; d.style.animationDelay=(i*0.6)+'s'; wrap.appendChild(d); });
+})();
+
+//// ===== build category picker =====
+// A quick random shortlist (PICK_COUNT of the full list), reshuffled on each visit.
+// "All categories" still shows every board.
+const PICK_COUNT = 5;
+async function renderPick(){
+  await boardsLoaded;                 // make sure DB boards are in before we draw
+  const wrap=$('catlist'); wrap.innerHTML='';
+  // shuffle indices (keep the real BOARDS index so startBoard(i) stays correct), take PICK_COUNT
+  const idx = BOARDS.map((_,i)=>i);
+  for(let k=idx.length-1;k>0;k--){ const j=Math.floor(Math.random()*(k+1)); [idx[k],idx[j]]=[idx[j],idx[k]]; }
+  idx.slice(0, Math.min(PICK_COUNT, idx.length)).forEach(i=>{
+    const b=BOARDS[i];
+    const slot = (b.colorSlot ?? i) % SLOT_COLORS.length;   // color comes from the board, cycling the slot palette
+    const btn=document.createElement('button'); btn.className='cat c'+slot+(S.played[i]?' played':'');
+    btn.innerHTML=`<span class="ic">${b.icon}</span><div class="ct"><div class="cname">${esc(b.title)}</div></div>`;
+    btn.onclick=()=>startBoard(i);
+    wrap.appendChild(btn);
+  });
+}
+
+//// ===== full catalog (Categories screen) — big portrait cards =====
+async function renderCategories(){
+  await boardsLoaded;
+  const wrap=$('catgrid'); wrap.innerHTML='';
+  // "Create new" never moves: row 1, col 1. Boards follow newest first (highest id),
+  // so each new board lands in the slot right after it and the rest shift along.
+  const mk=document.createElement('button'); mk.className='pcat cnew';
+  mk.innerHTML='<span class="ic">🥳</span><div class="cname">Create new</div>';
+  mk.onclick=()=>renderEditor();
+  wrap.appendChild(mk);
+  const order=BOARDS.map((b,i)=>i).sort((a,z)=>(BOARDS[z].id??-1)-(BOARDS[a].id??-1));
+  order.forEach((i,pos)=>{
+    const b=BOARDS[i];
+    // the catalog cycles the FULL 7-color spectrum by position (official boards only
+    // store the original four slots); a player's own sets keep their picked color
+    const slot=(b.mine ? (b.colorSlot ?? 0) : pos) % SLOT_COLORS.length;
+    const btn=document.createElement('button'); btn.className='pcat c'+slot+(S.played[i]?' played':'');
+    btn.innerHTML=`<span class="ic">${b.icon}</span><div class="cname">${esc(b.title)}</div>`;
+    btn.onclick=()=>startBoard(i);
+    wrap.appendChild(btn);
+  });
+}
+
+//// ===== start a board =====
+function startBoard(i){
+  S.bi=i; S.board=BOARDS[i]; S.found=0; S.score=0; S.ended=false;
+  const b=S.board;
+  // 20 tiles: 10 answers + 10 decoys, shuffled with a per-board seed
+  const pool = b.answers.map(t=>({t,on:true})).concat(b.decoys.map(t=>({t,on:false})));
+  S.tiles = shuffle(pool, i+1).map(o=>({...o, tapped:false}));
+  $('bTitle').textContent=b.title;
+  $('bFound').textContent='0'; $('bScore').textContent='0';
+  renderPips(); renderTiles();
+  $('bStop').classList.remove('hide');
+  show('scBoard');
+}
+
+function renderPips(){
+  const p=$('pips'); p.innerHTML='';
+  for(let k=0;k<10;k++){ const d=document.createElement('div'); d.className='pip'+(k<S.found?' lit':''); p.appendChild(d); }
+}
+
+function renderTiles(){
+  const wrap=$('tiles'); wrap.innerHTML='';
+  S.tiles.forEach((t,idx)=>{
+    const el=document.createElement('button'); el.className='tile'; el.dataset.idx=idx;
+    el.innerHTML=`<span class="chk">✔</span>${esc(t.t)}`;
+    el.onclick=()=>tap(idx,el);
+    wrap.appendChild(el);
+  });
+}
+
+function tap(idx,el){
+  if(S.ended) return;
+  const t=S.tiles[idx];
+  if(t.tapped) return;
+  t.tapped=true; el.classList.add('locked');
+  if(t.on){
+    el.classList.add('hit'); S.found++; S.score++;
+    $('bFound').textContent=S.found; $('bScore').textContent=S.score;
+    renderPips();
+    if(S.found===10){
+      flash('PERFECT! 🏆', 'hit');
+      sndFanfare();          // triumphant win fanfare
+      confettiBurst();       // center burst that rains down
+      endRound('clear');
+    } else {
+      sndPoint(S.found);     // bright coin ding, pitch climbs with the streak
+      flash('+1 ✔', 'hit');
+    }
+  } else {
+    el.classList.add('miss');
+    getDeath();
+    endRound('miss');
+  }
+}
+
+function endRound(how){
+  S.ended=true; S.played[S.bi]=true;
+  $('bStop').classList.add('hide');
+  // reveal: on-list-but-untapped = "missed" (gold), off-list-but-untapped = "dud" (faded)
+  [...$('tiles').children].forEach((el,idx)=>{
+    el.classList.add('locked');
+    const t=S.tiles[idx];
+    if(!t.tapped){ el.classList.add(t.on?'missed':'dud'); }
+  });
+  submitScore(how);
+  // banking is a payday — fly the coins into the score slot + cha-ching
+  let delay = how==='miss'?900:700;
+  if(how==='bank' && S.score>0){ bankCoins(S.score); delay = 1100; }
+  if(how==='clear'){ delay = 1700; }   // let the fanfare + confetti land before results
+  setTimeout(()=>showResults(how), delay);
+}
+
+// fly a burst of coins from the Bank It button up into the ⭐ score slot
+function bankCoins(score){
+  const layer=$('coinLayer'); if(!layer) return;
+  const fromEl=$('bStop'), toEl=$('scorePill');
+  const from=fromEl.getBoundingClientRect(), to=toEl.getBoundingClientRect();
+  const x0=from.left+from.width/2, y0=from.top+from.height/2;
+  const x1=to.left+to.width/2, y1=to.top+to.height/2;
+  const n=Math.min(3+score*2, 18);   // more points → more coins
+  for(let i=0;i<n;i++){
+    const c=document.createElement('div'); c.className='coin';
+    const jx=(i%5-2)*26, jy=(Math.floor(i/5))*-10;   // fan out from the button
+    c.style.setProperty('--x0', (x0+jx)+'px');
+    c.style.setProperty('--y0', (y0+jy)+'px');
+    c.style.setProperty('--x1', (x1+(i%3-1)*8)+'px');
+    c.style.setProperty('--y1', (y1)+'px');
+    c.style.setProperty('--delay', (i*0.05)+'s');
+    c.style.setProperty('--dur', (0.7+(i%3)*0.08)+'s');
+    layer.appendChild(c);
+    c.addEventListener('animationend', ()=>{
+      c.remove();
+      toEl.classList.remove('bankpop'); void toEl.offsetWidth; toEl.classList.add('bankpop');
+    });
+  }
+  sndCoins(n);
+}
+
+// confetti burst from screen center that rains down (perfect sweep)
+function confettiBurst(){
+  const layer=$('confettiLayer'); if(!layer) return;
+  const cols=['#ff4d8d','#1fc7b6','#ffd23f','#8b5cf6','#37c871','#ff7a3c','#4d9bff','#fff'];
+  const vh=window.innerHeight, vw=window.innerWidth;
+  const N=90;
+  for(let i=0;i<N;i++){
+    const p=document.createElement('div'); p.className='confetti';
+    const ang=Math.random()*Math.PI*2, dist=80+Math.random()*Math.min(vw,vh)*0.5;
+    const bx=Math.cos(ang)*dist, by=Math.sin(ang)*dist*0.7 - 40;     // burst out (slightly up-biased)
+    const fx=bx + (Math.random()*200-100);                           // drift sideways as it falls
+    const fy=vh*0.6 + Math.random()*vh*0.5;                          // fall past the bottom
+    p.style.background=cols[i%cols.length];
+    p.style.borderRadius=(i%4===0)?'50%':'2px';                      // mix circles + rectangles
+    p.style.setProperty('--bx',bx.toFixed(0)+'px');
+    p.style.setProperty('--by',by.toFixed(0)+'px');
+    p.style.setProperty('--fx',fx.toFixed(0)+'px');
+    p.style.setProperty('--fy',fy.toFixed(0)+'px');
+    p.style.setProperty('--r0',(Math.random()*360|0)+'deg');
+    p.style.setProperty('--r1',((Math.random()*720-360)|0)+'deg');
+    p.style.setProperty('--dur',(1.9+Math.random()*0.9).toFixed(2)+'s');
+    p.style.setProperty('--delay',(Math.random()*0.12).toFixed(2)+'s');
+    layer.appendChild(p);
+    p.addEventListener('animationend', ()=>p.remove());
+  }
+}
+
+// record the finished run + update the player's lifetime totals in the DB
+// (best-effort; ignored if offline / no API). The server owns points now.
+function submitScore(how){
+  const ended = how==='miss' ? 'busted' : how==='clear' ? 'clear' : 'banked';
+  const board_id = S.board && S.board.id != null ? S.board.id : null;
+  if(board_id==null) return;   // fallback boards have no DB id — skip the post
+  fetch('/api/scores',{
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      player_name: (USER && USER.name) || 'Player',
+      avatar: (USER && USER.avatar) || '🎯',
+      board_id, score:S.score, how_ended:ended
+    })
+  }).then(r=>r.ok?r.json():null).then(d=>{
+    // fold the server's fresh totals into local STATS so the profile is up to date
+    if(d && d.player && STATS){ Object.assign(STATS, d.player); }
+    else if(d && d.player){ STATS = { ...d.player, sweptBoards: (STATS&&STATS.sweptBoards)||[] }; }
+    // a sweep just earned a new swept board — refresh the full stats (incl. sweptBoards list)
+    if(ended==='clear'){ fetchStats(); }
+  }).catch(()=>{});
+}
+
+function showResults(how){
+  const b=S.board;
+  $('rScore').textContent=S.score;
+  $('rHits').textContent=S.score;
+  $('rCat').textContent=b.title.length>16?b.title.slice(0,15)+'…':b.title;
+  let head, msg, crown, endlabel;
+  if(how==='clear'){ head='Clean sweep!'; crown='🏆'; endlabel='All 10'; msg='You found all ten with no misses. Flawless.'; }
+  else if(how==='bank'){ head='Banked it!'; crown=S.score>=8?'🤑':S.score>=5?'😎':'👍'; endlabel='Banked'; msg=S.score>=8?'Walked away rich. Smart stop.':S.score>=5?'Solid haul, no risk taken.':'Played it safe — every point counts.'; }
+  else { head='Wrong tile!'; crown=S.score>=7?'😅':S.score>=4?'😬':'💥'; endlabel='Busted'; msg=S.score>=7?'So close — one greedy tap ended a great run.':S.score>=4?'The list bit back. Bank it sooner next time.':'Oof, early miss. Pick the sure things first.'; }
+  $('rHead').textContent=head; $('rCrown').textContent=crown; $('rMsg').textContent=msg; $('rEnd').textContent=endlabel;
+  show('scResults');
+}
+
+function flash(msg, kind){ const f=$('flash'); f.classList.remove('death','hit'); if(kind) f.classList.add(kind); $('flashMsg').textContent=msg; f.classList.remove('show'); void f.offsetWidth; f.classList.add('show'); }
+
+// the SCREEN OF DEATH — wrong tap: skull + glitchy "WRONG" banner, stage shake, fail sound
+function getDeath(){
+  const f=$('flash'); f.classList.add('death');
+  $('flashMsg').textContent='💀 WRONG';
+  f.classList.remove('show'); void f.offsetWidth; f.classList.add('show');
+  const stage=document.querySelector('.stage');
+  stage.classList.remove('glitch'); void stage.offsetWidth; stage.classList.add('glitch');
+  setTimeout(()=>stage.classList.remove('glitch'),600);
+  playFail();
+}
+
+// ===== lose sounds — a different one per board (Web Audio, no files) =====
+let _actx;
+function _ac(){ _actx = _actx || new (window.AudioContext||window.webkitAudioContext)(); if(_actx.state==='suspended') _actx.resume(); return _actx; }
+// helper: one oscillator with a gain envelope
+function _tone(ctx,t,type,f0,f1,dur,vol,dest){
+  const o=ctx.createOscillator(), g=ctx.createGain();
+  o.type=type; o.frequency.setValueAtTime(f0,t);
+  if(f1!=null) o.frequency.exponentialRampToValueAtTime(Math.max(1,f1),t+dur);
+  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+0.015);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(g).connect(dest||ctx.destination); o.start(t); o.stop(t+dur+0.02); return o;
+}
+
+// the standard "game over / you're dead" sound — harsh descending game-show BUZZ + low thud.
+// used for every board (was previously per-board; standardized on the Milk board's buzz).
+function sndBuzz(){ const ctx=_ac(), t=ctx.currentTime;
+  _tone(ctx,t,'square',220,70,0.52,0.22);
+  _tone(ctx,t,'sine',120,45,0.38,0.34);
+}
+function playFail(){ try{ sndBuzz(); }catch(e){} }
+
+// short noise burst (used for the register's mechanical "ka-" click)
+function _noise(ctx,t,dur,vol,hp){
+  const buf=ctx.createBuffer(1,Math.ceil(ctx.sampleRate*dur),ctx.sampleRate);
+  const d=buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.sin(i*12.9898)*43758.5453%1)*2-1;
+  const src=ctx.createBufferSource(); src.buffer=buf;
+  const g=ctx.createGain(); g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  let node=src;
+  if(hp){ const f=ctx.createBiquadFilter(); f.type='highpass'; f.frequency.value=hp; src.connect(f); node=f; }
+  node.connect(g).connect(ctx.destination); src.start(t); src.stop(t+dur+0.01);
+}
+
+// +1 on a correct tap — a quick bright coin "ding"; pitch climbs with the streak
+function sndPoint(streak){ try{
+  const ctx=_ac(), t=ctx.currentTime;
+  const step=Math.min((streak||1)-1,12);
+  const f=880*Math.pow(2, step/12);           // semitone climb per consecutive hit
+  _tone(ctx,t,        'triangle',f,    f,    0.09,0.16);
+  _tone(ctx,t+0.012,  'triangle',f*1.5,f*1.5,0.12,0.12);  // a fifth on top = chime sparkle
+}catch(e){} }
+
+// "cha-ching" — a real cash register: mechanical KA- click + drawer, then the CHING bell
+function sndCoins(n){ try{
+  const ctx=_ac(), t=ctx.currentTime;
+  // "KA-" — the mechanical key/drawer clunk (filtered noise click + a low body thunk)
+  _noise(ctx,t,0.05,0.5,1200);
+  _tone(ctx,t,'square',180,90,0.07,0.16);
+  // "-CHING!" — the bright bell, a beat later (two bell partials + body)
+  const c=t+0.13;
+  _tone(ctx,c,        'triangle',1244.5,1244.5,0.5,0.22);  // D#6
+  _tone(ctx,c+0.005,  'triangle',1864.7,1864.7,0.5,0.16);  // A#6 — bell shimmer
+  _tone(ctx,c,        'sine',    622.3, 622.3, 0.45,0.12);  // octave-down body
+  // a few coin clinks settling into the drawer
+  const clinks=Math.min(n||6,8);
+  for(let i=0;i<clinks;i++){ _noise(ctx, c+0.08+i*0.05, 0.03, 0.12, 3000); }
+}catch(e){} }
+
+// PERFECT sweep (all 10) — a triumphant rising "ta-da!" fanfare resolving up high
+function sndFanfare(){ try{
+  const ctx=_ac(), t=ctx.currentTime;
+  // quick ascending major arpeggio (C5 E5 G5) into a held high C6 "ta-DA"
+  const run=[523.25, 659.25, 783.99]; // C5 E5 G5
+  run.forEach((f,i)=>{ const st=t+i*0.085; _tone(ctx,st,'triangle',f,f,0.14,0.18); _tone(ctx,st,'square',f,f,0.1,0.06); });
+  const hit=t+0.085*3;                 // the resolved top note
+  _tone(ctx,hit,       'triangle',1046.5,1046.5,0.55,0.22);  // C6
+  _tone(ctx,hit+0.004, 'triangle',1567.98,1567.98,0.55,0.12); // G6 shimmer
+  _tone(ctx,hit,       'sine',    523.25, 523.25, 0.5, 0.12);  // C5 body
+  // a sparkle tail
+  for(let i=0;i<6;i++){ _noise(ctx, hit+0.1+i*0.04, 0.025, 0.08, 4000); }
+}catch(e){} }
+
+//// ===== multiplayer duel (Play a friend: versus → lobby → duel → results) =====
+// The server referees everything; phones just poll /api/match (~1.2s) and re-render
+// whenever the state version moves. M.role: 1 = host, 2 = guest.
+const M = { id:null, room:null, role:0, sig:null, data:null, timer:null, clock:null,
+            lastBoardIdx:0, lastSeries:[0,0], pendingJoin:null,
+            turnStart:0, timedOut:false, tbQ:null };
+const myKey = ()=> (USER && USER.name) ? USER.name.trim().toLowerCase() : '';
+
+function stopPoll(){ if(M.timer){ clearInterval(M.timer); M.timer=null; } stopClock(); stopLobbyClock(); }
+function startPoll(){ stopPoll(); M.timer = setInterval(pollMatch, 1200); startClock(); }
+function leaveMatch(){ stopPoll(); M.id=null; M.sig=null; M.data=null; $('tbLayer').style.display='none'; }
+
+//// the 30-second turn clock (server enforces at 32s; the countdown and TIME'S UP are
+//// local). The digital count sits beside the ACTIVE player's badge; speed scoring is
+//// 3/2/1 points by 10-second window (server-judged).
+function stopClock(){ if(M.clock){ clearInterval(M.clock); M.clock=null; } }
+function startClock(){
+  stopClock();
+  M.clock = setInterval(()=>{
+    const d = M.data;
+    const live = d && d.state && d.state.boardStatus === 'playing' && d.match.status === 'playing';
+    const me = $('duClockMe'), them = $('duClockThem');
+    if(!live){ me.classList.remove('on'); them.classList.remove('on'); return; }
+    const left = Math.max(0, 30000 - (Date.now() - M.turnStart));
+    const secs = Math.ceil(left / 1000);
+    const mine = d.state.turn === M.role;
+    const active = mine ? me : them, idle = mine ? them : me;
+    active.textContent = secs;
+    active.classList.add('on'); idle.classList.remove('on');
+    active.classList.toggle('low', left <= 10000);
+    if(left === 0 && !M.timedOut){
+      M.timedOut = true;
+      if(mine) timesUp();      // it was YOUR clock that hit zero
+      pollMatch();             // pick up the server-side turn pass
+    }
+  }, 100);
+}
+// the TIME'S UP takeover — the screen-of-death pattern, but a clock + deep buzzer
+function timesUp(){
+  const f=$('flash'); f.classList.remove('hit'); f.classList.add('death');
+  $('flashMsg').textContent = "⏰ TIME'S UP";
+  f.classList.remove('show'); void f.offsetWidth; f.classList.add('show');
+  const stage=document.querySelector('.stage');
+  stage.classList.remove('glitch'); void stage.offsetWidth; stage.classList.add('glitch');
+  setTimeout(()=>stage.classList.remove('glitch'),600);
+  sndTimeUp();
+}
+function sndTimeUp(){ try{
+  const ctx=_ac(), t=ctx.currentTime;
+  _tone(ctx,t,'square',150,45,0.75,0.26);   // deep descending buzzer
+  _tone(ctx,t,'sine',85,32,0.6,0.36);
+}catch(e){} }
+
+async function mApi(path, body){
+  try{
+    const r = await fetch(path, body ? { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) } : undefined);
+    return { ok:r.ok, status:r.status, d:await r.json().catch(()=>null) };
+  }catch(e){ return { ok:false, status:0, d:null }; }
+}
+
+function renderVersus(){
+  if(!(USER && USER.name)){ AFTER_AUTH = renderVersus; renderAuth(); return; }
+  $('vsErr').textContent='';
+  $('vsCode').value = M.pendingJoin || '';
+  vsStep(!!M.pendingJoin);
+  show('scVersus');
+  if(M.pendingJoin){ const c = M.pendingJoin; M.pendingJoin = null; joinDuel(c); }
+}
+
+// Play a friend has two faces: Host / Join, then (after Join) the code entry
+function vsStep(enter){
+  $('vsChoose').style.display = enter ? 'none' : '';
+  $('vsEnter').style.display  = enter ? '' : 'none';
+  $('vsErr').textContent='';
+  if(enter) setTimeout(()=>$('vsCode').focus(), 50);
+}
+async function hostDuel(){
+  $('vsErr').textContent='';
+  const r = await mApi('/api/match', { name:USER.name, avatar:USER.avatar });
+  if(!r.ok){ $('vsErr').textContent = (r.d && r.d.error) || 'Could not host — try again.'; return; }
+  enterMatch(r.d);
+}
+async function joinDuel(code){
+  $('vsErr').textContent='';
+  const r = await mApi('/api/match-join', { room:code, name:USER.name, avatar:USER.avatar });
+  if(!r.ok){ $('vsErr').textContent = (r.d && r.d.error) || 'Could not join — try again.'; show('scVersus'); return; }
+  enterMatch(r.d);
+}
+function enterMatch(d){
+  M.id = d.match.id; M.room = d.match.room; M.sig = null;
+  M.role = d.match.host.key === myKey() ? 1 : 2;
+  M.lastBoardIdx = d.match.boardIdx;
+  M.lastSeries = [d.match.seriesHost, d.match.seriesGuest];
+  applyMatch(d);
+  startPoll();
+}
+
+async function pollMatch(){
+  if(!M.id) return;
+  const r = await mApi('/api/match?id='+M.id);
+  if(r.ok && M.id) applyMatch(r.d);
+}
+
+function applyMatch(d){
+  // skip renders when nothing moved (the version bumps on every server write)
+  const sig = d.match.status + ':' + (d.state ? d.state.version : 0) + ':' + (d.match.guest ? d.match.guest.key : '');
+  if(sig === M.sig) return;
+  M.sig = sig; M.data = d;
+  if(d.state){ M.turnStart = Date.now() - (d.state.turnMs || 0); M.timedOut = false; }
+  if(d.match.status === 'lobby'){ renderLobby(d); }
+  else if(d.match.status === 'playing'){ stopLobbyClock(); noticeBoardChange(d); renderDuel(d); }
+  else { stopPoll(); noticeBoardChange(d); renderMatchEnd(d); }
+}
+
+// a board finished and the series moved on — tell this player how it went
+function noticeBoardChange(d){
+  const finishedBoards = d.match.status === 'done' ? d.match.boardIdx + 1 : d.match.boardIdx;
+  if(finishedBoards > 0 && d.match.boardIdx !== M.lastBoardIdx){
+    const dh = d.match.seriesHost - M.lastSeries[0], dg = d.match.seriesGuest - M.lastSeries[1];
+    const iWon = (M.role === 1 ? dh : dg) > 0, theyWon = (M.role === 1 ? dg : dh) > 0;
+    if(iWon){ flash('BOARD WON! 🎉','hit'); sndPoint(6); }
+    else if(theyWon){ flash('BOARD LOST 😬','death'); }
+    else { flash('BOARD DRAWN 🤝'); }
+  }
+  M.lastBoardIdx = d.match.boardIdx;
+  M.lastSeries = [d.match.seriesHost, d.match.seriesGuest];
+}
+
+function renderLobby(d){
+  const meHost = M.role === 1;
+  $('lbCode').textContent = d.match.room;
+  $('lbAv1').textContent = d.match.host.avatar;
+  $('lbNm1').textContent = d.match.host.name + (meHost ? ' (you)' : '');
+  const p2 = $('lbP2');
+  if(d.match.guest){
+    p2.classList.remove('empty');
+    $('lbAv2').textContent = d.match.guest.avatar;
+    $('lbNm2').textContent = d.match.guest.name + (meHost ? '' : ' (you)');
+  } else {
+    p2.classList.add('empty');
+    $('lbAv2').textContent = '⏳';
+    $('lbNm2').textContent = 'Waiting for a friend…';
+  }
+  $('lbStart').style.display = meHost ? '' : 'none';
+  $('lbStart').disabled = !d.match.guest;
+  $('lbSub').textContent = meHost ? '' : `Waiting for ${d.match.host.name} to start…`;
+  // both players in: the code+share have done their job — swap in the counting-up clock,
+  // and the host's start button gets the green come-press-me pulse
+  $('scLobby').classList.toggle('full', !!d.match.guest);
+  $('lbHead').textContent = d.match.guest ? '⚔️ Get ready!' : 'Invite a friend';
+  $('lbStart').classList.toggle('ready', meHost && !!d.match.guest);
+  if(d.match.guest){ startLobbyClock(); } else { stopLobbyClock(); }
+  if(!$('scLobby').classList.contains('on')) show('scLobby');
+}
+
+// the lobby wait clock — counts up from the moment both players are in
+function startLobbyClock(){
+  if(M.clockTimer) return;
+  M.waitStart = Date.now();
+  const tick = ()=>{
+    const s = Math.floor((Date.now() - M.waitStart) / 1000);
+    $('lbClock').textContent = `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+  };
+  tick();
+  M.clockTimer = setInterval(tick, 1000);
+}
+function stopLobbyClock(){ if(M.clockTimer){ clearInterval(M.clockTimer); M.clockTimer=null; } M.waitStart=0; }
+
+function renderDuel(d){
+  const s = d.state, me = M.role;
+  const host = d.match.host, guest = d.match.guest;
+  const mine  = me === 1 ? host : guest, theirs = me === 1 ? guest : host;
+  $('duMeAv').textContent = mine.avatar;  $('duMeNm').textContent = 'You';
+  $('duThemAv').textContent = theirs.avatar; $('duThemNm').textContent = theirs.name;
+  // CUMULATIVE points: banked boards + the live board (once the match is done,
+  // the final board is already banked into match.points)
+  const liveH = d.match.status === 'playing' ? s.scoreHost : 0;
+  const liveG = d.match.status === 'playing' ? s.scoreGuest : 0;
+  const ptsMine   = (me === 1 ? d.match.pointsHost + liveH : d.match.pointsGuest + liveG);
+  const ptsTheirs = (me === 1 ? d.match.pointsGuest + liveG : d.match.pointsHost + liveH);
+  $('duMeSc').textContent = ptsMine;
+  $('duThemSc').textContent = ptsTheirs;
+  // whose turn = whose badge is big
+  const myTurn = s.turn === me && s.boardStatus === 'playing';
+  $('duMe').classList.toggle('turn', myTurn);
+  $('duThem').classList.toggle('turn', !myTurn && s.boardStatus === 'playing');
+
+  $('duTitle').textContent = d.board ? d.board.title : '…';
+
+  // found-progress: 10 segments + live count
+  const found = s.tiles.filter(t => t.by && (t.hit ?? t.on)).length;
+  const pb = $('duProgBar'); pb.innerHTML = '';
+  for(let k = 0; k < 10; k++){ const i = document.createElement('i'); if(k < found) i.className = 'on'; pb.appendChild(i); }
+  $('duProgLbl').textContent = `${found} of 10 found`;
+
+  // footer: board number, series dots, cumulative points
+  $('duBnum').textContent = `Board ${d.match.boardIdx + 1} of ${d.match.boardCount}`;
+  const myWins = me === 1 ? d.match.seriesHost : d.match.seriesGuest;
+  const theirWins = me === 1 ? d.match.seriesGuest : d.match.seriesHost;
+  const sw = $('duSeries'); sw.innerHTML = '';
+  for(let k = 0; k < d.match.boardCount; k++){
+    const i = document.createElement('i');
+    if(k < myWins) i.className = 'w';
+    else if(k < myWins + theirWins) i.className = 'l';
+    sw.appendChild(i);
+  }
+  $('duTotals').textContent = `${ptsMine}–${ptsTheirs}`;
+
+  // sudden death: tied board → the math takeover
+  const tb = s.boardStatus === 'tiebreak' && d.match.status === 'playing';
+  $('tbLayer').style.display = tb ? '' : 'none';
+  if(tb){
+    $('tbQ').textContent = s.tbQuestion + ' = ?';
+    const mineTried = me === 1 ? s.tbTriedHost : s.tbTriedGuest;
+    $('tbIn').disabled = mineTried; $('tbGo').disabled = mineTried;
+    $('tbWait').textContent = mineTried ? 'Locked out — waiting for a fresh question…' : '';
+    if(M.tbQ !== s.tbQuestion){ M.tbQ = s.tbQuestion; $('tbIn').value=''; if(!mineTried) $('tbIn').focus(); }
+  } else { M.tbQ = null; }
+
+  // tiles — rebuilt per state version (20 nodes, cheap)
+  const wrap = $('duTiles'); wrap.innerHTML = '';
+  const over = s.boardStatus !== 'playing';
+  s.tiles.forEach((t, idx) => {
+    const el = document.createElement('button');
+    let cls = 'tile';
+    if(t.by){ cls += (t.hit ?? t.on) ? ' hit locked' : ' miss locked'; }
+    else if(over){ cls += t.on ? ' missed' : ' dud'; cls += ' locked'; }
+    else if(!myTurn){ cls += ' locked'; }
+    el.className = cls;
+    const who = t.by ? `<span class="who">${t.by === 1 ? host.avatar : guest.avatar}</span>` : '';
+    el.innerHTML = `${who}<span class="chk">${t.n || ''}</span>${esc(t.t)}`;
+    if(!t.by && !over && myTurn) el.onclick = () => duelTap(idx, el);
+    wrap.appendChild(el);
+  });
+
+  if(!$('scDuel').classList.contains('on')) show('scDuel');
+}
+
+let TAP_BUSY = false;   // one tap in flight at a time — a double-tap must not spend two turns
+async function duelTap(idx, el){
+  if(TAP_BUSY) return;
+  if(!M.data || !M.data.state || M.data.state.turn !== M.role) return;
+  TAP_BUSY = true;
+  el.classList.add('locked');
+  try{
+    const r = await mApi('/api/match-tap', { id:M.id, key:myKey(), idx, version:M.data.state.version });
+    if(r.ok){
+      const t = r.d.tap;
+      if(t.hit){ sndPoint(t.pts + 2); flash(`+${t.pts} ✔`,'hit'); } else { flash('WRONG ✘','death'); }
+      applyMatch(r.d);
+    } else if(r.status === 409){ pollMatch(); }
+    else { flash('TAP LOST — RETRY'); el.classList.remove('locked'); }
+  } finally { TAP_BUSY = false; }
+}
+
+// sudden-death answer: typed entry, first correct submission takes the board
+let TB_BUSY = false;
+async function solveTb(){
+  if(TB_BUSY) return;
+  const v = $('tbIn').value.trim();
+  if(!v) return;
+  TB_BUSY = true; $('tbGo').disabled = true;
+  try{
+    const r = await mApi('/api/match-tap', { id:M.id, key:myKey(), answer:v });
+    if(r.ok){
+      if(r.d.solve && r.d.solve.correct){ flash('CORRECT! ⚡','hit'); sndPoint(8); }
+      else if(r.d.solve){ flash('WRONG ✘','death'); }
+      applyMatch(r.d);
+    } else { pollMatch(); }
+  } finally { TB_BUSY = false; }
+}
+
+function renderMatchEnd(d){
+  const w = d.match.winner; // 1 host · 2 guest · 0 drawn series
+  const winP = w === 1 ? d.match.host : w === 2 ? d.match.guest : null;
+  const iWon = w === M.role;
+  const mySeries = M.role === 1 ? d.match.seriesHost : d.match.seriesGuest;
+  const theirSeries = M.role === 1 ? d.match.seriesGuest : d.match.seriesHost;
+  $('mxCrown').textContent = w === 0 ? '🤝' : iWon ? '🏆' : '💪';
+  $('mxHead').textContent = w === 0 ? 'Dead heat!' : iWon ? 'You win the duel!' : `${winP.name} takes it!`;
+  $('mxAv').textContent = winP ? winP.avatar : '🤝';
+  $('mxName').textContent = winP ? winP.name : 'Nobody';
+  $('mxSeries').textContent = `${mySeries}–${theirSeries}`;
+  const myPts = M.role === 1 ? d.match.pointsHost : d.match.pointsGuest;
+  const theirPts = M.role === 1 ? d.match.pointsGuest : d.match.pointsHost;
+  $('mxMsg').textContent = (w === 0 ? 'Nothing settled. Run it back.'
+    : iWon ? 'Best 2 of 3 — champion. Defend the title?' : 'So close — run it back.')
+    + ` Points: ${myPts}–${theirPts}.`;
+  if(iWon){ sndFanfare(); confettiBurst(); }
+  leaveMatch();
+  show('scMatch');
+}
+
+// shareable links: #/join/1234 lands here (sign-in first if needed, then auto-join)
+function checkJoinHash(){
+  const m = location.hash.match(/^#\/join\/(\d{4})/);
+  if(!m) return false;
+  M.pendingJoin = m[1];
+  history.replaceState(null, '', location.pathname + location.search);
+  loadUser();
+  renderVersus();
+  return true;
+}
+window.addEventListener('hashchange', checkJoinHash);
+
+//// ===== flow wiring =====
+// "Let's play" → sign in / sign up first; Pick is gated behind a username.
+function playEntry(){ loadUser(); if(USER && USER.name) openMode(); else renderAuth(); }
+$('startGo').onclick=playEntry;
+$('bStop').onclick=()=>{ if(!S.ended) endRound('bank'); };
+$('rRetry').onclick=()=>startBoard(S.bi);
+// once you have a username, "Another category" goes straight back to Pick (no re-auth)
+$('rAgain').onclick=()=>{ if(USER && USER.name){ goToPick(); } else { playEntry(); } };
+
+//// ===== auth wiring =====
+$('authStart').onclick   = commitSignup;
+$('authQuick').onclick   = quickPlay;
+$('authShowForm').onclick= ()=>{ $('authQuick').style.display='none'; $('authShowForm').style.display='none';
+  $('authForm').classList.add('open'); $('unameInput').focus(); };
+$('authContinue').onclick= afterAuth;                   // returning player keeps going
+$('authSwitch').onclick  = ()=>{ USER=null; clearMySets(); $('unameInput').value=''; renderAuth(); $('unameInput').focus(); };
+$('unameInput').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); commitSignup(); } });
+
+// set editor buttons
+$('edSubmit').onclick=submitSet;
+$('edSignIn').onclick=playEntry;
+$('edFill').onclick=fillDecoys;
+$('edMySets').onclick=()=>renderMySetsScreen();
+$('edAnother').onclick=()=>{ closeSaved(); $('edTitle').focus(); };
+$('edPlay').onclick=()=>{ closeSaved(); const i=BOARDS.findIndex(b=>b.id===edSaved); if(i>=0) startBoard(i); };
+$('edDone').onclick=e=>{ if(e.target===$('edDone')) closeSaved(); };
+// multiplayer buttons
+$('vsHost').onclick=hostDuel;
+$('vsJoinOpen').onclick=()=>vsStep(true);
+$('vsJoin').onclick=()=>{ const c=$('vsCode').value.trim(); if(!/^\d{4}$/.test(c)){ $('vsErr').textContent='Enter the 4-digit room code.'; return; } joinDuel(c); };
+$('vsCode').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); $('vsJoin').click(); } });
+$('lbStart').onclick=async()=>{
+  $('lbStart').disabled=true; $('lbErr').textContent='';
+  const r=await mApi('/api/match',{action:'start', id:M.id, key:myKey()});
+  if(r.ok) applyMatch(r.d);
+  else { $('lbErr').textContent=(r.d&&r.d.error)||'Could not start — try again.'; $('lbStart').disabled=false; }
+};
+$('lbShare').onclick=async()=>{
+  const link=`${location.origin}${location.pathname}#/join/${M.room}`;
+  if(navigator.share && matchMedia('(pointer:coarse)').matches){
+    try{ await navigator.share({ title:'Bank It', text:'Play me in Bank It!', url:link }); return; }
+    catch(e){ if(e.name==='AbortError') return; }
+  }
+  try{ await navigator.clipboard.writeText(link); flash('LINK COPIED 🔗','hit'); }
+  catch(e){ prompt('Copy this invite link:', link); }
+};
+$('duQuit').onclick=()=>{ leaveMatch(); show('scStart'); };
+$('tbGo').onclick=solveTb;
+$('tbIn').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); solveTb(); } });
+$('mxAgain').onclick=()=>renderVersus();
+$('mxHome').onclick=()=>Shell.nav('games');
+$('rGames').onclick=()=>Shell.nav('games');
+// invite links (#/join/1234) land straight in the join flow
+checkJoinHash();
+
+//// ===== the shared frame: top bar, menu (Bank It's items first), playground =====
+const darken=(hex,f)=>{ const c=hex.replace('#',''); const n=k=>Math.round(parseInt(c.substr(k,2),16)*f); return `rgb(${n(0)},${n(2)},${n(4)})`; };
+Shell.init({
+  brand:'Bank&nbsp;It',
+  theme:{ key:'nysgpt-theme-f3', darkDefault:false },
+  gameMenu:[
+    { ic:'🗃️', label:'Categories', c:1, onClick:()=>{ show('scCategories'); renderCategories(); } },
+    { ic:'✏️', label:'Create', c:5, onClick:()=>renderEditor() },
+  ],
+  beforeLeave:()=>!M.id || confirm('Leave this game?'),
+  playground:{
+    swatches:['#ff7a3c','#8b5cf6','#1fc7b6','#ff4d8d','#2d6fd6','#37c871'].map((c,i)=>({ bg:c, vars: i ? { '--bg':c, '--bg-2':darken(c,.82), '--shadow':darken(c,.5) } : { '--bg':c,'--bg-2':1,'--shadow':1 } })),
+    extras:[{ html:'<label>Chunkiness <span class="v" id="pgRadV">1.0×</span></label><input type="range" class="sh-range" id="pgRad" min="0.4" max="1.8" step="0.1" value="1" />',
+      init:(el,set)=>{ el.querySelector('#pgRad').oninput=e=>{ set('--radius', e.target.value); el.querySelector('#pgRadV').textContent=(+e.target.value).toFixed(1)+'×'; }; },
+      reset:el=>{ el.querySelector('#pgRad').value=1; el.querySelector('#pgRadV').textContent='1.0×'; } }],
+  },
+});
+// back arrows (top-left of each card): one screen back
+Shell.addBack('#scStart .card',      () => Shell.nav('games'));
+Shell.addBack('#scAuth .card',       () => show('scStart'));
+Shell.addBack('#scPick .card',       () => openMode());
+Shell.addBack('#scCategories .card', () => show('scStart'));
+Shell.addBack('#scEditor .card',     () => show('scStart'));
+Shell.addBack('#scMySets .card',     () => renderEditor());
+Shell.addBack('#scVersus .card',     () => { if ($('vsEnter').style.display!=='none') vsStep(false); else openMode(); });
+Shell.addBack('#scLobby .card',      () => { leaveMatch(); renderVersus(); });
+// menu-free deep links from the hub: #/categories · #/create
+const HASH_ROUTES = { '#/categories':()=>{ show('scCategories'); renderCategories(); }, '#/create':()=>renderEditor() };
+function routeHash(){ const r=HASH_ROUTES[location.hash]; if(!r) return; history.replaceState(null,'',location.pathname); r(); }
+routeHash();
+window.addEventListener('hashchange', routeHash);
+
+//// ===== boot =====
+loadUser();        // remember who's playing (if anyone) so the welcome-back state is ready
+buildAvatars();    // pre-build the avatar picker
+loadMySets();      // returning player: fold their custom sets into BOARDS
+</script>
+</body>
+</html>

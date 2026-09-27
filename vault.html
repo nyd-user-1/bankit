@@ -6,7 +6,9 @@
 <title>Bank It — The Vault (prototype)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Nunito:ital,wght@0,700;0,800;0,900;1,800&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Nunito:ital,wght@0,700;0,800;0,900;1,800&family=Fredoka:wght@600;700&display=swap" rel="stylesheet" />
+<script>(function(){ try{ if(localStorage.getItem('bankit-vault-theme')==='light') document.documentElement.setAttribute('data-theme','light'); }catch(e){} })();</script>
+<link rel="stylesheet" href="shell.css" />
 <style>
   :root{
     /* night-heist palette: vault steel + coin gold */
@@ -44,7 +46,12 @@
   .mote{position:fixed;border-radius:50%;background:var(--gold);opacity:.05;pointer-events:none;animation:drift 9s ease-in-out infinite}
   @keyframes drift{0%,100%{transform:translateY(0)}50%{transform:translateY(-26px)}}
 
-  /* ===== top bar ===== */
+  /* ===== the shared frame (shell.css) on the midnight safe ===== */
+  :root{--panel-2:var(--steel);--shadow:#050a14;--sh-a:var(--gold);--sh-a-sh:var(--gold-sh);--sh-a-ink:#241800;--sh-b:var(--safe);--sh-b-sh:#1f8a52;--sh-b-ink:#062414}
+  :root[data-theme="light"]{--bg:#e9eef8;--panel:#ffffffcc;--panel-solid:#ffffff;--steel:#dde4f1;--steel-hi:#c8d3e8;--line:#c3cee3;--ink:#16203a;--ink-dim:#4e5d7d;--ink-faint:#8795b3;--shadow:#a9b6cf}
+  .sh-menu,.sh-pg,.sh-card,.sh-iconbtn,.sh-pg-launch,.sh-toast{background:var(--panel-solid)}
+  .sh-brand{color:var(--gold);text-shadow:0 0 18px rgba(255,198,63,.35)}
+  body{padding-top:84px}
   .topbar{width:100%;max-width:1040px;display:flex;align-items:center;justify-content:space-between;padding:18px 2px 8px}
   .wordmark{display:flex;align-items:baseline;gap:10px}
   .wordmark .bank{font-family:var(--font-display);font-size:22px;color:var(--ink);letter-spacing:.02em}
@@ -54,13 +61,46 @@
   .pill b{color:var(--gold);font-family:var(--font-display);font-size:17px;letter-spacing:.03em}
 
   .stage{width:100%;max-width:1040px}
+  .arena{display:flex;gap:24px;justify-content:center;align-items:flex-start;width:100%}
+  .rival{display:none}
+  body.duo .arena{max-width:1340px}
+  body.duo .rival{display:block;width:250px;flex-shrink:0;position:sticky;top:96px;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:16px;backdrop-filter:blur(8px)}
+  .rival.flash{animation:rvflash .7s ease}
+  @keyframes rvflash{0%,100%{box-shadow:none}35%{box-shadow:0 0 0 3px var(--gold),0 0 30px rgba(255,198,63,.35)}}
+  .rv-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .rv-av{font-size:26px}
+  .rv-nm{font-family:var(--font-display);font-size:22px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rv-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+  .rv-stats div{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:12px;padding:8px;text-align:center}
+  .rv-stats b{display:block;font-family:var(--font-display);font-size:22px;color:var(--gold)}
+  .rv-stats span{font-size:9.5px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint)}
+  .rv-status{font-family:var(--font-display);font-size:16px;letter-spacing:.03em;color:var(--ink-dim);margin:-6px 0 12px}
+  .rv-status.bank,.rv-status.sweep{color:var(--gold)} .rv-status.bust{color:var(--danger)}
+  .rv-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+  .rv-grid i{aspect-ratio:2/1;border-radius:7px;background:rgba(255,255,255,.07);border:1px solid var(--line)}
+  .rv-grid i.s1{background:var(--gold);border-color:var(--gold-deep);box-shadow:0 0 10px rgba(255,198,63,.4)}
+  .rv-grid i.s2{background:var(--danger);border-color:var(--danger-sh)}
+  @media(max-width:980px){
+    .arena{flex-direction:column;align-items:center}
+    body.duo .rival{position:static;width:100%;max-width:1040px;display:grid;grid-template-columns:auto 1fr 1fr;gap:10px;align-items:center;padding:10px 14px}
+    .rv-head,.rv-stats,.rv-status{margin:0}
+    .rv-grid{grid-column:1/-1;grid-template-columns:repeat(10,1fr)}
+  }
 
   /* ===== HUD: odds · vault door · ladder ===== */
-  .hud{display:grid;grid-template-columns:1fr 230px 1fr;gap:22px;align-items:center;margin:10px 0 16px}
-  @media(max-width:840px){.hud{grid-template-columns:1fr;gap:14px;justify-items:center}}
+  .hud{display:grid;grid-template-columns:230px 1fr;gap:26px;align-items:center;margin:10px 0 16px}
+  .hudright{display:flex;flex-direction:column;gap:14px;min-width:0}
+  .hud .odds{order:0;max-width:none;justify-self:stretch}
+  .hud .ladder{order:0;max-width:none;flex-direction:row;flex-wrap:wrap;gap:6px}
+  .hud .rung{padding:4px 9px;gap:6px}.hud .rung .t{display:none}
+  @media(max-width:840px){.hud{grid-template-columns:1fr;gap:14px;justify-items:center}.hudright{width:100%}}
 
   /* --- the vault door --- */
-  .doorwrap{display:flex;flex-direction:column;align-items:center;gap:14px;order:2}
+  .doorwrap{display:flex;flex-direction:column;align-items:center;gap:14px;order:0}
+  /* no separate button: once there's a pot, the vault itself banks it */
+  .door.bankable{cursor:pointer;transition:transform .15s}
+  .door.bankable:hover{transform:scale(1.04)}
+  .door.bankable:active{transform:scale(.97)}
   .door{position:relative;width:212px;height:212px;border-radius:50%;
     background:conic-gradient(from 30deg,#2e405f,#19243c 22%,#33486c 41%,#19243c 60%,#2e405f 78%,#19243c 100%);
     box-shadow:0 18px 40px rgba(0,0,0,.55), inset 0 2px 2px rgba(255,255,255,.14), inset 0 -10px 24px rgba(0,0,0,.5);
@@ -132,7 +172,6 @@
 
   /* ===== category ===== */
   .qcard{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:16px 24px;text-align:center;margin:4px 0 16px;backdrop-filter:blur(8px)}
-  .qcard .qcat{font-size:10.5px;font-weight:900;text-transform:uppercase;letter-spacing:.22em;color:var(--ink-faint);margin-bottom:4px}
   .qcard .qtitle{font-family:var(--font-display);font-size:clamp(21px,3.4vw,30px);color:var(--ink);letter-spacing:.02em}
   .qcard .qtitle .ic{margin-right:10px}
 
@@ -196,7 +235,11 @@
   .gobtn:active{top:4px;box-shadow:0 2px 0 var(--gold-sh)}
   .ghost{background:none;border:none;color:var(--ink-faint);font-weight:900;font-size:12.5px;cursor:pointer;text-decoration:underline;font-family:inherit;margin-top:14px}
   .ghost:hover{color:var(--ink-dim)}
-  .protonote{margin-top:18px;font-size:11px;font-weight:800;color:var(--ink-faint);letter-spacing:.05em}
+  #intro{background:var(--bg)}
+  .sheet.intro h1{font-size:clamp(38px,8vw,56px);margin-bottom:8px}
+  .sheet.intro .isub{color:var(--ink-dim);font-weight:800;font-size:15px;line-height:1.5;margin-bottom:6px}
+  .sheet.intro .rules{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:18px;padding:18px 20px;margin:18px 0 22px;gap:11px}
+  .sheet.intro .rules .r{align-items:center;font-size:14.5px;color:var(--ink)}
 </style>
 </head>
 <body>
@@ -207,56 +250,55 @@
 <div class="mote" style="left:92%;top:70%;width:16px;height:16px;animation-delay:3.1s"></div>
 <div class="mote" style="left:48%;top:88%;width:8px;height:8px;animation-delay:4s"></div>
 
-<div class="topbar">
-  <div class="wordmark"><span class="bank">BANK IT ·</span><span class="mode">THE VAULT</span></div>
-  <div class="nightpill">
-    <span class="pill" id="vaultNo">Vault 1 of 5</span>
-    <span class="pill">💰 take <b id="take">0</b></span>
-  </div>
+<div class="nightpill" id="nightpill">
+  <span class="pill" id="vaultNo">Vault 1 of 5</span>
+  <span class="pill">💰 take <b id="take">0</b></span>
 </div>
 
+<div class="arena">
+<aside class="rival" id="rival"></aside>
 <div class="stage">
   <div class="hud">
-    <div class="odds" id="odds">
-      <div class="head"><span class="ttl">Blind-tap odds</span><span class="pct" id="oddsPct">50%</span></div>
-      <div class="laser"><div class="fill" id="oddsFill"></div><div class="scan"></div></div>
-      <div class="read" id="oddsRead"><b>10</b> of the <b>20</b> hidden tiles are <span class="safeword">safe</span>.</div>
-    </div>
     <div class="doorwrap">
-      <div class="door" id="door">
+      <div class="door" id="door" role="button" aria-label="Bank the pot">
         <div class="doorface">
           <span class="lab">In the pot</span>
           <span class="pot" id="pot">0</span>
           <span class="sub" id="potSub">tap to build it</span>
         </div>
       </div>
-      <button class="bankbtn" id="bankBtn" disabled>BANK 0<small>walk away with the pot</small></button>
+    </div>
+    <div class="hudright">
+    <div class="odds" id="odds">
+      <div class="head"><span class="ttl">Blind-tap odds</span><span class="pct" id="oddsPct">50%</span></div>
+      <div class="laser"><div class="fill" id="oddsFill"></div><div class="scan"></div></div>
+      <div class="read" id="oddsRead"><b>10</b> of the <b>20</b> hidden tiles are <span class="safeword">safe</span>.</div>
     </div>
     <div class="ladder" id="ladder"></div>
+    </div>
   </div>
 
   <div class="qcard">
-    <div class="qcat">Crack the category — every hit climbs the ladder</div>
     <div class="qtitle"><span class="ic" id="qIc">🔐</span><span id="qTitle">…</span></div>
   </div>
 
   <div class="tiles" id="tiles"></div>
+</div>
 </div>
 
 <div class="alarm" id="alarm"></div>
 
 <!-- intro -->
 <div class="scrim on" id="intro">
-  <div class="sheet">
-    <div class="big-ic">🔐</div>
-    <h1>THE <span class="gold">VAULT</span></h1>
+  <div class="sheet intro">
+    <h1><span class="gold">Vault</span></h1>
+    <div class="isub">Every vault hides ten real answers.<br>Climb the pot, bank before it bites.</div>
     <div class="rules">
-      <div class="r"><span class="n">1</span><span>Each vault hides <b>10 real answers</b> among 20 tiles. Every hit climbs the pot ladder — <b>and the rungs get steep</b>.</span></div>
-      <div class="r"><span class="n">2</span><span>One wrong tap and the vault slams shut. <b>You lose everything in the pot.</b></span></div>
-      <div class="r"><span class="n">3</span><span>The meter always tells you the odds a <b>blind guess</b> lands safe. You know more than the meter… right? <b>Bank</b> when you stop being sure.</span></div>
+      <div class="r"><span class="n">1</span><span>Tap the real answers — 10 of the 20 tiles.</span></div>
+      <div class="r"><span class="n">2</span><span>Every hit climbs the pot. One wrong tap loses it.</span></div>
+      <div class="r"><span class="n">3</span><span>Tap the vault to bank. Five vaults a night.</span></div>
     </div>
-    <button class="gobtn" id="introGo">Crack vault one →</button>
-    <div class="protonote">PROTOTYPE · 5 vaults a night · sweep a vault for the 100</div>
+    <button class="gobtn" id="introGo">Let's play!</button>
   </div>
 </div>
 
@@ -272,22 +314,7 @@
       <div class="stat"><div class="n" id="reOdds">—</div><div class="l">odds at the call</div></div>
       <div class="stat"><div class="n" id="reStreak">0</div><div class="l">hits in a row</div></div>
     </div>
-    <button class="gobtn" id="reGo">Next vault →</button>
-  </div>
-</div>
-
-<!-- night over -->
-<div class="scrim" id="nightEnd">
-  <div class="sheet">
-    <div class="big-ic">🌙</div>
-    <h1>NIGHT'S <span class="gold">TAKE</span></h1>
-    <div class="statrow" style="margin-top:6px">
-      <div class="stat"><div class="n" id="neTake">0</div><div class="l">coins out the door</div></div>
-      <div class="stat"><div class="n" id="neSharp">0/5</div><div class="l">sharp calls</div></div>
-    </div>
-    <div class="vaultrow" id="neRow"></div>
-    <p id="neMsg"></p>
-    <button class="gobtn" id="neGo">Run it back →</button>
+    <button class="gobtn" id="reGo">Next vault</button>
   </div>
 </div>
 
@@ -324,6 +351,13 @@ const LADDER=[1,2,3,5,8,13,21,34,55,100];
 const VAULTS_PER_NIGHT=5;
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+//// the live official boards (Bank It's catalog) when the API answers; the built-ins otherwise
+let POOL = BOARDS;
+const boardsReady = fetch('/api/boards').then(r => r.ok ? r.json() : null).then(d => {
+  const live = d && Array.isArray(d.boards) ? d.boards.filter(b => b.answers && b.decoys && b.answers.length===10 && b.decoys.length===10) : [];
+  if (live.length >= 10) POOL = live.map(b => ({ icon:b.icon, title:b.title, answers:b.answers, decoys:b.decoys }));
+}).catch(()=>{});
 
 //// state
 const G={ order:[], vi:0, tiles:[], streak:0, pot:0, over:false, take:0,
@@ -370,11 +404,10 @@ function renderOdds(){
 }
 function renderPot(){
   $('pot').textContent=G.pot;
-  $('potSub').textContent=G.pot? (G.streak===10?'CLEAN SWEEP':'one bad tap loses it') : 'tap to build it';
-  $('door').classList.toggle('hot',G.pot>0&&!G.over);
-  const b=$('bankBtn');
-  b.disabled=!(G.pot>0)||G.over;
-  b.childNodes[0].textContent='BANK '+G.pot;
+  const can = G.pot>0 && !G.over;
+  $('door').classList.toggle('hot', can);
+  $('door').classList.toggle('bankable', can);
+  $('potSub').textContent = G.over ? '' : can ? 'tap the vault to bank' : 'tap to build it';
 }
 function renderHud(){ renderLadder(); renderOdds(); renderPot();
   $('vaultNo').textContent=`Vault ${G.vi+1} of ${VAULTS_PER_NIGHT}`;
@@ -392,7 +425,7 @@ function startVault(){
     el.onclick=()=>tap(i,el);
     w.appendChild(el);
   });
-  renderHud();
+  renderHud(); beacon();
 }
 
 function tap(i,el){
@@ -407,7 +440,7 @@ function tap(i,el){
     const b=document.createElement('span'); b.className='badge'; b.textContent='+'+gain; el.appendChild(b);
     sndHit(G.streak);
     if(G.streak===10){ endVault('sweep',1); return; }
-    renderHud();
+    renderHud(); beacon();
   } else {
     el.classList.add('trap','off');
     sndBust();
@@ -461,7 +494,7 @@ function endVault(how){
   }
   G.take+=banked;
   G.results.push({how, banked});
-  renderHud(); renderLadder();
+  renderHud(); renderLadder(); beacon(how);
 
   $('reIc').textContent=ic; $('reHead').textContent=head;
   const v=$('reVerdict'); v.textContent=verdict; v.className='verdict '+vcls;
@@ -469,7 +502,7 @@ function endVault(how){
   $('rePot').textContent=banked;
   $('reOdds').textContent=tl? pct+'%' : '—';
   $('reStreak').textContent=G.streak;
-  $('reGo').textContent = G.vi+1<VAULTS_PER_NIGHT? 'Next vault →' : "See the night's take →";
+  $('reGo').textContent = G.vi+1<VAULTS_PER_NIGHT? 'Next vault' : "See the night's take";
   setTimeout(()=>$('roundEnd').classList.add('on'), how==='bank'? 650 : 950);
 }
 
@@ -479,36 +512,148 @@ function nextVault(){
   else endNight();
 }
 
+//// ===== the night ends: the standard results card =====
 function endNight(){
-  $('neTake').textContent=G.take;
-  $('neSharp').textContent=G.sharp+'/'+VAULTS_PER_NIGHT;
-  const row=$('neRow'); row.innerHTML='';
-  G.results.forEach(r=>{
-    const c=document.createElement('span');
-    c.className='vchip '+(r.how==='sweep'?'sweep':r.how==='bank'?'bank':'bust');
-    c.textContent=r.how==='bust'?'BUST':r.banked;
-    row.appendChild(c);
-  });
   const busts=G.results.filter(r=>r.how==='bust').length;
-  $('neMsg').innerHTML = busts===0? 'Five vaults, zero alarms. The house is nervous.'
-    : busts>=3? 'The vault ate well tonight. Greed is a flavor — bank earlier.'
-    : 'A clean night\'s work. Know the odds, know yourself.';
-  $('nightEnd').classList.add('on');
+  Shell.postScore('vault', G.take);
+  if (G.mode!=='solo'){ G.done=true; if (G.mode==='duo') wsSend({ t:'done', take:G.take }); return duoFinish(); }
+  Shell.results({ em:'💰', title:"Night's take", big:G.take,
+    sub:`${G.sharp}/${VAULTS_PER_NIGHT} sharp calls · ${busts ? busts+' bust'+(busts>1?'s':'') : 'no busts'}`,
+    again:{ label:'Play again', onClick:()=>newNight() },
+    change:{ label:'Change mode', onClick:()=>{ leaveRoom(); openMode(); } } });
 }
-
-function newNight(){
-  G.order=shuffle(BOARDS).slice(0,VAULTS_PER_NIGHT);
-  G.vi=0; G.take=0; G.results=[]; G.sharp=0;
-  $('nightEnd').classList.remove('on');
+function newNight(set){
+  G.order = set || shuffle(POOL).slice(0,VAULTS_PER_NIGHT);
+  G.vi=0; G.take=0; G.results=[]; G.sharp=0; G.done=false;
+  $('roundEnd').classList.remove('on');
   startVault();
 }
 
-$('introGo').onclick=()=>{ ac(); $('intro').classList.remove('on'); sndTick(); };
-$('bankBtn').onclick=bank;
-$('reGo').onclick=nextVault;
-$('neGo').onclick=newNight;
+//// ===== the standard start sequence =====
+function openMode(){
+  $('intro').classList.add('on');
+  Shell.mode({ options:[
+      { label:'Play solo', onClick:()=>{ Shell.hide(); leaveRoom(); G.mode='solo'; renderRival(); $('intro').classList.remove('on'); boardsReady.then(()=>newNight()); } },
+      { label:'Play the computer', kind:'ghost', onClick:()=>{ Shell.hide(); leaveRoom(); boardsReady.then(startCpu); } },
+      { label:'Play a friend', kind:'b', onClick:()=>Shell.friend(FRIEND) } ],
+    onBack:()=>{} });
+}
 
-newNight();
+//// ===== Play a friend: a race — different vaults, same pace rules, a live mirror of the rival =====
+// The host deals two DIFFERENT nights (5 vaults each); each screen shuffles its own tiles.
+// Beacons carry only outcomes (vault #, pot, take, which tiles hit / trapped), never words.
+G.mode='solo'; G.room=null; G.done=false;
+const RIVAL = { name:'', avatar:'', vi:0, pot:0, take:0, tiles:[], how:null, done:false, left:false };
+const wsSend = m => { if (G.room) G.room.send(m); };
+function beacon(how){
+  if (G.mode!=='duo') return;
+  wsSend({ t:'p', vi:G.vi, pot:G.pot, take:G.take, how:how||null, tiles:G.tiles.map(t => !t.tapped ? 0 : t.on ? 1 : 2) });
+}
+function dealTwo(){
+  const deck = shuffle(POOL);
+  const a = deck.slice(0,VAULTS_PER_NIGHT);
+  const b = deck.length >= VAULTS_PER_NIGHT*2 ? deck.slice(VAULTS_PER_NIGHT, VAULTS_PER_NIGHT*2) : shuffle(POOL).slice(0,VAULTS_PER_NIGHT);
+  return { host:a, guest:b };
+}
+function startDuo(R, sets){
+  Object.assign(RIVAL, { name:R.other.name, avatar:R.other.avatar, vi:0, pot:0, take:0, tiles:Array(20).fill(0), how:null, done:false, left:false });
+  G.mode='duo'; G.room=R; Shell.hide(); $('intro').classList.remove('on');
+  newNight(R.isHost ? sets.host : sets.guest);
+  renderRival();
+}
+function duoFinish(){
+  if (!G.done) return;
+  if (!RIVAL.done && !RIVAL.left){
+    return Shell.results({ em:'⏳', title:`Your take: ${G.take}`, sub:`Waiting for ${Shell.esc(RIVAL.name)} to finish the night…` });
+  }
+  const won = RIVAL.left || G.take > RIVAL.take, tie = !RIVAL.left && G.take === RIVAL.take;
+  Shell.results({ em: tie ? '🤝' : won ? '🏆' : '😬',
+    title: tie ? "It's a tie" : won ? 'You win!' : `${Shell.esc(RIVAL.name)} wins`,
+    sub: RIVAL.left ? `${Shell.esc(RIVAL.name)} left — your take: ${G.take}` : `Your take ${G.take} · ${Shell.esc(RIVAL.name)} ${RIVAL.take}`,
+    again:{ label:'Play again', onClick:()=>{
+      if (G.mode==='cpu') return startCpu();
+      if (RIVAL.left) return openMode();
+      if (G.room.isHost){ const sets=dealTwo(); wsSend({ t:'again', sets }); startDuo(G.room, sets); }
+      else { wsSend({ t:'again-req' }); Shell.results({ em:'⏳', title:'Waiting for the host', sub:'The next night is being dealt…' }); }
+    } },
+    change:{ label:'Change mode', onClick:()=>{ leaveRoom(); openMode(); } } });
+}
+const FRIEND = {
+  game:'vault',
+  onBack: openMode,
+  startData: () => dealTwo(),
+  onStart: (R, sets) => boardsReady.then(() => startDuo(R, sets)),
+  onMessage: m => {
+    if (m.t==='p'){
+      Object.assign(RIVAL, { vi:m.vi, pot:m.pot, take:m.take, tiles:m.tiles||[], how:m.how });
+      renderRival(m.how);
+    } else if (m.t==='done'){ RIVAL.done=true; RIVAL.take=m.take; renderRival(); duoFinish(); }
+    else if (m.t==='again' && G.done){ startDuo(G.room, m.sets); }
+    else if (m.t==='again-req' && G.done && G.room.isHost){ const sets=dealTwo(); wsSend({ t:'again', sets }); startDuo(G.room, sets); }
+  },
+  onLeft: () => { RIVAL.left=true; renderRival(); duoFinish(); },
+};
+function leaveRoom(){ if (G.room){ Shell.leaveRoom(); G.room=null; } ROBOT.run++; G.mode='solo'; }
+
+//// ===== Play the computer: a robot runs its own night beside you =====
+// It taps at a human-ish pace, picks right ~90% of the time, and banks at a randomly chosen rung.
+const ROBOT = { run:0 };
+function startCpu(){
+  Object.assign(RIVAL, { name:'Robot', avatar:'🤖', vi:0, pot:0, take:0, tiles:Array(20).fill(0), how:null, done:false, left:false });
+  G.mode='cpu'; $('intro').classList.remove('on');
+  newNight(); renderRival();
+  robotVault(++ROBOT.run, 0);
+}
+function robotVault(run, vi){
+  if (run!==ROBOT.run) return;
+  if (vi>=VAULTS_PER_NIGHT){ RIVAL.done=true; RIVAL.how=null; renderRival(); return duoFinish(); }
+  Object.assign(RIVAL, { vi, pot:0, how:null, tiles:Array(20).fill(0) });
+  const bankAt = Math.random()<.12 ? 10 : 3 + Math.floor(Math.random()*5);   // usually banks at 3–7 hits
+  let streak=0;
+  renderRival();
+  const step = () => {
+    if (run!==ROBOT.run) return;
+    const free = RIVAL.tiles.map((v,i)=>v?-1:i).filter(i=>i>=0), spot = free[Math.floor(Math.random()*free.length)];
+    if (streak>=bankAt){ RIVAL.take+=RIVAL.pot; RIVAL.how='bank'; renderRival(true); return setTimeout(()=>robotVault(run, vi+1), 1600); }
+    if (Math.random() < .9){
+      RIVAL.tiles[spot]=1; streak++; RIVAL.pot=LADDER[streak-1];
+      if (streak===10){ RIVAL.take+=100; RIVAL.how='sweep'; renderRival(true); return setTimeout(()=>robotVault(run, vi+1), 1600); }
+      renderRival();
+    } else { RIVAL.tiles[spot]=2; RIVAL.pot=0; RIVAL.how='bust'; renderRival(true); return setTimeout(()=>robotVault(run, vi+1), 1600); }
+    setTimeout(step, 1100 + Math.random()*1300);
+  };
+  setTimeout(step, 1400 + Math.random()*900);
+}
+// the rival mirror: their grid without words — gold hits, red traps — plus pot, vault and take
+function renderRival(flash){
+  const box=$('rival');
+  document.body.classList.toggle('duo', G.mode!=='solo');
+  if (G.mode==='solo'){ box.innerHTML=''; return; }
+  const status = RIVAL.left ? 'Left the game' : RIVAL.done ? 'Night over' : RIVAL.how==='bank' ? 'Banked!' : RIVAL.how==='bust' ? 'Busted!' : RIVAL.how==='sweep' ? 'Swept it!' : `Vault ${RIVAL.vi+1} of ${VAULTS_PER_NIGHT}`;
+  box.innerHTML = `<div class="rv-head"><span class="rv-nm">vs. ${Shell.esc(RIVAL.name)}</span><span class="rv-av">${Shell.esc(RIVAL.avatar)}</span></div>
+    <div class="rv-status ${RIVAL.how||''}">${status}</div>
+    <div class="rv-stats"><div><b>${RIVAL.pot}</b><span>pot</span></div><div><b>${RIVAL.take}</b><span>take</span></div></div>
+    <div class="rv-grid">${Array.from({length:20},(_,i)=>`<i class="s${RIVAL.tiles[i]||0}"></i>`).join('')}</div>`;
+  if (flash){ box.classList.remove('flash'); void box.offsetWidth; box.classList.add('flash'); }
+}
+
+$('introGo').onclick=()=>{ ac(); sndTick(); Shell.requirePlayer().then(openMode); };
+$('door').onclick=()=>{ if (G.pot>0 && !G.over) bank(); };
+$('reGo').onclick=nextVault;
+
+boardsReady.then(()=>newNight());
+</script>
+<script src="shell.js"></script>
+<script>
+Shell.init({
+  brand:'Vault',
+  theme:{ key:'bankit-vault-theme', darkDefault:true },
+  topExtra:['nightpill'],
+  beforeLeave:()=>!G.room || confirm('Leave this game?'),
+  onJoinLink: code => Shell.joinCode(FRIEND, code),
+  playground:{ swatches:['#0d1422','#1a1030','#0b1f1a','#241010','#1c1c1c','#0a2530'].map(c=>({ bg:c, vars:{ '--bg':c } })) },
+});
+Shell.addBack('#intro .sheet', () => Shell.nav('games'));
 </script>
 </body>
 </html>

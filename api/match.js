@@ -48,8 +48,8 @@ module.exports = async (req, res) => {
         if (!m.guest_key) { await client.query('ROLLBACK'); res.status(409).json({ error: 'Waiting for a challenger.' }); return; }
         const tiles = await buildTiles(client, m.board_ids[0]);
         await client.query(
-          `INSERT INTO match_state (match_id, tiles_json) VALUES ($1, $2)
-           ON CONFLICT (match_id) DO UPDATE SET tiles_json=$2, turn=1, score_host=0, score_guest=0,
+          `INSERT INTO match_state (match_id, tiles_json) VALUES ($1, $2::jsonb)
+           ON CONFLICT (match_id) DO UPDATE SET tiles_json=$2::jsonb, turn=1, score_host=0, score_guest=0,
              wrong_host=0, wrong_guest=0, board_status='playing', version=match_state.version+1, updated_at=now()`,
           [id, JSON.stringify(tiles)]
         );
@@ -82,7 +82,7 @@ module.exports = async (req, res) => {
       try {
         const { rows: [m] } = await pool.query(
           `INSERT INTO matches (room_code, host_key, host_name, host_avatar, board_ids)
-           VALUES ($1,$2,$3,$4,$5) RETURNING id`,
+           VALUES ($1,$2,$3,$4,$5::int[]) RETURNING id`,
           [code, keyOf(name), name, avatar, boardIds]
         );
         match = m;

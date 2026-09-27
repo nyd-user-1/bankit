@@ -4,7 +4,7 @@
   "description": "A quick, push-your-luck party game. Pick a category, see **20** answers, and tap the **10** you think are on the hidden list.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "node scripts/dev-server.mjs"
   },
   "repository": {
     "type": "git",
@@ -21,7 +21,9 @@
   "dependencies": {
     "@anthropic-ai/bedrock-sdk": "^0.32.4",
     "@anthropic-ai/sdk": "^0.104.1",
+    "@aws-sdk/client-rds-data": "^3.1141.0",
     "dotenv": "^17.4.2",
-    "pg": "^8.21.0"
+    "pg": "^8.21.0",
+    "ws": "^8.22.0"
   }
 }
