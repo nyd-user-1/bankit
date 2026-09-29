@@ -76,6 +76,8 @@
   .tools button:hover{color:var(--ink)}
   .reveal{text-align:center;min-height:22px;margin-top:14px;color:var(--ink-dim);font-size:15px}
   @media(max-width:560px){.slot,.tile{width:40px;height:48px;font-size:24px}}
+  .score.three{grid-template-columns:1fr 1fr 1fr}
+  .pill .v .life{font-size:20px;margin:0 1px} .pill .v .life.gone{opacity:.2;filter:grayscale(1)}
 </style>
 </head>
 <body>
@@ -87,7 +89,7 @@
       <div class="sub">Unjumble the letters before the clock — or your friend — does.<br>Go solo or race a friend.</div>
       <div class="rules">
         <div class="rule"><span class="n">1</span><span>Tap the letters (or type) to spell the hidden word.</span></div>
-        <div class="rule"><span class="n">2</span><span>Solo: as many words as you can in 60 seconds. Longer words score more.</span></div>
+        <div class="rule"><span class="n">2</span><span>Solo: a minute a word — skip any you like. Three time-outs and it's over.</span></div>
         <div class="rule"><span class="n">3</span><span>With a friend: same word on both screens — first to solve five wins.</span></div>
       </div>
       <button class="btn" id="introGo">Let's play!</button>
@@ -98,6 +100,7 @@
     <div class="score" id="score">
       <div class="pill p0" id="pA"><div class="k" id="kA"></div><div class="v" id="sA">0</div></div>
       <div class="pill p1" id="pB"><div class="k" id="kB"></div><div class="v" id="sB">0</div></div>
+      <div class="pill pd" id="pC"><div class="k">Time-outs</div><div class="v" id="sC"></div></div>
     </div>
     <div class="status" id="status"></div>
     <div class="boardcard">
@@ -139,33 +142,41 @@ const sndBad = () => tone(150, .25, 'sawtooth', .08);
 //// ===== the words: a shared pool of 500 (api/scramble.js); the AI adds more once you've seen them all =====
 let POOL = ('apple,beach,bread,brick,cabin,candy,chair,cheese,cloud,clock,coast,crown,dance,dream,eagle,earth,feast,field,flame,flute,fruit,ghost,giant,glass,grape,heart,horse,house,igloo,jelly,juice,knife,lemon,light,magic,maple,melon,money,mouse,music,night,ocean,olive,onion,otter,paint,party,pearl,piano,pilot,pizza,plant,queen,quilt,radio,river,robot,salad,shark,sheep,shell,smile,snake,space,spoon,storm,sugar,table,tiger,toast,torch,tower,train,water,whale,wheel,world,zebra,animal,banana,basket,button,camera,candle,carrot,castle,circus,cookie,dragon,flower,forest,garden,guitar,hammer,island,jacket,jungle,kitten,ladder,lizard,market,marble,mirror,monkey,muffin,orange,parrot,pencil,pepper,pickle,planet,pretzel,puzzle,rabbit,rocket,saddle,school,silver,spider,summer,tomato,turtle,violin,wallet,window,winter,wizard').split(',');   // offline fallback
 const sortKey = w => [...w].sort().join('');
+const EASY4 = 'book cake fish frog milk moon rain tree sock duck ball bird farm hand kite gift corn park rock wind song king drum road soap bell jump bike baby swim'.split(' ');
+const EASY5 = 'apple house water happy beach chair dance fruit grass juice light money mouse music party pizza plant queen river robot salad sheep spoon storm sugar tiger toast train whale world zebra candy clock sweet phone shirt bunny puppy honey sunny tooth'.split(' ');
 let ANAGRAMS = {};
-const index = () => { ANAGRAMS={}; POOL.forEach(w => (ANAGRAMS[sortKey(w)] ||= new Set()).add(w)); };
+const index = () => { ANAGRAMS={}; [...POOL, ...EASY4, ...EASY5].forEach(w => (ANAGRAMS[sortKey(w)] ||= new Set()).add(w)); };
 index();
 const SEEN = new Set((() => { try{ return JSON.parse(localStorage.getItem('scramble-seen')||'[]'); }catch(e){ return []; } })());
 const markSeen = w => { SEEN.add(w); localStorage.setItem('scramble-seen', JSON.stringify([...SEEN])); };
 function mix(w){ let a; do { a=[...w].sort(() => Math.random()-.5); } while (a.join('')===w || ANAGRAMS[sortKey(w)].has(a.join(''))); return a; }
+// every game opens gently: 10 easy four-letter words, then 10 easy five-letter ones
+// (none has a second valid spelling, so a right-looking answer is never turned down)
+const fresh = (list, n) => { const f=list.filter(w => !SEEN.has(w)); return (f.length>=n ? f : list).slice().sort(() => Math.random()-.5).slice(0, n); };
+const openers = () => [...fresh(EASY4, 10), ...fresh(EASY5, 10)].map(w => ({ w, s:mix(w) }));
 // a deck is ready before anyone asks (startData must answer at once); refilled after each deal
 const DECK_N = 60;
 let DECK = null;
 async function refill(){
   let fresh = POOL.filter(w => !SEEN.has(w));
-  if (fresh.length < DECK_N){
+  if (fresh.length < DECK_N+40){
     try{ const r=await fetch('/api/scramble', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ by:(Shell.player()||{}).name||null }) });
       const d=await r.json(); if (d.words && d.words.length){ POOL=[...new Set([...POOL, ...d.words])]; index(); } }catch(e){}
     fresh = POOL.filter(w => !SEEN.has(w));
     if (fresh.length < 10){ SEEN.clear(); localStorage.removeItem('scramble-seen'); fresh=POOL.slice(); }   // seen it all: start over
   }
-  DECK = fresh.sort(() => Math.random()-.5).slice(0, DECK_N).map(w => ({ w, s:mix(w) }));
+  const easy=new Set([...EASY4, ...EASY5]);
+  DECK = fresh.filter(w => !easy.has(w)).sort(() => Math.random()-.5).slice(0, DECK_N).map(w => ({ w, s:mix(w) }));
 }
-function deal(){
+function more(){
   const d = DECK || POOL.slice().sort(() => Math.random()-.5).slice(0, DECK_N).map(w => ({ w, s:mix(w) }));
   DECK=null; refill(); return d;
 }
+const deal = () => [...openers(), ...more()];
 fetch('/api/scramble').then(r => r.json()).then(d => { if (d.words && d.words.length){ POOL=d.words; index(); } }).catch(() => {}).finally(refill);
 
 //// ===== the game =====
-const SOLO_MS = 60000, ROUND_MS = 30000, TO = 5;
+const WORD_MS = 60000, ROUND_MS = 30000, TO = 5, OUTS = 3;   // solo: a minute a word, the third time-out ends it
 // mode: 'solo' or 'online' (the host referees who solved first)
 const G = { early:{}, mode:'solo', list:[], k:0, picks:[], order:[], pts:0, solved:0, wins:[0,0], over:false, lock:false, room:null, t0:0, tick:0, claimed:-1 };
 const cur = () => G.list[G.k];
@@ -176,16 +187,19 @@ function render(){
   $('tiles').innerHTML = G.order.map(j => `<button class="tile${G.picks.includes(j)?' used':''}" data-t="${j}">${it.s[j]}</button>`).join('');
   $('skip').style.display = G.mode==='solo' ? '' : 'none';
   const me=Shell.player()||{};
-  if (G.mode==='solo'){ $('kA').textContent='Points'; $('sA').textContent=G.pts; $('kB').textContent='Words'; $('sB').textContent=G.solved; }
+  $('pC').style.display = G.mode==='solo' ? '' : 'none'; $('score').classList.toggle('three', G.mode==='solo');
+  if (G.mode==='solo'){ $('kA').textContent='Points'; $('sA').textContent=G.pts; $('kB').textContent='Words'; $('sB').textContent=G.solved;
+    $('sC').innerHTML=Array.from({ length:OUTS }, (_,i) => `<span class="life${i<OUTS-G.outs?'':' gone'}">⏰</span>`).join(''); }
   else { const o=G.room.other; $('kA').textContent=`${me.avatar||''} ${me.name||'You'}`; $('sA').textContent=G.wins[0];
     $('kB').textContent = o ? `${o.avatar} ${o.name}` : 'Your friend'; $('sB').textContent=G.wins[1]; }
   $('status').innerHTML = G.over ? '' : G.lock ? '' : G.mode==='solo' ? `${it.w.length} letters` : `Word ${G.k+1} · ${it.w.length} letters`;
 }
 function newWord(){
-  const it=cur(); if (!it) return end();          // ran out of words
+  if (!cur() && G.mode==='solo') G.list.push(...more());   // solo never runs dry
+  const it=cur(); if (!it) return end();
   markSeen(it.w);
   G.picks=[]; G.order=it.s.map((_,i) => i); G.lock=false; $('reveal').textContent='';
-  if (G.mode==='online') G.t0=Date.now();
+  G.t0=Date.now();
   render();
   if (G.mode==='online' && G.early[G.k]) applyPoint(G.early[G.k]);
 }
@@ -218,26 +232,32 @@ function point(hostSide, k){                 // hostSide: 0 = the host solved it
   setTimeout(() => { if (G.k===k && !G.over){ G.k++; newWord(); } }, 1600);
 }
 const applyPoint = m => point(m.who==='host' ? 0 : m.who==='guest' ? 1 : -1, m.k);
+function timeOut(){
+  G.lock=true; G.outs++; sndBad(); const w=cur().w;
+  if (G.outs>=OUTS){ $('reveal').innerHTML=`Time's up — it was <b>${w.toUpperCase()}</b>`; render(); return setTimeout(end, 1200); }
+  render(); $('reveal').innerHTML=`Time's up — it was <b>${w.toUpperCase()}</b>`;
+  setTimeout(() => { if (!G.over){ G.k++; newWord(); } }, 1400);
+}
 function clockLoop(){
   clearInterval(G.tick);
   G.tick=setInterval(() => {
     if (G.over) return clearInterval(G.tick);
-    const total = G.mode==='solo' ? SOLO_MS : ROUND_MS, left=Math.max(0, total-(Date.now()-G.t0));
+    const total = G.mode==='solo' ? WORD_MS : ROUND_MS, left=Math.max(0, total-(Date.now()-G.t0));
     $('clock').style.width=(left/total*100)+'%'; $('clock').classList.toggle('low', left<total*.2);
     if (left>0) return;
-    if (G.mode==='solo') return end();
+    if (G.mode==='solo'){ if (!G.lock) timeOut(); return; }
     if (G.room.isHost && !G.lock && G.claimed!==G.k){ G.claimed=G.k; G.room.send({ t:'point', k:G.k, who:'none' }); point(-1, G.k); }
   }, 100);
 }
 function newGame(list){
   list.forEach(it => { if (!ANAGRAMS[sortKey(it.w)]){ POOL.push(it.w); index(); } else ANAGRAMS[sortKey(it.w)].add(it.w); });
-  Object.assign(G, { early:{}, list, k:0, pts:0, solved:0, wins:[0,0], over:false, claimed:-1, t0:Date.now() });
+  Object.assign(G, { early:{}, list, k:0, pts:0, solved:0, outs:0, wins:[0,0], over:false, claimed:-1, t0:Date.now() });
   show('scGame'); newWord(); clockLoop();
 }
 function end(){
   if (G.over) return; G.over=true; clearInterval(G.tick); render();
   let em, title, sub, pts;
-  if (G.mode==='solo'){ pts=G.pts; em = G.solved>=8 ? '🧠' : '🔤'; title=plural(G.pts,'point'); sub=`${plural(G.solved,'word')} in a minute.`; sndWin(); }
+  if (G.mode==='solo'){ pts=G.pts; em = G.solved>=8 ? '🧠' : '🔤'; title=plural(G.pts,'point'); sub=`${plural(G.solved,'word')} solved.`; sndWin(); }
   else { const won=G.wins[0]>G.wins[1]; pts = G.wins[0] + (won ? 5 : 0);
     em = won ? '🏆' : '😬'; title = won ? 'You win!' : `${esc(G.room.other ? G.room.other.name : 'Your friend')} wins`;
     sub = `${plural(G.wins[0],'word')} to ${G.wins[1]}.`; won ? sndWin() : sndLose(); }

@@ -41,8 +41,11 @@ html.sh-dark .sh-iconbtn .sh-sun{display:none} html.sh-dark .sh-iconbtn .sh-moon
 .sh-mi.c3{background:#37c871;--mish:#249a52}
 .sh-mi.c4{background:#ffd23f;--mish:#d9a800;color:#5a4500}
 .sh-mi.c5{background:#5b6bd6;--mish:#3d4aa8}
-.sh-sep{height:2px;background:var(--panel-2);border-radius:2px;margin:4px 2px 15px}
 .sh-mi.sh-theme{display:none}
+.sh-mi .sh-dot{display:none;position:absolute;right:12px;top:50%;transform:translateY(-50%);width:10px;height:10px;border-radius:50%;background:#ff4d8d;box-shadow:0 0 0 2px rgba(255,255,255,.75)}
+.sh-mi.dot .sh-dot{display:block}
+.sh-menu-btn{position:relative}
+.sh-menu-btn.dot::after{content:"";position:absolute;top:-4px;right:-4px;width:12px;height:12px;border-radius:50%;background:#ff4d8d;box-shadow:0 0 0 2.5px #fff}
 @media(max-width:560px){
   .sh-brand{flex:1;justify-content:space-between}.sh-brand .sh-menu-btn{order:2}
   .sh-ctrl .sh-iconbtn{display:none}.sh-mi.sh-theme{display:flex}

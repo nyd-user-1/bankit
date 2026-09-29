@@ -21,6 +21,7 @@
   "dependencies": {
     "@anthropic-ai/bedrock-sdk": "^0.32.4",
     "@anthropic-ai/sdk": "^0.104.1",
+    "@aws-sdk/client-lambda": "^3.1142.0",
     "@aws-sdk/client-rds-data": "^3.1141.0",
     "dotenv": "^17.4.2",
     "pg": "^8.21.0",

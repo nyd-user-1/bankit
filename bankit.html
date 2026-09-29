@@ -425,6 +425,7 @@
   /* the card stays centered on screen; the category grid scrolls inside it */
   .cats .card{max-height:calc(100dvh - 150px);display:flex;flex-direction:column}
   .cats .catgrid{overflow-y:auto;min-height:0;flex:1;padding:4px 6px 14px;margin:0 -6px}
+  .cats .catgrid{scrollbar-width:none} .cats .catgrid::-webkit-scrollbar{display:none}
   .cats h2{font-family:var(--font-display);font-size:30px;text-align:center;margin-bottom:24px;color:var(--ink)}
   .cats .sub{text-align:center;color:var(--ink-dim);font-weight:800;margin-bottom:22px}
   .catgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}

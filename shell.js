@@ -80,9 +80,9 @@
 
   //// ---- navigation between games / hub pages ----
   function nav(target){
-    if (CFG.beforeLeave && !CFG.beforeLeave(target)) return;
+    if (!inRoom() && CFG.beforeLeave && !CFG.beforeLeave(target)) return;
     if (CFG.onNav && CFG.onNav(target)) return;
-    location.href = 'games.html#/' + target;
+    location.href = '/games.html#/' + target;
   }
 
   //// ---- the layer that holds the standard screens ----
@@ -104,12 +104,13 @@
     document.body.prepend(bar);
     (CFG.topExtra||[]).forEach(x => { const n = typeof x==='string' ? document.getElementById(x) : x; if (n) document.getElementById('shCtrl').prepend(n); });
 
-    // menu: this game's items, then the platform's
+    // menu: the platform's items (the same on every page), then this game's
     const items = CFG.gameMenu.map((m,i) => `<button class="sh-mi c${m.c??i}" data-g="${i}"><span class="ic">${m.ic}</span><span class="lb">${m.label}</span></button>`).join('');
-    const menu = el(`<div class="sh-menu" id="shMenu" role="menu" aria-label="Menu">${items}${items?'<div class="sh-sep"></div>':''}
+    const menu = el(`<div class="sh-menu" id="shMenu" role="menu" aria-label="Menu">
       <button class="sh-mi c3" data-nav="games"><span class="ic">🕹️</span><span class="lb">Games</span></button>
+      <button class="sh-mi c0 sh-mygames" data-nav="mygames"><span class="ic">🧩</span><span class="lb">My Games</span><i class="sh-dot"></i></button>
       <button class="sh-mi c2" data-nav="highscores"><span class="ic">🏆</span><span class="lb">High Scores</span></button>
-      <button class="sh-mi c4" data-nav="settings"><span class="ic">⚙️</span><span class="lb">Settings</span></button>
+      <button class="sh-mi c4" data-nav="settings"><span class="ic">⚙️</span><span class="lb">Settings</span></button>${items}
       <button class="sh-mi c5 sh-theme" id="shThemeRow"><span class="ic" id="shThemeIc">🌙</span><span class="lb" id="shThemeLb">Dark mode</span></button></div>`);
     document.body.appendChild(menu);
     const btn=document.getElementById('shMenuBtn');
@@ -126,9 +127,11 @@
     document.body.appendChild(el(`<div class="sh-toast" id="shToast"></div>`));
     buildPlayground(CFG.playground);
     syncTheme();
+    syncBuilds(); checkBuilds(); setInterval(checkBuilds, 20000);
     // invite links: #/join/1234 → sign in if needed, then straight into the room
     const m = location.hash.match(/^#\/join\/(\d{4})/);
     if (m && CFG.onJoinLink){ history.replaceState(null,'',location.pathname); requirePlayer().then(()=>CFG.onJoinLink(m[1])); }
+    else if (P && CFG.onJoinLink && P.pendingFor(PAGE)) requirePlayer().then(()=>CFG.onJoinLink('switch'));
   }
 
   function buildPlayground(pg){
@@ -177,8 +180,13 @@
 
   //// ---- Play a friend: host / join → lobby → start, over the relay ----
   const CID = sessionStorage.getItem('sh-cid') || (()=>{ const c=Math.random().toString(36).slice(2,12); sessionStorage.setItem('sh-cid',c); return c; })();
+  // the room's connection lives in the app frame (index.html), so it survives moving between games
+  const P = (() => { try{ return window.top!==window && window.top.Room || null; }catch(e){ return null; } })();
+  const PAGE = location.pathname.replace(/^\//,'') || 'index.html';
+  const inRoom = () => !!(P && P.active());
   let F = null;   // { opts, ws, room }
-  function friend(opts){ F = { opts, ws:null, room:null }; hostJoin(); }
+  // already in a room with a friend: pick this game for both (the friend gets an invite)
+  function friend(opts){ if (inRoom()) return P.propose(PAGE, document.title); F = { opts, ws:null, room:null }; hostJoin(); }
   function hostJoin(joining, code){
     show(`<div class="sh-card"><h2>Play a friend</h2>
       <div id="shChoose"${joining?' style="display:none"':''}><button class="sh-btn" id="shHost">Host</button><div class="sh-or">or</div><button class="sh-btn b" id="shJoinOpen">Join</button></div>
@@ -203,8 +211,14 @@
   }
   // API Gateway drops a socket after 10 idle minutes
   function keepAlive(ws){ const t=setInterval(() => { if (ws.readyState===1) ws.send('{"t":"ping"}'); else clearInterval(t); }, 240000); }
-  function closeWs(){ if (F && F.ws){ const w=F.ws; F.ws=null; try{ w.close(); }catch(e){} } if (F) F.room=null; }
+  function closeWs(){ if (P){ P.leave(); if (F) F.room=null; return; } if (F && F.ws){ const w=F.ws; F.ws=null; try{ w.close(); }catch(e){} } if (F) F.room=null; }
+  const CBS = {
+    onMsg: m => onMsg(m),
+    onError: () => { const e=document.getElementById('shErr'); if (e) e.textContent='Could not reach the game server.'; },
+    onClose: () => { if (F && F.room && F.room.started){ F.room.other=null; toast('Disconnected from the room'); if (F.opts.onLeft) F.opts.onLeft(); } },
+  };
   function open(first){
+    if (P) return P.connect(first, CBS);
     closeWs();
     const ws = new WebSocket(wsUrl('relay', 'cid='+CID));
     F.ws = ws;
@@ -213,8 +227,9 @@
     ws.onclose = () => { if (F && F.ws===ws && F.room && F.room.started){ F.room.other=null; toast('Disconnected from the room'); if (F.opts.onLeft) F.opts.onLeft(); } };
     ws.onmessage = e => { let m; try{ m=JSON.parse(e.data); }catch(_){ return; } onMsg(m); };
   }
-  const wsSend = m => { if (F && F.ws && F.ws.readyState===1) F.ws.send(JSON.stringify(m)); };
+  const wsSend = m => { if (P) return P.send(m); if (F && F.ws && F.ws.readyState===1) F.ws.send(JSON.stringify(m)); };
   function onMsg(m){
+    if (!F) return;
     const me = player() || { name:'Player', avatar:'🎯' };
     if (m.t==='created' || m.t==='joined'){
       F.room = { code:m.room, isHost:m.t==='created', started:false, me:{ id:CID, name:me.name, avatar:me.avatar }, other:null,
@@ -238,12 +253,15 @@
       if (!R.started) lobby(); else { toast(`${nm} left`); if (F.opts.onLeft) F.opts.onLeft(R); }
       return;
     }
-    if (m.t==='sh-start'){ R.started=true; hide(); F.opts.onStart(R, m.data); return; }
+    if (m.t==='sh-start'){ R.started=true; if (P) P.clearPending(); hide(); F.opts.onStart(R, m.data); return; }
+    if (m.t==='sh-here'){ if (R.switched && R.isHost && !R.started && m.page===PAGE) roomStart(); return; }
+    if (m.t==='sh-decline'){ if (R.switched && !R.started){ show(`<div class="sh-card"><h2>${esc(R.other.name)} said not now</h2></div>`); setTimeout(hide, 1600); F.room=null; } return; }
+    if (m.t==='sh-away'){ if (R.started){ toast(`${R.other.name} left the game`); if (F.opts.onLeft) F.opts.onLeft(R); } return; }
     if (R.started && F.opts.onMessage) F.opts.onMessage(m, R);
   }
   function lobby(){
     const R = F.room;
-    const link = `${location.origin}${location.pathname}#/join/${R.code}`;
+    const link = `${location.origin}${location.pathname}${location.search}#/join/${R.code}`;
     show(`<div class="sh-card"><h2>${R.other ? 'Ready to play!' : 'Invite a friend'}</h2>
       <div class="sh-code">${R.code}</div>
       <button class="sh-btn b sh-invite" id="shInvite">Invite link 🔗</button>
@@ -261,8 +279,36 @@
     if (st) st.onclick=()=>{ if (!R.other) return; const data = F.opts.startData ? F.opts.startData(R) : null; wsSend({ t:'sh-start', data }); R.started=true; hide(); F.opts.onStart(R, data); };
     addBack(LAYER.querySelector('.sh-card'), ()=>{ closeWs(); hostJoin(); });
   }
-  function joinCode(opts, code){ F = { opts, ws:null, room:null }; hostJoin(true, code); open({ t:'join', room:code }); }
-  function leaveRoom(){ closeWs(); }
+  function joinCode(opts, code){ if (code==='switch') return roomEnter(opts); F = { opts, ws:null, room:null }; hostJoin(true, code); open({ t:'join', room:code }); }
+  // with a friend in the room, leaving a game (or switching to solo) keeps the room; only the game ends
+  function leaveRoom(){ if (inRoom()){ if (F && F.room && F.room.started) P.send({ t:'sh-away' }); if (F) F.room=null; return; } closeWs(); }
+
+  //// ---- a game picked for both friends in the room: start it without a lobby ----
+  function roomEnter(opts){
+    const pend = P && P.pendingFor(PAGE), other = P && P.info().other;
+    if (!pend || !other) return;
+    const me = player() || { name:'Player', avatar:'🎯' };
+    F = { opts, ws:null, room:null };
+    F.room = { code:P.info().code, isHost:pend.leader===CID, switched:true, started:false, me:{ id:CID, name:me.name, avatar:me.avatar },
+               other:{ ...other }, send: x => wsSend(x), leave: () => leaveRoom() };
+    P.attach(CBS);
+    if (F.room.isHost){
+      show(`<div class="sh-card"><h2>Waiting for ${esc(other.name)}…</h2><div class="sh-sub">${esc(other.avatar)} has the invite.</div>
+        <button class="sh-btn ghost" id="shRoomCancel">Cancel</button></div>`);
+      document.getElementById('shRoomCancel').onclick = () => { P.send({ t:'sh-cancel' }); P.clearPending(); F.room=null; hide(); };
+      if (P.hereFor(PAGE)) roomStart();
+    } else {
+      show(`<div class="sh-card"><h2>Joining ${esc(other.name)}…</h2></div>`);
+      P.send({ t:'sh-here', page:PAGE });
+    }
+  }
+  function roomStart(){
+    const R=F.room; P.clearPending();
+    const data = F.opts.startData ? F.opts.startData(R) : null;
+    wsSend({ t:'sh-start', data }); R.started=true; hide(); F.opts.onStart(R, data);
+  }
+  // leaving this page mid-game: tell the friend, and stop taking the room's messages
+  addEventListener('pagehide', () => { if (!P) return; if (F && F.room && F.room.started && inRoom()) P.send({ t:'sh-away' }); P.detach(CBS); });
 
   //// ---- the standard results card ----
   function results(o){
@@ -270,11 +316,37 @@
       ${o.em ? `<div class="em">${o.em}</div>` : ''}<h2 style="margin-bottom:6px">${o.title}</h2>
       ${o.big!=null ? `<div class="big">${o.big}</div>` : ''}${o.sub ? `<div class="rsub">${o.sub}</div>` : '<div style="height:16px"></div>'}
       <div class="sh-row">${o.again ? `<button class="sh-btn" id="shAgain">${o.again.label||'Play again'}</button>` : ''}${o.change ? `<button class="sh-btn ghost" id="shChange">${o.change.label||'Change mode'}</button>` : ''}</div>
-      <button class="sh-link" id="shGames" type="button">Games</button></div>`);
+      <button class="sh-link" id="shGames" type="button">${inRoom() ? 'Change game' : 'Games'}</button></div>`);
     if (o.again) document.getElementById('shAgain').onclick=()=>{ hide(); o.again.onClick(); };
     if (o.change) document.getElementById('shChange').onclick=()=>{ hide(); o.change.onClick(); };
     document.getElementById('shGames').onclick=()=>nav('games');
   }
+
+  //// ---- My Games: the menu item appears once a player has built (or is building) a game; a dot marks a finished build ----
+  const pending = () => { try{ return JSON.parse(localStorage.getItem('bankit-build-pending')||'[]'); }catch(e){ return []; } };
+  function syncBuilds(){
+    const item=document.querySelector('.sh-mygames'), btn=document.getElementById('shMenuBtn');
+    if (!item) return;
+    item.style.display = localStorage.getItem('bankit-mygames') ? '' : 'none';
+    const dot = !!localStorage.getItem('bankit-build-ready');
+    item.classList.toggle('dot', dot); if (btn) btn.classList.toggle('dot', dot);
+  }
+  async function checkBuilds(){
+    const p=player(); if (!p) return;
+    const pend=pending();
+    if (!pend.length && sessionStorage.getItem('sh-mg-checked')) return;      // one look per session unless a build is running
+    try{
+      const r=await fetch('/api/requests?by='+encodeURIComponent(p.name)); if (!r.ok) return;
+      const d=await r.json(); sessionStorage.setItem('sh-mg-checked','1');
+      const reqs=d.requests||[];
+      if ((d.games||[]).length || reqs.some(x=>x.status==='building')) localStorage.setItem('bankit-mygames','1');
+      const done=pend.filter(id => reqs.some(x => x.id===id && (x.status==='built' || x.status==='failed')));
+      if (done.length){ localStorage.setItem('bankit-build-pending', JSON.stringify(pend.filter(id=>!done.includes(id)))); localStorage.setItem('bankit-build-ready','1'); }
+      syncBuilds();
+    }catch(e){}
+  }
+  function buildPending(id){ const p=pending(); if (!p.includes(id)) p.push(id); localStorage.setItem('bankit-build-pending', JSON.stringify(p)); localStorage.setItem('bankit-mygames','1'); syncBuilds(); }
+  function seenBuilds(){ localStorage.removeItem('bankit-build-ready'); syncBuilds(); }
 
   //// ---- scores ----
   function postScore(game, score, meta){
@@ -283,6 +355,6 @@
       body: JSON.stringify({ game, name:p.name, avatar:p.avatar, score, meta:meta||null }) }).catch(()=>null);
   }
 
-  window.Shell = { wsUrl, keepAlive, addBack, init, player, setPlayer, signOut, requirePlayer, AVATARS, soundOn, setSound, isDark, setDark,
-                   nav, show, hide, toast, mode, friend, joinCode, leaveRoom, results, postScore, esc };
+  window.Shell = { inRoom, wsUrl, keepAlive, addBack, init, player, setPlayer, signOut, requirePlayer, AVATARS, soundOn, setSound, isDark, setDark,
+                   nav, show, hide, toast, mode, friend, joinCode, leaveRoom, results, postScore, esc, buildPending, seenBuilds, checkBuilds };
 })();

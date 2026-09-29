@@ -3,7 +3,7 @@
 // Vault posts each night's take (coins).
 const { getPool } = require('./_db');
 
-const GAMES = new Set(['singit', 'ttt', 'four', 'memory', 'vault', 'dots', 'mancala', 'rps', 'battle', 'checkers', 'reversi', 'scramble', 'echo']);
+const GAMES = new Set(['singit', 'ttt', 'four', 'memory', 'vault', 'dots', 'mancala', 'rps', 'battle', 'checkers', 'reversi', 'scramble', 'echo', 'react']);
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }

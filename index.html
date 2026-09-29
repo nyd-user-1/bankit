@@ -26,6 +26,20 @@
   button,input{font-family:inherit}
   button{cursor:pointer;border:none;background:none;color:inherit}
 
+  /* ===== game invite: "Frogman wants to play Checkers" ===== */
+  .invite{position:fixed;left:0;top:0;width:100%;height:100%;z-index:60;display:none;place-items:center;background:rgba(20,10,30,.35);padding:20px;transition:width .32s cubic-bezier(.3,.9,.3,1)}
+  body.open .invite{width:calc(100% - var(--w))}
+  .invite.on{display:grid}
+  .invite .c{background:var(--panel);border-radius:26px;box-shadow:0 10px 0 rgba(0,0,0,.25);padding:28px 30px;width:min(400px,100%);text-align:center;animation:invite .35s cubic-bezier(.2,1.4,.4,1) both}
+  @keyframes invite{from{opacity:0;transform:scale(.9) translateY(12px)}to{opacity:1;transform:none}}
+  .invite .av{font-size:46px;line-height:1;margin-bottom:10px}
+  .invite h2{font-family:var(--font-display);font-weight:400;font-size:26px;line-height:1.15;margin-bottom:20px}
+  .invite h2 b{font-weight:400;color:var(--accent)}
+  .invite .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .invite button{font-family:var(--font-display);font-size:19px;border-radius:15px;padding:13px 10px;position:relative;top:0}
+  .invite .yes{background:var(--accent);color:#fff;box-shadow:0 5px 0 var(--accent-sh)}
+  .invite .no{background:var(--panel-2);color:var(--ink);box-shadow:0 5px 0 rgba(0,0,0,.12)}
+  .invite button:active{top:4px;box-shadow:none}
   #view{position:fixed;top:0;left:0;width:100%;height:100%;border:0;display:block;background:#ff7a3c;transition:width .32s cubic-bezier(.3,.9,.3,1)}
   body.open #view{width:calc(100% - var(--w))}
 
@@ -102,6 +116,8 @@
     <button id="signIn" type="button">Sign in</button>
   </div>
 </aside>
+<div class="invite" id="invite"><div class="c"><div class="av" id="inviteAv"></div><h2 id="inviteT"></h2>
+  <div class="row"><button class="yes" id="inviteYes" type="button">Join</button><button class="no" id="inviteNo" type="button">Not now</button></div></div></div>
 
 <script>
 const $ = id => document.getElementById(id);
@@ -109,7 +125,7 @@ const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>
 const view = $('view');
 
 //// ===== the page inside the frame (?p=), kept in the address bar as you move around =====
-const SAFE = /^[a-z0-9-]+\.html([?#].*)?$/i;
+const SAFE = /^([a-z0-9-]+\.html([?#].*)?|api\/play\?.*)$/i;
 const start = new URLSearchParams(location.search).get('p');
 view.src = start && SAFE.test(start) ? start : 'games.html';
 function syncUrl(){
@@ -125,6 +141,65 @@ view.addEventListener('load', () => {
   try{ view.contentWindow.addEventListener('hashchange', syncUrl); }catch(e){}
   applyTheme();
 });
+
+//// ===== the room: a friend room that outlives any one game page =====
+// Games borrow this connection (shell.js looks for top.Room), so two friends stay together as
+// they move between games. Either one can pick the next game from the hub: the other gets an
+// invite card here; Join loads the same game on both screens and it starts at once.
+//   sh-invite {page,title} · sh-accept · sh-decline · sh-cancel · sh-here {page} · sh-away
+window.Room = (() => {
+  const cid = sessionStorage.getItem('sh-cid') || (() => { const c=Math.random().toString(36).slice(2,12); sessionStorage.setItem('sh-cid',c); return c; })();
+  let ws=null, code=null, other=null, cbs=null, pending=null, here=null, inv=null;
+  const local = /^(localhost|127\.|10\.|192\.168\.)/.test(location.hostname);
+  const url = () => local ? (location.protocol==='https:'?'wss':'ws')+'://'+location.host+'/ws?cid='+cid
+                          : 'wss://ymusg32gv4.execute-api.us-east-1.amazonaws.com/prod?ch=relay&cid='+cid;
+  const send = m => { if (ws && ws.readyState===1) ws.send(JSON.stringify(m)); };
+  const tell = (k, m) => { try{ if (cbs && cbs[k]) cbs[k](m); }catch(e){ cbs=null; } };   // the page may be gone
+  function reset(){ ws=null; code=null; other=null; pending=null; here=null; closeInvite(); }
+  function connect(first, callbacks){
+    leave(); cbs=callbacks;
+    const s = ws = new WebSocket(url());
+    s.onopen = () => { s.send(JSON.stringify(first)); const t=setInterval(() => { if (s.readyState===1) s.send('{"t":"ping"}'); else clearInterval(t); }, 240000); };
+    s.onerror = () => { if (ws===s) tell('onError'); };
+    s.onclose = () => { if (ws!==s) return; reset(); tell('onClose'); };
+    s.onmessage = e => { let m; try{ m=JSON.parse(e.data); }catch(_){ return; } route(m); };
+  }
+  function route(m){
+    if (m.t==='created' || m.t==='joined') code=m.room;
+    if (m.t==='sh-hi' && m.from!==cid && (!other || other.id===m.from)) other={ id:m.from, name:m.name||'Friend', avatar:m.avatar||'🎯' };
+    if (m.t==='left' || m.t==='host-left'){ other=null; pending=null; closeInvite(); }
+    if (m.t==='sh-invite') return openInvite(m);
+    if (m.t==='sh-cancel'){ closeInvite(); return; }
+    if (m.t==='sh-accept') return;
+    if (m.t==='sh-here') here=m.page;
+    if (m.t==='sh-decline') pending=null;
+    tell('onMsg', m);
+  }
+  function leave(){ const s=ws; reset(); cbs=null; if (s){ try{ s.close(); }catch(e){} } }
+  const go = page => { try{ view.contentWindow.location.replace(page); }catch(e){ view.src=page; } };
+  function propose(page, title){
+    pending={ page, leader:cid }; here=null;
+    send({ t:'sh-invite', page, title });
+    go(page);
+  }
+  function openInvite(m){
+    inv=m; $('inviteAv').textContent = other ? other.avatar : '🎮';
+    $('inviteT').innerHTML = `${esc(other ? other.name : 'Your friend')} wants to play <b>${esc(m.title||'a game')}</b>`;
+    $('invite').classList.add('on');
+  }
+  function closeInvite(){ inv=null; $('invite').classList.remove('on'); }
+  $('inviteYes').onclick = () => { if (!inv) return; const m=inv; closeInvite(); pending={ page:m.page, leader:m.from }; here=null; send({ t:'sh-accept', page:m.page }); go(m.page); };
+  $('inviteNo').onclick = () => { if (!inv) return; closeInvite(); send({ t:'sh-decline' }); };
+  return {
+    cid, connect, send, leave, propose,
+    active: () => !!(ws && ws.readyState===1 && other),
+    info: () => ({ code, other }),
+    attach: c => { cbs=c; }, detach: c => { if (cbs===c) cbs=null; },
+    pendingFor: page => pending && pending.page===page ? pending : null,
+    clearPending: () => { pending=null; },
+    hereFor: page => here===page,
+  };
+})();
 
 //// ===== theme + identity follow whatever the pages set =====
 function applyTheme(){ if (localStorage.getItem('nysgpt-theme-f3')==='dark') document.documentElement.setAttribute('data-theme','dark'); else document.documentElement.removeAttribute('data-theme'); }

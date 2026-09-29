@@ -21,22 +21,24 @@ deploy_lambdas() {
   echo "• packaging lambdas"
   mkdir -p "$BUILD/pkg"
   cp -R api "$BUILD/pkg/api"
-  cp aws/api-handler.js aws/ws-handler.js package.json package-lock.json "$BUILD/pkg/"
+  cp aws/api-handler.js aws/ws-handler.js aws/builder-handler.js package.json package-lock.json "$BUILD/pkg/"
+  mkdir -p "$BUILD/pkg/aws" && cp aws/game-skeleton.html aws/game-playbook.md "$BUILD/pkg/aws/"   # the builder reads these
   (cd "$BUILD/pkg" && npm ci --omit=dev --silent && rm -f package.json package-lock.json && zip -qr ../lambda.zip .)
   local vars
-  vars="Variables={BANKIT_DB_CLUSTER_ARN=$(envval BANKIT_DB_CLUSTER_ARN),BANKIT_DB_SECRET_ARN=$(envval BANKIT_DB_SECRET_ARN),BANKIT_DB_NAME=$(envval BANKIT_DB_NAME),WS_TABLE=bankit-ws}"
-  for fn in bankit-api:api-handler.handler bankit-ws:ws-handler.handler; do
-    local name=${fn%%:*} handler=${fn#*:}
+  vars="Variables={BANKIT_DB_CLUSTER_ARN=$(envval BANKIT_DB_CLUSTER_ARN),BANKIT_DB_SECRET_ARN=$(envval BANKIT_DB_SECRET_ARN),BANKIT_DB_NAME=$(envval BANKIT_DB_NAME),WS_TABLE=bankit-ws,BUILDER_FUNCTION=bankit-builder}"
+  # name:handler:timeout:memory — the builder waits on one long model call
+  for fn in bankit-api:api-handler.handler:60:512 bankit-ws:ws-handler.handler:60:512 bankit-builder:builder-handler.handler:900:1024; do
+    local name handler timeout mem; IFS=: read -r name handler timeout mem <<<"$fn"
     if aws lambda get-function --function-name "$name" --region $REGION >/dev/null 2>&1; then
       echo "• updating $name"
       aws lambda update-function-code --function-name "$name" --zip-file "fileb://$BUILD/lambda.zip" --region $REGION --query LastModified --output text >/dev/null
       aws lambda wait function-updated --function-name "$name" --region $REGION
-      aws lambda update-function-configuration --function-name "$name" --environment "$vars" --region $REGION --query LastModified --output text >/dev/null
+      aws lambda update-function-configuration --function-name "$name" --environment "$vars" --timeout "$timeout" --memory-size "$mem" --region $REGION --query LastModified --output text >/dev/null
       aws lambda wait function-updated --function-name "$name" --region $REGION
     else
       echo "• creating $name"
       aws lambda create-function --function-name "$name" --runtime nodejs22.x --handler "$handler" --role $ROLE \
-        --timeout 60 --memory-size 512 --zip-file "fileb://$BUILD/lambda.zip" --environment "$vars" --region $REGION \
+        --timeout "$timeout" --memory-size "$mem" --zip-file "fileb://$BUILD/lambda.zip" --environment "$vars" --region $REGION \
         --query FunctionArn --output text >/dev/null
       aws lambda wait function-active --function-name "$name" --region $REGION
     fi

@@ -4,7 +4,7 @@
 // the rest the sum of their game_scores rows (wins, or points for Memory).
 const { getPool } = require('./_db');
 
-const SUMMED = new Set(['singit', 'ttt', 'four', 'memory', 'vault', 'dots', 'mancala', 'rps', 'battle', 'checkers', 'reversi', 'scramble', 'echo']);
+const SUMMED = new Set(['singit', 'ttt', 'four', 'memory', 'vault', 'dots', 'mancala', 'rps', 'battle', 'checkers', 'reversi', 'scramble', 'echo', 'react']);
 
 module.exports = async (req, res) => {
   if (req.method !== 'GET') { res.status(405).json({ error: 'GET only' }); return; }

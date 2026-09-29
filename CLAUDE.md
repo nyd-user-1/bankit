@@ -18,7 +18,8 @@ is the living project picture; each thread is a `NNN Topic/` folder (screenshots
   panel** — so moving between games never reloads the panel or loses its state. `games.html` is
   the hub (Games · High Scores · Settings); each game is its own page: `bankit.html`,
   `singit.html`, `tictactoe.html`, `mix.html`, `four.html`, `memory.html`, `vault.html`,
-  `dots.html`, `mancala.html`, `rps.html`, `battle.html`, `checkers.html`, `reversi.html`, `scramble.html`, `echo.html`.
+  `dots.html`, `mancala.html`, `rps.html`, `battle.html`, `checkers.html`, `reversi.html`, `scramble.html`, `echo.html`,
+  `react.html`.
   Every page loads **`shell.css` + `shell.js`** (see "The platform shell"); opened on its own (a
   bookmark, an invite link) `shell.js` redirects into the frame as `/?p=page.html#hash`.
 - **Chat:** `index.html` panel (💬 tab on the right edge; pushes the page over; unread badge;
@@ -32,6 +33,8 @@ is the living project picture; each thread is a `NNN Topic/` folder (screenshots
   - `api/scores.js` — `GET` leaderboard rows; `POST` records a finished run **and** upserts
     the player's running totals (see Players below).
   - `api/players.js` — `GET /api/players?name=` → one player's aggregate + swept board titles.
+  - `api/requests.js` + `api/_builder.js` + `api/play.js` — the **Request new → built game** pipeline
+    (see "Player-built games" below). `scripts/migrate-requests.mjs` (idempotent; applied to the live DB).
 - **Scripts:**
   - `scripts/schema.sql` — full schema (DROP+CREATE; safe to re-run on a throwaway DB).
   - `scripts/seed.mjs` — full reseed (schema + the original boards + sample scores).
@@ -223,7 +226,7 @@ Small games on the shell, each with its own stage color, posting to `game_scores
 - Online moves are small messages applied identically on both screens; the first move
   alternates each game; "Play again" resets once even if both press it.
 
-## Dots & Boxes, Mancala, Rock Paper Scissors, Sea Battle, Checkers, Reversi, Scramble, Echo
+## Dots & Boxes, Mancala, Rock Paper Scissors, Sea Battle, Checkers, Reversi, Scramble, Echo, React
 
 Same pattern as the small games above (intro → vs computer Easy/Hard · Play a friend → results),
 each posting wins to `game_scores`:
@@ -245,10 +248,19 @@ each posting wins to `game_scores`:
   anagram counts). Words come from the shared `scramble_words` pool (500 seeds,
   `scripts/migrate-scramble.mjs`; `GET /api/scramble`). Each browser remembers what it has seen
   (`scramble-seen`); once it has seen the whole pool, `POST /api/scramble` has Haiku invent ~40 new
-  words, saved for everyone (Mix It's trick). Solo = 60s sprint, points = letters. Play a friend = the host deals one list and
+  words, saved for everyone (Mix It's trick). Every game opens with 10 easy 4-letter then 10 easy 5-letter words (`EASY4/5`, no
+  alternate spellings). Solo = a minute per word, unlimited skips, the third time-out ends it; points = letters. Play a friend = the host deals one list and
   referees: a guest solve is a `claim`, the host awards the first one; 30s per word; first to 5 (+5).
 - **Echo** (`echo.html`, slate, `echo` points): Simon. Solo = rounds echoed; Play a friend = the
   host deals one sequence, both play each round at once, last one standing wins (+5).
+- **React** (`react.html`, tangerine, `react` points): a kid's invention (request 69). 60s on a 4×4 grid after a
+  3s countdown; player 1 (the host) owns the purple squares, player 2 the orange circles. Shapes pop up in
+  empty cells (~1/s, life 2.4→1.9s, ≤5 on the grid) and wobble before they go. Own shape +1; the other's
+  shape −1/+1 and it stays for its owner (a wrong tap counts only before the owner's tap); a ⚽ rolls across
+  the lane above the grid every 8–12s (3.6s to cross), +3 to the first tap. The host deals a `seed`; both
+  screens build the same shape + ball schedule and run their own clock; every tap is `{t:'tap', g, id, at}`
+  and scores are recomputed from the tap map so both screens agree. Pause button (both screens pause).
+  vs computer: Easy loses to a decent player 9 in 10; Hard is a coin flip. Posts your points.
 - These pages share one head/CSS/sound block (copied into each file, no build step).
 - ⚠️ The relay stamps every message with `from` (the sender id) — never use `from` as a field in
   game messages (Checkers sends `f`).
@@ -276,8 +288,8 @@ Earth; drag items from the list onto the board and drop one onto another.
 ## The platform shell (`shell.css` / `shell.js`) and the hub (`games.html`)
 
 - **`Shell.init({brand, theme, gameMenu, playground, topExtra, beforeLeave, onJoinLink})`** adds
-  the top bar (menu · wordmark · theme toggle), the **context menu** (this game's items on top —
-  Bank It: Categories, Create — then Games / High Scores / Settings, + theme on mobile) and the
+  the top bar (menu · wordmark · theme toggle), the **context menu** (Games / High Scores / Settings
+  first, then this game's items — Bank It: Categories, Create — + theme on mobile) and the
   **playground** (stage color, display font, depth, + per-game extras: Bank It chunkiness,
   Sing It neon glow + mic readout). Global items go to `games.html#/games|highscores|settings`.
 - **One identity** everywhere: `bankit-user-v1` `{name, avatar}` (Bank It's key). `Shell.player()`,
@@ -286,19 +298,59 @@ Earth; drag items from the list onto the board and drop one onto another.
   computer · Play a friend) → `Shell.friend({game, onStart, onMessage, startData, …})` = Host /
   Join → lobby (code, invite link, players, host Start) over the relay (`/ws`). The `game` tag
   stops a code from joining another game's room. Invite links: `page#/join/1234`.
+  **Switching games without a new code:** the room's connection lives in the app frame
+  (`window.Room` in index.html; shell.js borrows it), so it survives page changes. With a friend in
+  the room, a hub tile or "Play a friend" sends `sh-invite`; the friend gets a Join / Not now card in
+  the frame; Join loads the same page on both and it starts without a lobby (`joinCode(FRIEND,
+  'switch')`; the picker hosts). Leaving a game mid-play sends `sh-away`. The results card's hub link
+  reads "Change game" while a friend is in the room. Sing It keeps its own connection.
   Bank It keeps its own duel screens (`renderVersus`) behind the same mode choice; Sing It keeps
   its own lobby (host referee).
 - **`Shell.results({em, title, big, sub, again, change})`** — the standard end card
   (Play again · Change mode · Games). `Shell.postScore(game, score)` → `POST /api/game-scores`.
-- **Hub:** Games grid (Request new pinned first — form **not wired to a destination yet**),
+- **Hub:** Games grid (Request new pinned first — the interview, see "Player-built games"), **My Games**
+  (`#/mygames`: the player's built games, six slots), 
   **High Scores** (one slide per game, ‹ › + dots; `GET /api/leaderboard?game=`), **Settings**
   (identity + avatar, switch player, stats across games via `?name=`, Dark mode, Sound —
   `Shell.soundOn()`, which the games' tone functions check).
 - **Scores:** Bank It → `scores`/`players` (lifetime points); Mix It → first discoveries;
   Sing It / Tic Tac Toe / Four in a Row / Dots & Boxes / Mancala / Rock Paper Scissors / Sea Battle /
-  Checkers / Reversi (wins), Memory, Echo and Scramble (points) and Vault (coins) → `game_scores`
+  Checkers / Reversi (wins), Memory, Echo, Scramble and React (points) and Vault (coins) → `game_scores`
   (`scripts/migrate-game-scores.mjs`).
 - No arrows on buttons ("Play", not "Play →").
+
+## Player-built games (Request new → interview → build → My Games)
+
+A kid describes a game in the hub's Request new form; the platform interviews them, writes the plan up as
+their invention, asks **"Build this game?"**, builds it, and it appears under My Games. No admin step yet;
+a built game is **owner-only** (`player_games.is_public=FALSE`) until an admin flips it, and the invite
+link carries `by=<owner>` so a friend can still join through it.
+- **Interview** (`POST /api/requests`, Claude **Haiku** on Bedrock, `api/_ai.js`): create → up to 3 rounds
+  of 2–4 typed questions (`choice` · `multi` · `bool` · `text`) → the plan (`spec`: title, emoji, color from
+  a fixed palette, pitch, players solo|friend|both, how[], win, builder_notes[]). Every finished plan passes
+  a **referee** on the builder model that closes holes (unwinnable, stalls, guaranteed ties) and notes each
+  as `Fix:`. "Not quite" (`action:'revise'`) = one more round from the kid's note. Statuses: `asking` →
+  `proposed` → `building` → `built` | `failed` (legacy rows stay `new`). Transcript + round live on the row.
+- **Build** (`action:'build'` → `api/_builder.js`): the plan + `aws/game-playbook.md` (the Shell API, the
+  flow, house style, the real-time sync recipe, "check the plan") + `aws/game-skeleton.html` (the shared
+  head/CSS/sounds of the small games with absolute `/shell.css` `/shell.js`) → **Opus 4.5**
+  (`BANKIT_BUILDER_MODEL`; the strongest Claude this account has on Bedrock) → one HTML file, checked
+  (shell loaded, `Shell.init`, no other scripts/fetch/eval, no skeleton placeholders, inline JS parses) with
+  one retry, saved to `player_games` (slug `<title>-<request id>`, tokens, model). Prod: the API Lambda
+  invokes **`bankit-builder`** asynchronously (`BUILDER_FUNCTION`, 15-min timeout, same package,
+  `aws/builder-handler.js`); the dev server builds in-process. ~90 s and ~6k in / ~8k out per build.
+- `aws/example-shape-bingo.html` and `aws/example-react.html` — the two pilot games, hand-built on the skeleton
+  after their generated plans failed (unwinnable; an inhuman pace). They are the pages stored for `shape-bingo-70`
+  and `react-69`, and the reference for what a built game should look like. `react.html` in the hub is the same
+  React with relative paths and score posting.
+- **Play** (`GET /api/play?g=<slug>&by=<name>` → text/html): the frame's `SAFE` allows `api/play?…` in the
+  iframe; `Shell.nav` uses absolute `/games.html`; the lobby's invite link keeps `location.search`.
+- **My Games** (`games.html#/mygames`): built games as tiles (emoji/color from the plan), builds in progress
+  as dashed "Building…" slots, failed ones "tap to retry", placeholders to six. `shell.js` adds the **My
+  Games** menu item once a player has built or is building (`bankit-mygames`), polls
+  `GET /api/requests?by=` every 20 s while a build is pending (`bankit-build-pending`) and puts a dot on the
+  menu button + item when one lands (`bankit-build-ready`, cleared when My Games opens).
+- The **DB auto-pause** makes the first request after idle take 15–30 s; buttons show "Thinking…" meanwhile.
 
 ## Players & points
 

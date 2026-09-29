@@ -2,7 +2,7 @@
 // Each route is written Vercel-style (req.method/query/body, res.status().json()); this shims
 // the Lambda event into that shape so the route files run unchanged here and in the dev server.
 const ROUTES = {};
-for (const n of ['boards','decoys','game-scores','leaderboard','match-join','match-tap','match','mix','players','scores','scramble','sets'])
+for (const n of ['boards','decoys','game-scores','leaderboard','match-join','match-tap','match','mix','play','players','requests','scores','scramble','sets'])
   ROUTES[n] = require(`./api/${n}.js`);
 
 exports.handler = async (event) => {

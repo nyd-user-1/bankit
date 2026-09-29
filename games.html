@@ -49,11 +49,40 @@
   .err{color:#e0245e;font-weight:800;font-size:13.5px;text-align:center;min-height:18px;margin-top:12px}
   .sub{text-align:center;color:var(--ink-dim);font-size:15px;line-height:1.5;margin-bottom:22px}
   .linkbtn{display:block;margin:18px auto 0;color:var(--ink-dim);font-weight:800;font-size:13.5px;text-decoration:underline}
+  /* the interview: a question, then pills to pick from (or a text box) */
+  .q{margin-bottom:20px}
+  .q .qt{font-size:15.5px;line-height:1.4;margin-bottom:10px}
+  .opts{display:flex;flex-wrap:wrap;gap:8px}
+  .opt{padding:10px 15px;border-radius:12px;background:var(--panel-2);border:2.5px solid transparent;font-weight:800;font-size:14.5px;color:var(--ink);text-align:left}
+  .opt.on{border-color:var(--teal);background:rgba(31,199,182,.16)}
+  .btn.ghost{background:var(--panel-2);color:var(--ink);box-shadow:0 calc(6px * var(--pop)) 0 rgba(0,0,0,.12)}
+  .btn:disabled{opacity:.6;cursor:default}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  /* the write-up: the kid's game, as a plan */
+  .spec{background:var(--panel-2);border-radius:20px;padding:22px 22px 16px;margin-bottom:18px}
+  .spec .em{font-size:54px;text-align:center;line-height:1}
+  .spec h3{font-family:var(--font-display);font-size:30px;text-align:center;font-weight:400;margin:6px 0 8px}
+  .spec .pitch{text-align:center;color:var(--ink-dim);line-height:1.45;margin-bottom:16px}
+  .spec .sec{margin:12px 0 6px}
+  .spec ul{padding-left:22px;line-height:1.5;font-size:14.5px}
+  .spec p{line-height:1.5;font-size:14.5px}
+  .ask{font-family:var(--font-display);font-size:24px;text-align:center;margin:6px 0 14px}
 
   /* games grid (the Categories layout) */
   .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
   @media(min-width:680px){.grid{grid-template-columns:repeat(3,1fr)}}
   @media(min-width:980px){.grid{grid-template-columns:repeat(4,1fr)}}
+  /* Games: a fixed-height card (like Bank It's Categories); the tiles scroll inside it */
+  #scGames,#scMyGames{max-width:764px}
+  #scGames .card,#scMyGames .card{height:calc(100dvh - 150px);display:flex;flex-direction:column}
+  @media(min-width:680px){#scGames .grid,#scMyGames .grid{grid-template-columns:repeat(3,1fr)}}
+  #scGames .grid,#scMyGames .grid{overflow-y:auto;min-height:0;flex:1;padding:6px 6px 14px;margin:0 -6px;scrollbar-width:none}
+  #scGames .grid::-webkit-scrollbar,#scMyGames .grid::-webkit-scrollbar{display:none}
+  .tile.slot{border:3px dashed var(--ink-faint);color:var(--ink-faint);background:none;box-shadow:none;top:0}
+  .tile.slot:hover,.tile.slot:active{top:0;box-shadow:none}
+  .tile.slot .st{font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.06em}
+  .tile.slot.building .ic{animation:bob 2s ease-in-out infinite}
+  .tile.slot.failed{color:#e0245e;border-color:#e0245e;cursor:pointer}
   .tile{text-decoration:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;border-radius:calc(22px * var(--radius));padding:26px 14px;min-height:190px;
     color:#fff;text-align:center;position:relative;top:0;box-shadow:0 calc(8px * var(--pop)) 0 var(--csh);transition:top .1s,box-shadow .1s}
   .tile:hover{top:-4px;box-shadow:0 calc(12px * var(--pop)) 0 var(--csh)}
@@ -76,6 +105,7 @@
   .t-reversi{background:#1f7a5a;--csh:#0f4a36}
   .t-scramble{background:#a64ca6;--csh:#6d2a6d}
   .t-echo{background:#475569;--csh:#1e293b}
+  .t-react{background:#84cc16;--csh:#3f6212;color:#1a2e05}
 
   /* high scores: one slide per game */
   .hs-top{display:flex;align-items:center;gap:12px;margin-bottom:10px}
@@ -148,6 +178,7 @@
         <a class="tile t-reversi" href="reversi.html"><span class="ic">⚫</span><span class="nm">Reversi</span></a>
         <a class="tile t-scramble" href="scramble.html"><span class="ic">🔤</span><span class="nm">Scramble</span></a>
         <a class="tile t-echo" href="echo.html"><span class="ic">🎵</span><span class="nm">Echo</span></a>
+        <a class="tile t-react" href="react.html"><span class="ic">⚡</span><span class="nm">React</span></a>
       </div>
     </div>
   </section>
@@ -163,11 +194,37 @@
         <button class="btn" id="reqSubmit">Submit</button>
         <div class="err" id="reqErr"></div>
       </div>
-      <div id="reqDone" style="display:none">
-        <h2>Thanks!</h2>
-        <div class="sub">Your game request is in.</div>
-        <button class="btn" id="reqAnother">Request another</button>
+      <div id="reqAsk" style="display:none">
+        <h2>A few questions</h2>
+        <div class="sub">Answer these so the game comes out the way you imagined.</div>
+        <div id="askBox"></div>
+        <button class="btn" id="askNext">Next</button>
+        <div class="err" id="askErr"></div>
       </div>
+      <div id="reqSpec" style="display:none">
+        <div id="specBox"></div>
+        <div class="ask">Build this game?</div>
+        <div class="row2"><button class="btn" id="specYes">Yes, build it</button><button class="btn ghost" id="specNo">Not quite</button></div>
+        <div id="reviseBox" style="display:none;margin-top:16px">
+          <div class="field"><label class="lbl" for="reviseNote">What should change?</label><textarea class="area" id="reviseNote" rows="3" maxlength="500"></textarea></div>
+          <button class="btn ghost" id="reviseSend">Send</button>
+        </div>
+        <div class="err" id="specErr"></div>
+      </div>
+      <div id="reqBuild" style="display:none">
+        <h2>Building…</h2>
+        <div class="sub">This takes a few minutes. Play something while you wait: the menu button lights up when it's ready.</div>
+        <button class="btn" data-go="games">Games</button>
+        <button class="linkbtn" id="reqAnother" type="button">Request another</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== MY GAMES: the games this player built (six slots) ===== -->
+  <section class="screen wide" id="scMyGames">
+    <div class="card">
+      <h2>My Games</h2>
+      <div class="grid" id="myGrid"></div>
     </div>
   </section>
 
@@ -207,6 +264,14 @@ function show(id){ document.querySelectorAll('.screen').forEach(s => s.classList
     Object.assign(b.style,{ width:s+'px', height:s+'px', left:Math.random()*100+'%', top:Math.random()*100+'%', background:cols[i%cols.length], animationDelay:(-Math.random()*7)+'s' }); w.appendChild(b); }
 })();
 
+//// ===== with a friend in the room, picking a game invites them to it (Sing It keeps its own lobby) =====
+document.querySelector('#scGames .grid').addEventListener('click', e => {
+  const a=e.target.closest('a.tile'); if (!a) return;
+  let P=null; try{ P=window.top.Room; }catch(_){}
+  if (!P || !P.active() || a.getAttribute('href')==='singit.html') return;
+  e.preventDefault(); P.propose(a.getAttribute('href'), a.querySelector('.nm').textContent);
+});
+
 //// ===== every game on the leaderboard, each with its own measure =====
 const GAMES = [
   { k:'bankit', nm:'Bank It',       ic:'🎯', bg:'#ff7a3c', sh:'#a8320a', ink:'#fff',    unit:'Points' },
@@ -224,6 +289,7 @@ const GAMES = [
   { k:'reversi',nm:'Reversi',       ic:'⚫', bg:'#1f7a5a', sh:'#0f4a36', ink:'#fff',    unit:'Wins' },
   { k:'scramble',nm:'Scramble',     ic:'🔤', bg:'#a64ca6', sh:'#6d2a6d', ink:'#fff',    unit:'Points' },
   { k:'echo',   nm:'Echo',          ic:'🎵', bg:'#475569', sh:'#1e293b', ink:'#fff',    unit:'Points' },
+  { k:'react',  nm:'React',         ic:'⚡', bg:'#84cc16', sh:'#3f6212', ink:'#1a2e05', unit:'Points' },
 ];
 let HS = +(localStorage.getItem('bankit-hs-slide')||0) % GAMES.length;
 async function renderHigh(dir){
@@ -281,26 +347,99 @@ async function renderSettings(){
     ['four', s?s.four:0, 'Four in a Row wins'], ['memory', s?s.memory:0, 'Memory points'], ['vault', s?s.vault:0, 'Vault coins'],
     ['dots', s?s.dots:0, 'Dots & Boxes wins'], ['mancala', s?s.mancala:0, 'Mancala wins'], ['rps', s?s.rps:0, 'Rock Paper Scissors wins'],
     ['battle', s?s.battle:0, 'Sea Battle wins'], ['checkers', s?s.checkers:0, 'Checkers wins'], ['reversi', s?s.reversi:0, 'Reversi wins'],
-    ['scramble', s?s.scramble:0, 'Scramble points'], ['echo', s?s.echo:0, 'Echo points'],
+    ['scramble', s?s.scramble:0, 'Scramble points'], ['echo', s?s.echo:0, 'Echo points'], ['react', s?s.react:0, 'React points'],
   ];
   $('setStats').innerHTML = tiles.map(([k,n,l]) => { const g=GAMES.find(x=>x.k===k);
     return `<div class="stat" style="background:${g.bg};color:${g.ink};--csh:${g.sh}"><div class="ic">${g.ic}</div><div class="n">${n||0}</div><div class="l">${l}</div></div>`; }).join('');
 }
 
-//// ===== request a game (validates; not sent anywhere yet) =====
-$('reqSubmit').onclick=()=>{
+//// ===== request a game: the form → a few rounds of questions → the write-up → "Build this game?" → the build =====
+const RQ = { id:null, questions:[], spec:null };
+const reqApi = body => fetch('/api/requests', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) })
+  .then(async r => { const d=await r.json().catch(()=>({})); if (!r.ok) throw new Error(d.error||'Something went wrong. Try again.'); return d; });
+const reqShow = id => ['reqForm','reqAsk','reqSpec','reqBuild'].forEach(x => { $(x).style.display = x===id ? '' : 'none'; });
+const busy = (btn, on, label) => { btn.disabled=on; btn.textContent = on ? 'Thinking…' : label; };
+function handle(d){
+  if (d.status==='asking'){ RQ.questions=d.questions; renderAsk(); }
+  else if (d.status==='proposed'){ RQ.spec=d.spec; renderSpec(); }
+  else if (d.status==='building'){ reqShow('reqBuild'); }
+}
+$('reqSubmit').onclick=async()=>{
   if ($('reqName').value.trim().length<2){ $('reqErr').textContent='Give the game a name.'; $('reqName').focus(); return; }
   if ($('reqDesc').value.trim().length<10){ $('reqErr').textContent='Tell us a bit about how it plays.'; $('reqDesc').focus(); return; }
-  $('reqErr').textContent=''; $('reqForm').style.display='none'; $('reqDone').style.display='';
+  const p = await Shell.requirePlayer();
+  $('reqErr').textContent=''; busy($('reqSubmit'), true, 'Submit');
+  try{ const d=await reqApi({ name:$('reqName').value, description:$('reqDesc').value, links:$('reqLinks').value, by:p.name }); RQ.id=d.id; handle(d); }
+  catch(e){ $('reqErr').textContent=e.message; }
+  busy($('reqSubmit'), false, 'Submit');
 };
-$('reqAnother').onclick=()=>{ ['reqName','reqDesc','reqLinks'].forEach(id=>$(id).value=''); $('reqForm').style.display=''; $('reqDone').style.display='none'; };
+function renderAsk(){
+  $('askBox').innerHTML = RQ.questions.map(q => `<div class="q" data-q="${esc(q.q)}" data-type="${q.type}"><div class="qt">${esc(q.q)}</div>${
+    q.type==='text' ? `<input class="inp qtext" maxlength="200" autocomplete="off" style="font-family:var(--font-body);font-size:15px" />`
+                    : `<div class="opts">${q.options.map(o=>`<button type="button" class="opt">${esc(o)}</button>`).join('')}</div>`}</div>`).join('');
+  $('askBox').querySelectorAll('.q').forEach(q => q.querySelectorAll('.opt').forEach(b => b.onclick=()=>{
+    if (q.dataset.type==='multi') b.classList.toggle('on'); else { q.querySelectorAll('.opt').forEach(x=>x.classList.remove('on')); b.classList.add('on'); } }));
+  $('askErr').textContent=''; reqShow('reqAsk'); window.scrollTo(0,0);
+}
+$('askNext').onclick=async()=>{
+  const answers=[]; let missing=null;
+  $('askBox').querySelectorAll('.q').forEach(q => {
+    const a = q.dataset.type==='text' ? q.querySelector('.qtext').value.trim() : [...q.querySelectorAll('.opt.on')].map(b=>b.textContent).join(', ');
+    if (a) answers.push({ q:q.dataset.q, a }); else if (q.dataset.type!=='text' && !missing) missing=q;
+  });
+  if (missing){ $('askErr').textContent='Pick an answer for every question.'; missing.scrollIntoView({ behavior:'smooth', block:'center' }); return; }
+  $('askErr').textContent=''; busy($('askNext'), true, 'Next');
+  try{ handle(await reqApi({ action:'answer', id:RQ.id, by:Shell.player().name, answers })); }catch(e){ $('askErr').textContent=e.message; }
+  busy($('askNext'), false, 'Next');
+};
+function renderSpec(){
+  const s=RQ.spec;
+  $('specBox').innerHTML = `<div class="spec"><div class="em">${esc(s.emoji)}</div><h3>${esc(s.title)}</h3><div class="pitch">${esc(s.pitch)}</div>
+    <div class="sec lbl">How it plays</div><ul>${s.how.map(h=>`<li>${esc(h)}</li>`).join('')}</ul>
+    <div class="sec lbl">How you win</div><p>${esc(s.win)}</p></div>`;
+  $('reviseBox').style.display='none'; $('reviseNote').value=''; $('specErr').textContent=''; reqShow('reqSpec'); window.scrollTo(0,0);
+}
+$('specYes').onclick=async()=>{
+  busy($('specYes'), true, 'Yes, build it');
+  try{ await reqApi({ action:'build', id:RQ.id, by:Shell.player().name }); Shell.buildPending(RQ.id); reqShow('reqBuild'); window.scrollTo(0,0); }
+  catch(e){ $('specErr').textContent=e.message; }
+  busy($('specYes'), false, 'Yes, build it');
+};
+$('specNo').onclick=()=>{ $('reviseBox').style.display=''; $('reviseNote').focus(); };
+$('reviseSend').onclick=async()=>{
+  const note=$('reviseNote').value.trim(); if (note.length<3){ $('specErr').textContent='Say what should change.'; return; }
+  $('specErr').textContent=''; busy($('reviseSend'), true, 'Send');
+  try{ handle(await reqApi({ action:'revise', id:RQ.id, by:Shell.player().name, note })); }catch(e){ $('specErr').textContent=e.message; }
+  busy($('reviseSend'), false, 'Send');
+};
+$('reqAnother').onclick=()=>{ ['reqName','reqDesc','reqLinks'].forEach(id=>$(id).value=''); Object.assign(RQ, { id:null, questions:[], spec:null }); reqShow('reqForm'); };
 
-//// ===== routing: #/games (home) · #/highscores · #/settings · #/request =====
+//// ===== My Games: six slots — built games, then builds in progress, then dashed placeholders =====
+const shade = hex => '#' + hex.replace('#','').match(/../g).map(h => Math.round(parseInt(h,16)*.62).toString(16).padStart(2,'0')).join('');
+async function renderMyGames(){
+  Shell.seenBuilds();
+  const p=Shell.player(), grid=$('myGrid');
+  if (!p){ grid.innerHTML='<div class="empty" style="grid-column:1/-1">Sign in to see your games.</div>'; return; }
+  grid.innerHTML='<div class="empty" style="grid-column:1/-1">Loading…</div>';
+  let d={ games:[], requests:[] };
+  try{ const r=await fetch('/api/requests?by='+encodeURIComponent(p.name)); if (r.ok) d=await r.json(); }catch(e){}
+  const tiles=[];
+  (d.games||[]).forEach(g => tiles.push(`<a class="tile" href="api/play?g=${encodeURIComponent(g.slug)}&by=${encodeURIComponent(p.name)}" style="background:${esc(g.color)};--csh:${shade(g.color)}"><span class="ic">${esc(g.emoji)}</span><span class="nm">${esc(g.title)}</span></a>`));
+  (d.requests||[]).filter(r => r.status==='building' || r.status==='failed').forEach(r => tiles.push(
+    `<div class="tile slot ${r.status}" data-req="${r.id}"><span class="ic">${r.status==='building'?'⏳':'😬'}</span><span class="nm">${esc(r.title||r.name)}</span><span class="st">${r.status==='building'?'Building…':'Didn\'t work · tap to retry'}</span></div>`));
+  while (tiles.length<6) tiles.push('<div class="tile slot"></div>');
+  grid.innerHTML=tiles.slice(0,6).join('');
+  grid.querySelectorAll('.slot.failed').forEach(t => t.onclick=async()=>{ try{ await reqApi({ action:'build', id:+t.dataset.req, by:p.name }); Shell.buildPending(+t.dataset.req); renderMyGames(); }catch(e){ Shell.toast(e.message); } });
+  if ((d.requests||[]).some(r => r.status==='building')) setTimeout(() => { if ($('scMyGames').classList.contains('on')) renderMyGames(); }, 15000);
+}
+
+//// ===== routing: #/games (home) · #/highscores · #/settings · #/request · #/mygames =====
 const ROUTES = {
   games:      ()=>show('scGames'),
   highscores: ()=>{ show('scHigh'); renderHigh(); },
   settings:   ()=>{ show('scSettings'); renderSettings(); },
-  request:    ()=>{ $('reqForm').style.display=''; $('reqDone').style.display='none'; show('scRequest'); },
+  request:    ()=>{ reqShow(RQ.id && RQ.spec ? 'reqSpec' : RQ.id && RQ.questions.length ? 'reqAsk' : 'reqForm'); show('scRequest'); },
+  mygames:    ()=>{ show('scMyGames'); renderMyGames(); },
 };
 function go(r){ (ROUTES[r]||ROUTES.games)(); }
 document.querySelectorAll('[data-go]').forEach(b => b.onclick=()=>go(b.dataset.go));
@@ -316,7 +455,7 @@ Shell.init({
       init:(el,set)=>{ el.querySelector('#pgRad').oninput=e=>{ set('--radius', e.target.value); el.querySelector('#pgRadV').textContent=(+e.target.value).toFixed(1)+'×'; }; },
       reset:el=>{ el.querySelector('#pgRad').value=1; el.querySelector('#pgRadV').textContent='1.0×'; } }] },
 });
-['#scRequest .card','#scHigh .card','#scSettings .card'].forEach(sel => Shell.addBack(sel, () => go('games')));
+['#scRequest .card','#scHigh .card','#scSettings .card','#scMyGames .card'].forEach(sel => Shell.addBack(sel, () => go('games')));
 route();
 </script>
 </body>

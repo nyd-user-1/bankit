@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>React</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Nunito:wght@700;800;900&family=Fredoka:wght@600;700&display=swap" rel="stylesheet" />
+<script>(function(){ try{ if(localStorage.getItem('nysgpt-theme-f3')==='dark') document.documentElement.setAttribute('data-theme','dark'); }catch(e){} })();</script>
+<link rel="stylesheet" href="/shell.css" />
+<style>
+  /* React's own stage: tangerine */
+  :root{
+    --bg:#ff7a3c; --panel:#fffaf2; --panel-2:#eef1f6; --ink:#2a1a3e; --ink-dim:#7a6385; --ink-faint:#b6a6c0; --shadow:#a8320a;
+    --teal:#1fc7b6; --teal-sh:#13978a; --pink:#ff4d8d; --yellow:#ffd23f; --purple:#8b5cf6; --purple-sh:#6d3fd6;
+    --p0:#8b5cf6; --p0-sh:#6d3fd6; --p1:#ff7a3c; --p1-sh:#c9531c;
+    --font-display:"Luckiest Guy",system-ui,sans-serif; --font-body:"Nunito",system-ui,sans-serif; --pop:1;
+  }
+  :root[data-theme="dark"]{ --bg:#0b1220; --panel:#1a2333; --panel-2:#243047; --ink:#f6f1ff; --ink-dim:#bcaee3; --ink-faint:#7a6aa8; --shadow:#08051a; }
+  :root{color-scheme:light} :root[data-theme="dark"]{color-scheme:dark}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{min-height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-weight:800;-webkit-font-smoothing:antialiased;transition:background .4s,color .4s;background-attachment:fixed;
+    background-image:radial-gradient(circle at 18% 16%, rgba(255,255,255,.10), transparent 42%),radial-gradient(circle at 84% 82%, rgba(255,255,255,.07), transparent 46%)}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  .bgfloat{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+  .bgfloat .b{position:absolute;border-radius:50%;opacity:.16;background:#fff;animation:bob 7s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-26px) rotate(6deg)}}
+  .stage{position:relative;z-index:2;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:92px 18px 40px}
+  .screen{display:none;width:100%;max-width:520px}
+  .screen.on{display:block}
+  .card{background:var(--panel);border-radius:28px;box-shadow:0 calc(11px * var(--pop)) 0 var(--shadow);padding:34px 36px;width:100%;animation:pop .42s cubic-bezier(.2,1.4,.4,1) both}
+  @keyframes pop{from{opacity:0;transform:scale(.9) translateY(14px)}to{opacity:1;transform:none}}
+  @media(max-width:560px){.card{padding:28px 22px}}
+  h1{font-family:var(--font-display);font-size:clamp(34px,7vw,50px);text-align:center;line-height:.98;margin-bottom:10px;font-weight:400}
+  h1 .x{color:var(--p0)} h1 .o{color:var(--p1);display:inline-block;transform:rotate(-4deg)}
+  .sub{text-align:center;color:var(--ink-dim);font-size:15px;margin-bottom:22px;line-height:1.5}
+  .rules{background:var(--panel-2);border-radius:18px;padding:18px 20px;margin-bottom:22px;display:flex;flex-direction:column;gap:11px}
+  .rule{display:flex;align-items:center;gap:13px;font-size:14.5px}
+  .rule .n{width:30px;height:30px;flex-shrink:0;border-radius:9px;background:var(--teal);color:#053d38;display:grid;place-items:center;font-family:var(--font-display);font-size:15px;box-shadow:0 3px 0 var(--teal-sh)}
+  .rule:nth-child(2) .n{background:var(--pink);box-shadow:0 3px 0 #cc2f6e;color:#fff}
+  .rule:nth-child(3) .n{background:var(--yellow);box-shadow:0 3px 0 #d9a800;color:#5a4500}
+  .btn{display:flex;align-items:center;justify-content:center;width:100%;font-family:var(--font-display);font-size:22px;letter-spacing:.02em;color:#fff;background:var(--p0);
+    padding:15px 26px;border-radius:16px;position:relative;top:0;box-shadow:0 calc(6px * var(--pop)) 0 var(--p0-sh);transition:top .08s,box-shadow .08s}
+  .btn:active{top:5px;box-shadow:0 1px 0 var(--p0-sh)}
+
+  .play{max-width:500px}
+  .score{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+  .pill{background:var(--panel);border-radius:16px;box-shadow:0 calc(5px * var(--pop)) 0 var(--shadow);padding:10px 12px;text-align:center;min-width:0}
+  .pill .k{font-family:var(--font-display);font-size:15px;letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;justify-content:center;gap:7px}
+  .pill .v{font-family:var(--font-display);font-size:30px;line-height:1.1}
+  .pill .v.bump{animation:bump .3s cubic-bezier(.2,1.6,.4,1)}
+  @keyframes bump{50%{transform:scale(1.28)}}
+  .pill.p0 .k{color:var(--p0)} .pill.p1 .k{color:var(--p1)}
+  .sw{display:inline-block;width:13px;height:13px;flex-shrink:0}
+  .sw.sq{background:var(--p0);border-radius:3px} .sw.ci{background:var(--p1);border-radius:50%}
+  .clockrow{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .clock{flex:1;height:12px;border-radius:8px;background:rgba(0,0,0,.18);overflow:hidden}
+  .clock i{display:block;height:100%;width:100%;background:var(--yellow);border-radius:8px}
+  .pausebtn{width:38px;height:38px;flex-shrink:0;border-radius:12px;background:var(--panel);color:var(--ink);font-size:16px;display:grid;place-items:center;box-shadow:0 calc(4px * var(--pop)) 0 var(--shadow);position:relative;top:0}
+  .pausebtn:active{top:3px;box-shadow:0 1px 0 var(--shadow)}
+  .boardcard{background:var(--panel);border-radius:26px;padding:12px;box-shadow:0 calc(11px * var(--pop)) 0 var(--shadow);animation:pop .42s cubic-bezier(.2,1.4,.4,1) both;container-type:inline-size;position:relative}
+  .lane{position:relative;height:16cqw;max-height:76px;border-radius:14px;background:var(--panel-2);overflow:hidden;margin-bottom:10px;touch-action:none;user-select:none;-webkit-user-select:none}
+  .lane::before{content:"";position:absolute;left:0;right:0;bottom:22%;height:3px;background:rgba(0,0,0,.08)}
+  .ball{position:absolute;top:50%;left:0;width:13cqw;max-width:62px;aspect-ratio:1;translate:-50% -50%;font-size:12cqw;line-height:1;display:grid;place-items:center;filter:drop-shadow(0 3px 0 rgba(0,0,0,.25));padding:0;animation:rollR var(--ms) linear both,spin 1.1s linear infinite}
+  .ball.l{animation-name:rollL,spinL}
+  @keyframes rollR{from{left:-8%}to{left:108%}} @keyframes rollL{from{left:108%}to{left:-8%}}
+  @keyframes spin{to{rotate:360deg}} @keyframes spinL{to{rotate:-360deg}}
+  .ball i{display:block;font-style:normal;animation:spin 1.1s linear infinite}
+  .ball.l i{animation-name:spinL}
+  .ball.pop{animation:burst .24s ease-out both;pointer-events:none}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;position:relative}
+  .cell{aspect-ratio:1;border-radius:16px;background:var(--panel-2);position:relative}
+  .shape{position:absolute;inset:0;padding:0;display:grid;place-items:center;animation:in .16s cubic-bezier(.2,1.5,.4,1) both}
+  .shape i{display:block;width:70%;height:70%;font-style:normal}
+  .shape.sq i{background:var(--p0);border-radius:18%;box-shadow:0 4px 0 var(--p0-sh)}
+  .shape.ci i{background:var(--p1);border-radius:50%;box-shadow:0 4px 0 var(--p1-sh)}
+  .shape.late i{animation:wobble .4s ease-in-out infinite}
+  @keyframes wobble{50%{transform:scale(.86) rotate(-6deg)}}
+  @keyframes in{from{transform:scale(.3);opacity:0}to{transform:none;opacity:1}}
+  .shape.pop{animation:burst .24s ease-out both;pointer-events:none}
+  @keyframes burst{to{opacity:0;transform:scale(1.7)}}
+  .shape.gone{animation:fade .18s ease-out both;pointer-events:none}
+  @keyframes fade{to{opacity:0;transform:scale(.2)}}
+  .shape.bad i{animation:shake .32s;box-shadow:0 0 0 4px #e0245e}
+  @keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+  .fl{position:absolute;translate:-50% -50%;font-family:var(--font-display);font-size:9cqw;pointer-events:none;animation:rise .75s ease-out both;text-shadow:0 2px 0 rgba(0,0,0,.18);z-index:3}
+  .fl.up{color:#1f8a4a} .fl.down{color:#e0245e} .fl.gold{color:#d9a800}
+  @keyframes rise{from{opacity:1;transform:translateY(0) scale(.7)}30%{transform:translateY(-10px) scale(1.1)}to{opacity:0;transform:translateY(-52px) scale(1)}}
+  .count{position:absolute;inset:0;display:grid;place-items:center;text-align:center;pointer-events:none;font-family:var(--font-display);z-index:2}
+  .count b{display:block;font-size:20cqw;line-height:1;font-weight:400;color:var(--ink)}
+  .count small{display:block;font-size:4.2cqw;color:var(--ink-dim);margin-top:8px;font-family:var(--font-body);font-weight:800}
+  .count.anim b{animation:cnt .5s cubic-bezier(.2,1.6,.4,1) both}
+  @keyframes cnt{from{transform:scale(.4);opacity:0}}
+  .boardcard.paused .shape,.boardcard.paused .shape i,.boardcard.paused .ball,.boardcard.paused .ball i,.boardcard.paused .fl{animation-play-state:paused}
+  .pauselayer{position:absolute;inset:12px;border-radius:18px;display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:rgba(238,241,246,.9);z-index:4}
+  :root[data-theme="dark"] .pauselayer{background:rgba(36,48,71,.9)}
+  .boardcard.paused .pauselayer{display:flex}
+  .pauselayer b{font-family:var(--font-display);font-size:14cqw;font-weight:400;line-height:1}
+  .pauselayer .btn{width:auto;padding:13px 34px;font-size:20px}
+</style>
+</head>
+<body>
+<div class="bgfloat" id="bgfloat"></div>
+<div class="stage">
+  <section class="screen on" id="scIntro">
+    <div class="card">
+      <h1><span class="x">Re</span><span class="o">act</span></h1>
+      <div class="sub">Squares vs. circles. One minute.<br>Fastest fingers win.</div>
+      <div class="rules">
+        <div class="rule"><span class="n">1</span><span>Shapes pop up on the grid and don't stay long. Tap yours: +1.</span></div>
+        <div class="rule"><span class="n">2</span><span>Tap the other player's shape and you hand them a point.</span></div>
+        <div class="rule"><span class="n">3</span><span>A ⚽ rolls across the top now and then. Whoever taps it first gets 3.</span></div>
+      </div>
+      <button class="btn" id="introGo">Let's play!</button>
+    </div>
+  </section>
+
+  <section class="screen play" id="scGame">
+    <div class="score">
+      <div class="pill p0" id="pA"><div class="k" id="kA"></div><div class="v" id="sA">0</div></div>
+      <div class="pill p1" id="pB"><div class="k" id="kB"></div><div class="v" id="sB">0</div></div>
+    </div>
+    <div class="clockrow"><div class="clock"><i id="clockBar"></i></div><button class="pausebtn" id="pauseBtn" type="button" aria-label="Pause">⏸</button></div>
+    <div class="boardcard" id="board">
+      <div class="lane" id="lane"></div>
+      <div class="grid" id="grid"></div>
+      <div class="count" id="count"></div>
+      <div class="pauselayer" id="pauseLayer"><b>Paused</b><button class="btn" id="resumeBtn" type="button">Resume</button></div>
+    </div>
+  </section>
+</div>
+
+<script src="/shell.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const esc = Shell.esc;
+function show(id){ document.querySelectorAll('.screen').forEach(s => s.classList.remove('on')); $(id).classList.add('on'); }
+(function bg(){ const w=$('bgfloat'); for (let i=0;i<9;i++){ const b=document.createElement('div'); b.className='b'; const s=40+Math.random()*80;
+  Object.assign(b.style,{ width:s+'px', height:s+'px', left:Math.random()*100+'%', top:Math.random()*100+'%', animationDelay:(-Math.random()*7)+'s' }); w.appendChild(b); } })();
+
+//// ===== sounds =====
+let AC=null;
+function tone(f, dur, type='triangle', vol=.16, delay=0){
+  if (!Shell.soundOn()) return;
+  try{ AC ||= new (window.AudioContext||window.webkitAudioContext)();
+    const t=AC.currentTime+delay, o=AC.createOscillator(), g=AC.createGain();
+    o.type=type; o.frequency.setValueAtTime(f,t); g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.001,t+dur);
+    o.connect(g).connect(AC.destination); o.start(t); o.stop(t+dur); }catch(e){}
+}
+const sndWin = () => [523,659,784,1047].forEach((f,i) => tone(f, i===3 ? .5 : .14, 'triangle', .18, i*.09));
+const sndLose = () => [392,330,262].forEach((f,i) => tone(f, .22, 'sine', .15, i*.14));
+const sndDraw = () => [392,330].forEach((f,i) => tone(f, .22, 'sine', .15, i*.14));
+const sndHit = () => tone(880, .09, 'triangle', .14);
+const sndOops = () => tone(110, .35, 'sawtooth', .12);
+const sndBall = () => [660,880,1320].forEach((f,i) => tone(f, .12, 'square', .08, i*.06));
+const sndTheirs = () => tone(520, .05, 'sine', .06);
+const sndTick = () => tone(660, .1, 'square', .07);
+const sndGo = () => tone(990, .3, 'square', .1);
+
+//// ===== the round: a 3s countdown, then 60s on a 4×4 grid =====
+const PRE = 3000, DUR = 60000, TOTAL = PRE + DUR, CELLS = 16, BALL_MS = 3600;
+// squares belong to player 1 (the host), circles to player 2. ME / THEM are set per game.
+let ME = 1, THEM = 2;
+const CPU = 2;
+// sched = every shape (id = index); balls = every ball (id 'b'+index); taps = id → { 1:at, 2:at } (game-clock ms)
+const G = { mode:'cpu', level:'hard', game:0, sched:[], balls:[], taps:new Map(), live:new Map(), si:0, bi:0, sc:[0,0,0], start:0, raf:0,
+            running:false, over:false, left:false, paused:0, room:null, rq:null, ri:0, timers:[] };
+const later = (f, ms) => G.timers.push(setTimeout(f, ms));
+const clock = () => performance.now() - G.start;
+
+// the same seed deals the same round on both screens
+function rng(seed){ let a=seed>>>0; return () => { a=(a+0x6D2B79F5)>>>0; let t=a; t=Math.imul(t^(t>>>15), t|1); t^=t+Math.imul(t^(t>>>7), t|61); return ((t^(t>>>14))>>>0)/4294967296; }; }
+const deal = () => (Math.random()*4294967296)>>>0;
+function build(seed){
+  const r=rng(seed), sched=[], balls=[], free=Array(CELLS).fill(0), n=[0,0,0];
+  let t=PRE+600;
+  while (t < TOTAL-1500){
+    const p=(t-PRE)/DUR;                                     // 0 → 1 over the minute: a little quicker, a little shorter
+    const life=Math.round(2400-500*p);
+    const open=free.map((f,i) => f<=t ? i : -1).filter(i => i>=0);
+    if (open.length){
+      const cell=open[Math.floor(r()*open.length)];
+      let owner = r()<.5 ? 1 : 2; if (n[1]-n[2]>=2) owner=2; else if (n[2]-n[1]>=2) owner=1; n[owner]++;
+      sched.push({ id:sched.length, kind:owner===1?'sq':'ci', owner, cell, t0:t, life });
+      free[cell]=t+life+200;
+    }
+    t += Math.round((900-350*p)*(.8+.4*r()));
+  }
+  let bt=PRE+5000+r()*3000;
+  while (bt < TOTAL-BALL_MS-500){ balls.push({ id:'b'+balls.length, t0:Math.round(bt), dir: r()<.5 ? 1 : -1 }); bt += 8000+r()*4000; }
+  return { sched, balls };
+}
+const item = id => typeof id==='string' ? G.balls[+id.slice(1)] : G.sched[id];
+const lifeOf = it => it.kind ? it.life : BALL_MS;
+
+//// ===== the computer: plays the circles; Easy is slow and misses a third, Hard is quick =====
+function robotPlan(level){
+  const hard=level==='hard', q=[];
+  const at=(it, lo, hi) => it.t0 + lo + Math.random()*(hi-lo);
+  G.sched.forEach(s => { if (s.owner===CPU && Math.random() < (hard ? .78 : .65)) q.push([hard ? at(s,700,1250) : at(s,900,1600), s.id]); });
+  G.balls.forEach(b => { if (Math.random() < (hard ? .55 : .35)) q.push([hard ? at(b,900,1700) : at(b,1200,2200), b.id]); });
+  return q.sort((a,b) => a[0]-b[0]);
+}
+
+//// ===== every tap, local or remote, goes through here; the scores are recomputed from the tap map =====
+function applyTap(id, by, at){
+  const it=item(id); if (!it || at < it.t0 || at > it.t0+lifeOf(it) || at > TOTAL) return false;
+  const T=G.taps.get(id) || {}; if (T[by]!=null) return false;
+  T[by]=at; G.taps.set(id, T);
+  const el=G.live.get(id);
+  if (!it.kind){ if (el){ G.live.delete(id); el.classList.add('pop'); setTimeout(() => el.remove(), 260); } }
+  else if (it.owner===by){ if (el){ G.live.delete(id); el.classList.add('pop'); setTimeout(() => el.remove(), 260); } }
+  else if (el){ el.classList.remove('bad'); void el.offsetWidth; el.classList.add('bad'); }
+  const d = !it.kind ? 3 : it.owner===by ? 1 : -1;
+  floater(it, d, by);
+  if (by===ME){ if (d<0) sndOops(); else if (!it.kind) sndBall(); else sndHit(); } else sndTheirs();
+  score(); return true;
+}
+function tap(id){
+  if (!G.running || G.paused || clock() < PRE) return;
+  const at=Math.round(clock());
+  if (applyTap(id, ME, at) && G.mode==='online') G.room.send({ t:'tap', g:G.game, id, at });
+}
+function floater(it, d, by){
+  const f=document.createElement('b'); f.className='fl '+(d===3?'gold':d>0?'up':'down'); f.textContent=(d>0?'+':'−')+Math.abs(d);
+  if (it.kind){ const c=$('grid').children[it.cell]; f.style.left=(c.offsetLeft+c.offsetWidth/2)+'px'; f.style.top=(c.offsetTop+c.offsetHeight/2)+'px'; $('grid').appendChild(f); }
+  else { const el=G.live.get(it.id); f.style.left=(el ? el.offsetLeft+el.offsetWidth/2 : $('lane').offsetWidth/2)+'px'; f.style.top='50%'; $('lane').appendChild(f); }
+  setTimeout(() => f.remove(), 800);
+}
+function score(){
+  const sc=[0,0,0];
+  for (const [id,T] of G.taps){
+    const it=item(id);
+    if (!it.kind){ const by = T[1]!=null && (T[2]==null || T[1]<=T[2]) ? 1 : 2; sc[by]+=3; continue; }
+    const own=T[it.owner], other=T[3-it.owner];
+    if (own!=null) sc[it.owner]+=1;
+    if (other!=null && (own==null || other<own)){ sc[3-it.owner]-=1; sc[it.owner]+=1; }   // a wrong tap counts only while the shape was still there
+  }
+  G.sc=sc; render();
+}
+const nameOf = me => {
+  if (G.mode==='cpu') return me ? 'You' : 'Computer';
+  const q = me ? G.room.me : G.room.other;
+  return q ? `${q.avatar} ${q.name}` : 'Your friend';
+};
+const swatch = who => `<i class="sw ${who===1?'sq':'ci'}"></i>`;
+function render(){
+  $('pA').className='pill '+(ME===1?'p0':'p1'); $('pB').className='pill '+(THEM===1?'p0':'p1');
+  $('kA').innerHTML=swatch(ME)+esc(nameOf(true)); $('kB').innerHTML=swatch(THEM)+esc(nameOf(false));
+  [['sA',G.sc[ME]],['sB',G.sc[THEM]]].forEach(([id,v]) => { const el=$(id); if (el.textContent!==String(v)){ el.textContent=v; el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); } });
+}
+
+//// ===== the frame loop: spawn, expire, robot, clock =====
+function spawn(s){
+  const el=document.createElement('button'); el.className='shape '+s.kind; el.dataset.id=s.id; el.type='button'; el.innerHTML='<i></i>';
+  $('grid').children[s.cell].appendChild(el); G.live.set(s.id, el);
+}
+function spawnBall(b){
+  const el=document.createElement('button'); el.className='ball'+(b.dir<0?' l':''); el.dataset.id=b.id; el.type='button'; el.style.setProperty('--ms', BALL_MS+'ms'); el.innerHTML='<i>⚽</i>';
+  $('lane').appendChild(el); G.live.set(b.id, el);
+}
+function countdown(now){
+  const c=$('count');
+  if (now >= PRE+700){ if (c.innerHTML) c.innerHTML=''; return; }
+  const txt = now < PRE ? String(Math.ceil((PRE-now)/1000)) : 'GO!';
+  if (c.dataset.t===txt) return;
+  c.dataset.t=txt; c.innerHTML=`<div><b>${txt}</b><small>${ME===1 ? 'Tap the purple squares' : 'Tap the orange circles'}</small></div>`;
+  c.classList.remove('anim'); void c.offsetWidth; c.classList.add('anim');
+  if (now < PRE) sndTick(); else sndGo();
+}
+function tick(){
+  if (!G.running) return;
+  const now=clock();
+  countdown(now);
+  $('clockBar').style.width = Math.min(100, Math.max(0, 1-(now-PRE)/DUR)*100)+'%';
+  while (G.si < G.sched.length && G.sched[G.si].t0 <= now){ const s=G.sched[G.si++]; const T=G.taps.get(s.id); if (!T || T[s.owner]==null) spawn(s); }
+  while (G.bi < G.balls.length && G.balls[G.bi].t0 <= now){ const b=G.balls[G.bi++]; if (!G.taps.has(b.id)) spawnBall(b); }
+  for (const [id,el] of G.live){ const it=item(id), left=it.t0+lifeOf(it)-now;
+    if (left <= 0){ G.live.delete(id); el.classList.add('gone'); setTimeout(() => el.remove(), 200); }
+    else if (it.kind && left < 450) el.classList.add('late'); }
+  while (G.rq && G.ri < G.rq.length && G.rq[G.ri][0] <= now){ const [at,id]=G.rq[G.ri++]; applyTap(id, CPU, Math.round(at)); }
+  if (now >= TOTAL) return end();
+  G.raf=requestAnimationFrame(tick);
+}
+//// ===== pause: the clock stops; online, both screens pause and resume together =====
+function pause(remote){
+  if (!G.running || G.paused) return;
+  G.paused=performance.now(); cancelAnimationFrame(G.raf);
+  $('board').classList.add('paused'); $('pauseBtn').textContent='▶'; $('pauseBtn').setAttribute('aria-label','Resume');
+  if (!remote && G.mode==='online') G.room.send({ t:'pause', g:G.game });
+}
+function resume(remote){
+  if (!G.paused) return;
+  G.start += performance.now()-G.paused; G.paused=0;
+  $('board').classList.remove('paused'); $('pauseBtn').textContent='⏸'; $('pauseBtn').setAttribute('aria-label','Pause');
+  if (!remote && G.mode==='online') G.room.send({ t:'resume', g:G.game });
+  if (G.running) G.raf=requestAnimationFrame(tick);
+}
+function newGame(seed){
+  G.timers.forEach(clearTimeout); cancelAnimationFrame(G.raf);
+  G.game++;
+  const d=build(seed);
+  Object.assign(G, { sched:d.sched, balls:d.balls, taps:new Map(), live:new Map(), si:0, bi:0, sc:[0,0,0], running:true, over:false, left:false, paused:0, rq:null, ri:0, timers:[] });
+  if (G.mode==='cpu') G.rq=robotPlan(G.level);
+  $('grid').innerHTML=Array.from({ length:CELLS }, () => '<div class="cell"></div>').join(''); $('lane').innerHTML='';
+  $('count').innerHTML=''; delete $('count').dataset.t;
+  $('board').classList.remove('paused'); $('pauseBtn').textContent='⏸'; $('pauseBtn').setAttribute('aria-label','Pause'); $('clockBar').style.width='100%';
+  show('scGame'); render();
+  G.start=performance.now(); G.raf=requestAnimationFrame(tick);
+}
+function end(){
+  G.running=false; G.over=true; G.paused=0; cancelAnimationFrame(G.raf); $('board').classList.remove('paused');
+  for (const [,el] of G.live){ el.classList.add('gone'); setTimeout(() => el.remove(), 200); } G.live.clear();
+  if (!G.left){ $('count').innerHTML='<div><b>TIME!</b></div>'; $('count').classList.add('anim'); }
+  later(finish, 1000);          // a beat for the last taps to land from the other screen
+}
+function finish(){
+  const me=G.sc[ME], them=G.sc[THEM], won=me>them, tie=me===them;
+  if (G.left) sndDraw(); else if (won) sndWin(); else if (tie) sndDraw(); else sndLose();
+  const again = { label:'Play again', onClick:()=>{
+    if (G.mode==='cpu') return newGame(deal());
+    if (G.room.isHost){ const s=deal(); G.room.send({ t:'again', seed:s }); newGame(s); }
+    else { G.room.send({ t:'again-req' }); Shell.toast('Waiting for the host…'); }
+  } };
+  Shell.results({
+    em: G.left ? '🏃' : won ? '🏆' : tie ? '🤝' : (G.mode==='cpu' ? '🤖' : '😬'),
+    title: G.left ? `${esc(nameOf(false))} left` : won ? 'You win!' : tie ? "It's a tie" : `${esc(nameOf(false))} wins`,
+    sub: `${esc(nameOf(true))} ${me} · ${esc(nameOf(false))} ${them}`,
+    again: G.left ? null : again,
+    change:{ label:'Change mode', onClick:()=>{ leaveRoom(); openMode(); } } });
+}
+
+//// ===== the standard start sequence =====
+function openMode(){
+  Shell.mode({ options:[
+      { label:'Play the computer', onClick:pickLevel },
+      { label:'Play a friend', kind:'b', onClick:()=>Shell.friend(FRIEND) } ],
+    onBack:()=>show('scIntro') });
+}
+function pickLevel(){
+  Shell.mode({ title:'How tough?', options:[
+      { label:'Easy', onClick:()=>startCpu('easy') },
+      { label:'Hard', kind:'b', onClick:()=>startCpu('hard') } ],
+    onBack:openMode });
+}
+function startCpu(level){
+  Shell.hide(); leaveRoom();
+  Object.assign(G, { mode:'cpu', level }); ME=1; THEM=2; newGame(deal());
+}
+const FRIEND = {
+  game:'react-69',
+  onBack: openMode,
+  startData: () => ({ seed: deal() }),                  // the host deals; both screens run the same round
+  onStart: (R, data) => { Object.assign(G, { mode:'online', room:R, game:0 }); ME = R.isHost ? 1 : 2; THEM = 3-ME; newGame(data.seed); },
+  onMessage: m => {
+    if (m.t==='tap'){ if (m.g===G.game && !G.left) applyTap(m.id, THEM, m.at); }
+    else if (m.t==='pause'){ if (m.g===G.game) pause(true); }
+    else if (m.t==='resume'){ if (m.g===G.game) resume(true); }
+    else if (m.t==='again' && G.over){ Shell.hide(); newGame(m.seed); }
+    else if (m.t==='again-req' && G.over && G.room.isHost){ Shell.hide(); const s=deal(); G.room.send({ t:'again', seed:s }); newGame(s); }
+  },
+  onLeft: () => { if (G.running){ G.left=true; end(); } },
+};
+function leaveRoom(){ if (G.room){ Shell.leaveRoom(); G.room=null; } }
+
+const onTap = e => { const s=e.target.closest('.shape,.ball'); if (!s || s.classList.contains('pop') || s.classList.contains('gone')) return; e.preventDefault(); const id=s.dataset.id; tap(id.startsWith('b') ? id : +id); };
+$('grid').addEventListener('pointerdown', onTap); $('lane').addEventListener('pointerdown', onTap);
+$('pauseBtn').onclick = () => G.paused ? resume() : pause();
+$('resumeBtn').onclick = () => resume();
+$('introGo').onclick = () => Shell.requirePlayer().then(openMode);
+Shell.addBack('#scIntro .card', () => Shell.nav('games'));
+Shell.init({
+  brand:'React',
+  theme:{ key:'nysgpt-theme-f3', darkDefault:false },
+  beforeLeave:()=>!G.room || confirm('Leave this game?'),
+  onJoinLink: code => Shell.joinCode(FRIEND, code),
+  playground:{ swatches:['#ff7a3c','#8b5cf6','#1fc7b6','#84cc16','#2d6fd6','#ff4d8d'].map(c=>({ bg:c, vars:{ '--bg':c } })) },
+});
+</script>
+</body>
+</html>

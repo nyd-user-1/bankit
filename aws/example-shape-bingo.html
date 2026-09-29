@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Shape Bingo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Nunito:wght@700;800;900&family=Fredoka:wght@600;700&display=swap" rel="stylesheet" />
+<script>(function(){ try{ if(localStorage.getItem('nysgpt-theme-f3')==='dark') document.documentElement.setAttribute('data-theme','dark'); }catch(e){} })();</script>
+<link rel="stylesheet" href="/shell.css" />
+<style>
+  /* Shape Bingo — hand-built on the game skeleton; lives in player_games (shape-bingo-70) */
+  :root{
+    --bg:#1fc7b6; --panel:#fffaf2; --panel-2:#eef1f6; --ink:#2a1a3e; --ink-dim:#7a6385; --ink-faint:#b6a6c0; --shadow:#0c6f65;
+    --teal:#1fc7b6; --teal-sh:#13978a; --pink:#ff4d8d; --yellow:#ffd23f; --purple:#8b5cf6; --purple-sh:#6d3fd6;
+    --p0:#8b5cf6; --p0-sh:#6d3fd6; --p1:#ff7a3c; --p1-sh:#c9531c;
+    --font-display:"Luckiest Guy",system-ui,sans-serif; --font-body:"Nunito",system-ui,sans-serif; --pop:1;
+  }
+  :root[data-theme="dark"]{ --bg:#0b1220; --panel:#1a2333; --panel-2:#243047; --ink:#f6f1ff; --ink-dim:#bcaee3; --ink-faint:#7a6aa8; --shadow:#08051a; }
+  :root{color-scheme:light} :root[data-theme="dark"]{color-scheme:dark}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{min-height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-weight:800;-webkit-font-smoothing:antialiased;transition:background .4s,color .4s;background-attachment:fixed;
+    background-image:radial-gradient(circle at 18% 16%, rgba(255,255,255,.10), transparent 42%),radial-gradient(circle at 84% 82%, rgba(255,255,255,.07), transparent 46%)}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  .bgfloat{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+  .bgfloat .b{position:absolute;border-radius:50%;opacity:.16;background:#fff;animation:bob 7s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-26px) rotate(6deg)}}
+  .stage{position:relative;z-index:2;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:92px 18px 40px}
+  .screen{display:none;width:100%;max-width:520px}
+  .screen.on{display:block}
+  .card{background:var(--panel);border-radius:28px;box-shadow:0 calc(11px * var(--pop)) 0 var(--shadow);padding:34px 36px;width:100%;animation:pop .42s cubic-bezier(.2,1.4,.4,1) both}
+  @keyframes pop{from{opacity:0;transform:scale(.9) translateY(14px)}to{opacity:1;transform:none}}
+  @media(max-width:560px){.card{padding:28px 22px}}
+  h1{font-family:var(--font-display);font-size:clamp(34px,7vw,50px);text-align:center;line-height:.98;margin-bottom:10px;font-weight:400}
+  h1 .x{color:var(--p0)} h1 .o{color:var(--p1);display:inline-block;transform:rotate(-4deg)}
+  .sub{text-align:center;color:var(--ink-dim);font-size:15px;margin-bottom:22px;line-height:1.5}
+  .rules{background:var(--panel-2);border-radius:18px;padding:18px 20px;margin-bottom:22px;display:flex;flex-direction:column;gap:11px}
+  .rule{display:flex;align-items:center;gap:13px;font-size:14.5px}
+  .rule .n{width:30px;height:30px;flex-shrink:0;border-radius:9px;background:var(--teal);color:#053d38;display:grid;place-items:center;font-family:var(--font-display);font-size:15px;box-shadow:0 3px 0 var(--teal-sh)}
+  .rule:nth-child(2) .n{background:var(--pink);box-shadow:0 3px 0 #cc2f6e;color:#fff}
+  .rule:nth-child(3) .n{background:var(--yellow);box-shadow:0 3px 0 #d9a800;color:#5a4500}
+  .btn{display:flex;align-items:center;justify-content:center;width:100%;font-family:var(--font-display);font-size:22px;letter-spacing:.02em;color:#fff;background:var(--p0);
+    padding:15px 26px;border-radius:16px;position:relative;top:0;box-shadow:0 calc(6px * var(--pop)) 0 var(--p0-sh);transition:top .08s,box-shadow .08s}
+  .btn:active{top:5px;box-shadow:0 1px 0 var(--p0-sh)}
+  .btn.ghost{background:var(--panel-2);color:var(--ink);box-shadow:0 calc(6px * var(--pop)) 0 rgba(0,0,0,.12)}
+
+  .play{max-width:500px}
+  .score{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+  .pill{background:var(--panel);border-radius:16px;box-shadow:0 calc(5px * var(--pop)) 0 var(--shadow);padding:10px 12px;text-align:center;transition:transform .15s,box-shadow .15s;min-width:0}
+  .pill .k{font-family:var(--font-display);font-size:15px;letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pill .v{font-family:var(--font-display);font-size:28px;line-height:1.1}
+  .pill .v small{font-size:14px;color:var(--ink-faint)}
+  .pill.p0 .k{color:var(--p0)} .pill.p1 .k{color:var(--p1)}
+  .pill.turn{transform:scale(1.07);box-shadow:0 5px 0 var(--shadow),0 0 0 4px var(--yellow)}
+  .status{font-family:var(--font-display);font-size:22px;text-align:center;color:#fff;text-shadow:0 3px 0 var(--shadow);min-height:32px;margin-bottom:6px}
+  .status .big{font-size:34px;vertical-align:middle}
+  .clock{height:10px;border-radius:6px;background:rgba(0,0,0,.18);overflow:hidden;margin:0 0 10px;visibility:hidden}
+  .clock.on{visibility:visible}
+  .clock i{display:block;height:100%;width:100%;background:var(--yellow);border-radius:6px}
+  .boardcard{background:var(--panel);border-radius:22px;padding:14px;box-shadow:0 calc(9px * var(--pop)) 0 var(--shadow);animation:pop .42s cubic-bezier(.2,1.4,.4,1) both;margin-bottom:12px}
+  .lbl{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin:0 2px 8px;display:flex;justify-content:space-between}
+  .pool{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+  .pt{aspect-ratio:1;border-radius:10px;background:var(--panel-2);display:grid;place-items:center;font-size:clamp(15px,4.4vw,22px);font-weight:900;position:relative;transition:transform .12s,opacity .2s}
+  .pt.can{cursor:pointer;box-shadow:0 3px 0 rgba(0,0,0,.14);background:#fff;color:var(--ink)}
+  :root[data-theme="dark"] .pt.can{background:#2e3d5a}
+  .pt.can:active{transform:translateY(2px);box-shadow:none}
+  .pt.x{opacity:.22}
+  .pt.x::after{content:"";position:absolute;left:14%;right:14%;top:50%;height:3px;background:var(--ink);transform:rotate(-24deg)}
+  .pt.hot{box-shadow:0 0 0 3px var(--yellow);opacity:1;transform:scale(1.1);z-index:1}
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .ct{aspect-ratio:1;border-radius:14px;background:var(--panel-2);display:grid;place-items:center;font-size:clamp(24px,8vw,40px);font-weight:900;position:relative;border:3px solid transparent;transition:transform .12s;color:var(--ink)}
+  .ct.can{cursor:pointer;box-shadow:0 4px 0 rgba(0,0,0,.14);background:#fff}
+  :root[data-theme="dark"] .ct.can{background:#2e3d5a}
+  .ct.can:active{transform:translateY(3px);box-shadow:none}
+  .ct.on{background:#37c871;border-color:#249a52;color:#fff}
+  .ct.on::after{content:"✓";position:absolute;right:7px;top:3px;font-size:14px;font-family:var(--font-body)}
+  .ct.hit{animation:hit .5s cubic-bezier(.2,1.6,.4,1)}
+  @keyframes hit{40%{transform:scale(1.18)}}
+  .ct.bad{animation:shake .32s}
+  @keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+  .ct.line{box-shadow:0 0 0 4px var(--yellow)}
+  .dim{opacity:.5}
+  .nope{margin-top:10px;font-size:15px;padding:11px}
+  .flash{text-align:center;font-size:15px;color:var(--ink-dim);min-height:22px;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="bgfloat" id="bgfloat"></div>
+<div class="stage">
+  <section class="screen on" id="scIntro">
+    <div class="card">
+      <h1><span class="x">Shape</span> <span class="o">Bingo</span></h1>
+      <div class="sub">Call it. Find it. Line it up.</div>
+      <div class="rules">
+        <div class="rule"><span class="n">1</span><span>Take turns calling: tap anything on the call board.</span></div>
+        <div class="rule"><span class="n">2</span><span>The other player has 4 seconds to find it on their card. Found it? It's theirs. Missed it, or don't have it? The caller keeps it.</span></div>
+        <div class="rule"><span class="n">3</span><span>Four in a line on your card wins. If the board runs out, most checks wins.</span></div>
+      </div>
+      <button class="btn" id="introGo">Let's play!</button>
+    </div>
+  </section>
+
+  <section class="screen play" id="scGame">
+    <div class="score">
+      <div class="pill" id="pA"><div class="k" id="kA"></div><div class="v" id="sA">0</div></div>
+      <div class="pill" id="pB"><div class="k" id="kB"></div><div class="v" id="sB">0</div></div>
+    </div>
+    <div class="status" id="status"></div>
+    <div class="clock" id="clock"><i id="clockBar"></i></div>
+    <div class="boardcard" id="poolCard">
+      <div class="lbl"><span>Call board</span><span id="poolLeft"></span></div>
+      <div class="pool" id="pool"></div>
+    </div>
+    <div class="boardcard" id="cardCard">
+      <div class="lbl"><span>Your card</span><span id="cardChecks"></span></div>
+      <div class="grid4" id="mycard"></div>
+      <button class="btn ghost nope" id="nope" style="display:none">Not on my card</button>
+      <div class="flash" id="flash"></div>
+    </div>
+  </section>
+</div>
+
+<script src="/shell.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const esc = Shell.esc;
+function show(id){ document.querySelectorAll('.screen').forEach(s => s.classList.remove('on')); $(id).classList.add('on'); }
+(function bg(){ const w=$('bgfloat'); for (let i=0;i<9;i++){ const b=document.createElement('div'); b.className='b'; const s=40+Math.random()*80;
+  Object.assign(b.style,{ width:s+'px', height:s+'px', left:Math.random()*100+'%', top:Math.random()*100+'%', animationDelay:(-Math.random()*7)+'s' }); w.appendChild(b); } })();
+
+//// ===== sounds =====
+let AC=null;
+function tone(f, dur, type='triangle', vol=.16, delay=0){
+  if (!Shell.soundOn()) return;
+  try{ AC ||= new (window.AudioContext||window.webkitAudioContext)();
+    const t=AC.currentTime+delay, o=AC.createOscillator(), g=AC.createGain();
+    o.type=type; o.frequency.setValueAtTime(f,t); g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.001,t+dur);
+    o.connect(g).connect(AC.destination); o.start(t); o.stop(t+dur); }catch(e){}
+}
+const sndWin = () => [523,659,784,1047].forEach((f,i) => tone(f, i===3 ? .5 : .14, 'triangle', .18, i*.09));
+const sndLose = () => [392,330,262].forEach((f,i) => tone(f, .22, 'sine', .15, i*.14));
+const sndDraw = () => [392,330].forEach((f,i) => tone(f, .22, 'sine', .15, i*.14));
+const sndTap = () => tone(660, .08, 'triangle', .12);
+const sndCall = () => [880,1175].forEach((f,i) => tone(f, .12, 'square', .07, i*.08));
+const sndCheck = () => [659,988].forEach((f,i) => tone(f, .14, 'triangle', .16, i*.07));
+const sndMiss = () => tone(150, .35, 'sawtooth', .12);
+const plural = (n, w, ws=w+'s') => `${n} ${n===1 ? w : ws}`;
+
+//// ===== the game =====
+// 24 items on the call board; every card is 16 of them. Player 0 = the host (or you, solo), player 1 = the guest (or the computer).
+const POOL = ['🔴','🔷','🔺','⭐','💜','🟩','🟠','🔶','💎','🟡','🍀','❤️','1','2','3','4','5','6','7','8','9','10','11','12'];
+const FIND_MS = 4000, LINES = [];
+for (let i=0;i<4;i++){ LINES.push([0,1,2,3].map(j => i*4+j)); LINES.push([0,1,2,3].map(j => j*4+i)); }
+LINES.push([0,5,10,15]); LINES.push([3,6,9,12]);
+const rng = seed => { let a=seed>>>0; return () => { a=(a+0x6D2B79F5)>>>0; let t=a; t=Math.imul(t^(t>>>15), t|1); t^=t+Math.imul(t^(t>>>7), t|61); return ((t^(t>>>14))>>>0)/4294967296; }; };
+const deal = () => ({ seed: (Math.random()*4294967296)>>>0 });
+function build(seed){
+  const r=rng(seed), mix = a => { for (let i=a.length-1;i>0;i--){ const j=Math.floor(r()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+  const ids = () => mix(POOL.map((_,i) => i));
+  return { cards:[ids().slice(0,16), ids().slice(0,16)], board:ids(), first: r()<.5 ? 0 : 1 };
+}
+const G = { mode:'cpu', level:'hard', room:null, game:0, me:0, them:1, cards:[[],[]], board:[], called:new Set(), checked:[new Set(),new Set()],
+            caller:0, phase:'call', item:null, findT0:0, clockT:0, timers:[], over:false, winLine:null };
+const later = (f, ms) => G.timers.push(setTimeout(f, ms));
+const finder = () => 1-G.caller;
+const nameOf = who => {
+  if (G.mode==='cpu') return who===0 ? 'You' : 'Computer';
+  const q = who===G.me ? G.room.me : G.room.other;
+  return q ? `${q.avatar} ${q.name}` : 'Your friend';
+};
+const hasLine = who => LINES.find(l => l.every(j => G.checked[who].has(j))) || null;
+
+function render(){
+  $('pA').className='pill '+(G.me===0?'p0':'p1')+(G.caller===G.me && !G.over ? ' turn' : '');
+  $('pB').className='pill '+(G.them===0?'p0':'p1')+(G.caller===G.them && !G.over ? ' turn' : '');
+  $('kA').textContent=nameOf(G.me); $('kB').textContent=nameOf(G.them);
+  $('sA').innerHTML=`${G.checked[G.me].size}<small>/16</small>`; $('sB').innerHTML=`${G.checked[G.them].size}<small>/16</small>`;
+  const it = G.item!=null ? `<span class="big">${POOL[G.item]}</span>` : '';
+  $('status').innerHTML = G.over ? '' : G.phase==='call' ? (G.caller===G.me ? 'Your call' : `${esc(nameOf(G.them))} is calling…`)
+    : G.phase==='find' ? (finder()===G.me ? `Find ${it}` : `${esc(nameOf(G.them))} is looking for ${it}`) : it;
+  $('clock').classList.toggle('on', G.phase==='find');
+  $('poolLeft').textContent = `${24-G.called.size} left`;
+  $('cardChecks').textContent = `${plural(G.checked[G.me].size,'check')}`;
+  $('poolCard').classList.toggle('dim', G.phase!=='call' || G.caller!==G.me);
+  $('cardCard').classList.toggle('dim', G.phase==='find' && finder()!==G.me);
+  $('nope').style.display = G.phase==='find' && finder()===G.me ? '' : 'none';
+  // the call board: tapped only by the caller, on their call
+  const can = G.phase==='call' && G.caller===G.me && !G.over;
+  $('pool').innerHTML = G.board.map(i => `<div class="pt${G.called.has(i)?' x':''}${can && !G.called.has(i)?' can':''}${G.item===i?' hot':''}" data-i="${i}">${POOL[i]}</div>`).join('');
+  // your card
+  const find = G.phase==='find' && finder()===G.me && !G.over;
+  $('mycard').innerHTML = G.cards[G.me].map((i,j) => `<div class="ct${G.checked[G.me].has(j)?' on':''}${find && !G.checked[G.me].has(j)?' can':''}${G.winLine && G.over && G.winLine.who===G.me && G.winLine.line.includes(j)?' line':''}" data-j="${j}">${POOL[i]}</div>`).join('');
+}
+function flash(t){ $('flash').textContent=t; }
+
+// ---- calling ----
+function call(i){
+  if (G.over || G.phase!=='call' || G.caller!==G.me || G.called.has(i)) return;
+  if (G.mode==='online') G.room.send({ t:'call', g:G.game, i });
+  applyCall(i);
+}
+function applyCall(i){
+  G.called.add(i); G.item=i; G.phase='find'; G.findT0=performance.now(); flash(''); sndCall(); render();
+  clearInterval(G.clockT);
+  G.clockT=setInterval(() => { const p=1-(performance.now()-G.findT0)/FIND_MS; $('clockBar').style.width=Math.max(0,p)*100+'%'; if (p<=0) clearInterval(G.clockT); }, 40);
+  if (finder()===G.me) later(() => { if (G.phase==='find') result(false); }, FIND_MS);      // the finder's screen decides
+  else if (G.mode==='cpu') cpuFind();
+}
+// ---- finding: one tap on your card ----
+function findTap(j){
+  if (G.over || G.phase!=='find' || finder()!==G.me || G.checked[G.me].has(j)) return;
+  const ok = G.cards[G.me][j]===G.item;
+  const el=$('mycard').children[j]; el.classList.add(ok ? 'hit' : 'bad');
+  result(ok);
+}
+function result(ok){
+  if (G.phase!=='find') return;
+  if (G.mode==='online' && finder()===G.me) G.room.send({ t:'found', g:G.game, ok });
+  applyResult(ok);
+}
+function applyResult(ok){
+  if (G.phase!=='find') return;
+  clearInterval(G.clockT); G.timers.forEach(clearTimeout); G.timers=[];
+  const f=finder(), c=G.caller, item=G.item;
+  const fj=G.cards[f].indexOf(item), cj=G.cards[c].indexOf(item);
+  let msg;
+  if (ok){ G.checked[f].add(fj); msg = f===G.me ? 'Found it!' : `${nameOf(G.them)} found it.`; if (f===G.me) sndCheck(); else sndTap(); }
+  else if (cj>=0){ G.checked[c].add(cj); msg = (fj>=0 ? (f===G.me ? 'Too slow — ' : `${nameOf(G.them)} missed — `) : (f===G.me ? 'Not on your card — ' : `Not on their card — `)) + (c===G.me ? 'you keep it.' : `${nameOf(G.them)} keeps it.`); if (c===G.me) sndCheck(); else sndMiss(); }
+  else { msg = fj>=0 ? (f===G.me ? 'Too slow.' : `${nameOf(G.them)} missed.`) : 'Nobody had it.'; sndMiss(); }
+  G.phase='pause'; render(); flash(msg);
+  const line = [0,1].map(w => ({ who:w, line:hasLine(w) })).find(x => x.line);
+  if (line){ G.winLine=line; return later(() => finish(line.who), 900); }
+  if (G.called.size===24){ const a=G.checked[0].size, b=G.checked[1].size; return later(() => finish(a===b ? -1 : a>b ? 0 : 1), 900); }
+  later(() => { G.caller=1-G.caller; G.item=null; G.phase='call'; render(); if (G.mode==='cpu' && G.caller===1) cpuCall(); }, 1300);
+}
+
+// ---- the computer: calls its own items; finds most things, slower on Easy ----
+function cpuCall(){
+  later(() => {
+    if (G.over || G.phase!=='call' || G.caller!==1) return;
+    const mine = G.cards[1].filter((i,j) => !G.called.has(i) && !G.checked[1].has(j));
+    const any = G.board.filter(i => !G.called.has(i));
+    const from = mine.length ? mine : any; if (!from.length) return;
+    applyCall(from[Math.floor(Math.random()*from.length)]);
+  }, 800+Math.random()*700);
+}
+function cpuFind(){
+  const has = G.cards[1].includes(G.item), hard = G.level==='hard';
+  const finds = has && Math.random() < (hard ? .9 : .6);
+  const at = finds ? (hard ? 900+Math.random()*1500 : 1400+Math.random()*2200) : (has ? FIND_MS : 1200+Math.random()*1200);
+  later(() => { if (G.phase==='find') applyResult(finds); }, Math.min(at, FIND_MS));
+}
+
+function newGame(seed){
+  G.timers.forEach(clearTimeout); clearInterval(G.clockT);
+  const d=build(seed); G.game++;
+  Object.assign(G, { cards:d.cards, board:d.board, called:new Set(), checked:[new Set(),new Set()], caller:d.first, phase:'call', item:null, timers:[], over:false, winLine:null });
+  flash(''); show('scGame'); render();
+  if (G.mode==='cpu' && G.caller===1) cpuCall();
+}
+function finish(winner){
+  G.over=true; G.phase='over'; render();
+  const won = winner===G.me, tie = winner<0;
+  if (won) sndWin(); else if (tie) sndDraw(); else sndLose();
+  const sub = `${nameOf(G.me)} ${G.checked[G.me].size} · ${nameOf(G.them)} ${G.checked[G.them].size}`;
+  later(() => Shell.results({
+    em: won ? '🏆' : tie ? '🤝' : (G.mode==='cpu' ? '🤖' : '😬'),
+    title: won ? 'Bingo! You win' : tie ? "It's a tie" : `${esc(nameOf(G.them))} got bingo`,
+    sub: esc(sub),
+    again:{ label:'Play again', onClick:()=>{
+      if (G.mode==='cpu') return newGame(deal().seed);
+      if (G.room.isHost){ const s=deal().seed; G.room.send({ t:'again', seed:s }); newGame(s); }
+      else { G.room.send({ t:'again-req' }); Shell.toast('Waiting for the host…'); }
+    } },
+    change:{ label:'Change mode', onClick:()=>{ leaveRoom(); openMode(); } } }), 700);
+}
+
+//// ===== the standard start sequence =====
+function openMode(){
+  Shell.mode({ options:[
+      { label:'Play the computer', onClick:pickLevel },
+      { label:'Play a friend', kind:'b', onClick:()=>Shell.friend(FRIEND) } ],
+    onBack:()=>show('scIntro') });
+}
+function pickLevel(){
+  Shell.mode({ title:'How tough?', options:[
+      { label:'Easy', onClick:()=>startCpu('easy') },
+      { label:'Hard', kind:'b', onClick:()=>startCpu('hard') } ],
+    onBack:openMode });
+}
+function startCpu(level){ Shell.hide(); leaveRoom(); Object.assign(G, { mode:'cpu', level, me:0, them:1 }); newGame(deal().seed); }
+const FRIEND = {
+  game:'shape-bingo-70',
+  onBack: openMode,
+  startData: () => deal(),                                   // the host deals; both screens build the same cards
+  onStart: (R, data) => { Object.assign(G, { mode:'online', room:R, game:0 }); G.me = R.isHost ? 0 : 1; G.them = 1-G.me; newGame(data.seed); },
+  onMessage: m => {
+    if (m.g!==G.game && m.t!=='again') return;
+    if (m.t==='call'){ if (G.phase==='call' && G.caller===G.them && !G.called.has(m.i)) applyCall(m.i); }
+    else if (m.t==='found'){ if (G.phase==='find' && finder()===G.them) applyResult(!!m.ok); }
+    else if (m.t==='again' && G.over){ Shell.hide(); newGame(m.seed); }
+    else if (m.t==='again-req' && G.over && G.room.isHost){ Shell.hide(); const s=deal().seed; G.room.send({ t:'again', seed:s }); newGame(s); }
+  },
+  onLeft: () => { if (!G.over){ G.timers.forEach(clearTimeout); clearInterval(G.clockT); G.over=true; G.phase='over'; render(); flash(`${nameOf(G.them)} left`); } },
+};
+function leaveRoom(){ if (G.room){ Shell.leaveRoom(); G.room=null; } }
+
+$('pool').addEventListener('click', e => { const t=e.target.closest('.pt.can'); if (t) call(+t.dataset.i); });
+$('mycard').addEventListener('click', e => { const t=e.target.closest('.ct.can'); if (t) findTap(+t.dataset.j); });
+$('nope').onclick = () => { if (G.phase==='find' && finder()===G.me) result(false); };
+$('introGo').onclick = () => Shell.requirePlayer().then(openMode);
+Shell.addBack('#scIntro .card', () => Shell.nav('games'));
+Shell.init({
+  brand:'Shape&nbsp;Bingo',
+  theme:{ key:'nysgpt-theme-f3', darkDefault:false },
+  beforeLeave:()=>!G.room || confirm('Leave this game?'),
+  onJoinLink: code => Shell.joinCode(FRIEND, code),
+  playground:{ swatches:['#1fc7b6','#8b5cf6','#ff7a3c','#37c871','#2d6fd6','#ff4d8d'].map(c=>({ bg:c, vars:{ '--bg':c } })) },
+});
+</script>
+</body>
+</html>
